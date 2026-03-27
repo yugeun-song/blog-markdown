@@ -1,0 +1,7 @@
+{
+  "title": "DNS 리졸버 직접 구현하기 — UDP 패킷 파싱부터 캐시까지",
+  "date": "2026-02-08",
+  "tags": ["dns", "networking", "udp", "protocol"],
+  "excerpt": "DNS 프로토콜의 구조를 이해하고, UDP 소켓을 사용해 간단한 재귀 리졸버를 직접 구현해 본다.",
+  "readTime": "16 min"
+}

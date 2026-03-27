@@ -1,0 +1,9 @@
+{
+  "title": "컨테이너의 기반 — Linux namespace와 cgroup 직접 다루기",
+  "date": "2026-01-15",
+  "tags": ["docker", "namespace", "cgroup", "linux"],
+  "series": "DevOps/containers",
+  "seriesOrder": 1,
+  "excerpt": "Docker 없이 Linux namespace와 cgroup만으로 컨테이너를 직접 구성해 본다. 격리와 자원 제한의 기본 원리를 이해한다.",
+  "readTime": "16 min"
+}

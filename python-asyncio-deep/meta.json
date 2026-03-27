@@ -1,0 +1,7 @@
+{
+  "title": "asyncio 이벤트 루프 내부 — 셀렉터와 코루틴 스케줄링",
+  "date": "2026-02-01",
+  "tags": ["python", "asyncio", "event-loop", "coroutine"],
+  "excerpt": "Python asyncio의 이벤트 루프가 내부적으로 어떻게 동작하는지 분석한다. 셀렉터 기반 I/O 멀티플렉싱과 코루틴 스케줄링의 원리를 살펴본다.",
+  "readTime": "15 min"
+}
