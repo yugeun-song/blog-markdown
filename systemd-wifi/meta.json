@@ -1,9 +1,0 @@
-{
-  "title": "systemd-networkd와 wpa_supplicant로 Wi-Fi 연결 관리하기",
-  "date": "2026-03-21",
-  "tags": ["systemd", "networking", "arch", "wpa_supplicant"],
-  "series": "Linux/networking",
-  "seriesOrder": 1,
-  "excerpt": "NetworkManager 없이 systemd 네이티브 도구만으로 무선 네트워크를 구성하는 방법을 단계별로 살펴봅니다.",
-  "readTime": "8 min"
-}

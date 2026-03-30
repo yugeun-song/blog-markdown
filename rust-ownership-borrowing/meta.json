@@ -1,9 +1,0 @@
-{
-  "title": "소유권과 빌림 — Rust 메모리 모델의 핵심",
-  "date": "2026-01-10",
-  "tags": ["rust", "ownership", "borrowing", "memory"],
-  "series": "Rust/basics",
-  "seriesOrder": 1,
-  "excerpt": "Rust의 소유권 시스템과 빌림 규칙을 이해한다. 가비지 컬렉터 없이 메모리 안전성을 보장하는 컴파일 타임 전략을 살펴본다.",
-  "readTime": "10 min"
-}

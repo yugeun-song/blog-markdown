@@ -1,9 +1,0 @@
-{
-  "title": "tokio::select! 로 비동기 I/O 분기 처리하기",
-  "date": "2026-03-14",
-  "tags": ["rust", "tokio", "async"],
-  "series": "Rust/async",
-  "seriesOrder": 1,
-  "excerpt": "Rust async 생태계에서 여러 Future를 동시에 대기하며 첫 완료를 처리하는 패턴과 취소 안전성(cancel safety)을 살펴봅니다.",
-  "readTime": "12 min"
-}

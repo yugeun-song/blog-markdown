@@ -1,9 +1,0 @@
-{
-  "title": "WireGuard VPN 구성 — 키 생성부터 라우팅까지",
-  "date": "2026-03-25",
-  "tags": ["wireguard", "vpn", "linux", "networking"],
-  "series": "Linux/networking",
-  "seriesOrder": 3,
-  "excerpt": "WireGuard VPN을 처음부터 구성하는 과정을 다룬다. 키 페어 생성, 피어 설정, 라우팅 규칙까지 단계별로 진행한다.",
-  "readTime": "11 min"
-}

@@ -1,7 +1,0 @@
-{
-  "title": "Go 스케줄러 내부 — M:N 스레딩과 work stealing",
-  "date": "2026-02-10",
-  "tags": ["go", "goroutine", "scheduler", "concurrency"],
-  "excerpt": "Go 런타임의 GMP 스케줄러를 분석한다. 고루틴이 OS 스레드에 매핑되는 과정과 work stealing 알고리즘의 동작 원리를 살펴본다.",
-  "readTime": "14 min"
-}
