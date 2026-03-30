@@ -1,0 +1,7 @@
+{
+  "title": "Nix Flakes로 재현 가능한 개발 환경 만들기",
+  "date": "2026-03-10",
+  "tags": ["nix", "flakes", "devops", "reproducible"],
+  "excerpt": "Nix Flakes를 사용해 팀 전체가 동일한 개발 환경을 공유하는 방법을 소개한다. flake.nix 작성부터 devShell, 패키지 빌드까지 다룬다.",
+  "readTime": "12 min"
+}

@@ -1,0 +1,9 @@
+{
+  "title": "트레이트 객체와 동적 디스패치 — dyn Trait의 내부 구조",
+  "date": "2026-01-20",
+  "tags": ["rust", "trait", "vtable", "polymorphism"],
+  "series": "Rust/basics",
+  "seriesOrder": 2,
+  "excerpt": "Rust에서 다형성을 구현하는 두 가지 방법을 비교한다. 제네릭의 정적 디스패치와 dyn Trait의 동적 디스패치, 그리고 vtable의 내부 구조를 분석한다.",
+  "readTime": "12 min"
+}

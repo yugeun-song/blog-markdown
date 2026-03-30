@@ -1,0 +1,9 @@
+{
+  "title": "커널 모듈 작성 입문 — Hello World부터 디바이스 드라이버까지",
+  "date": "2026-02-15",
+  "tags": ["linux", "kernel", "c", "driver"],
+  "series": "Linux/kernel",
+  "seriesOrder": 1,
+  "excerpt": "리눅스 커널 모듈의 기본 구조를 이해하고, 간단한 Hello World 모듈부터 캐릭터 디바이스 드라이버까지 단계별로 작성해 본다.",
+  "readTime": "18 min"
+}

@@ -1,0 +1,7 @@
+{
+  "title": "epoll로 구현하는 이벤트 루프 — libuv 내부를 직접 흉내내기",
+  "date": "2026-03-07",
+  "tags": ["c", "epoll", "event-loop"],
+  "excerpt": "Linux epoll API를 직접 사용해 간단한 이벤트 루프를 구현하면서 비동기 I/O 모델의 핵심 원리를 파악합니다.",
+  "readTime": "15 min"
+}

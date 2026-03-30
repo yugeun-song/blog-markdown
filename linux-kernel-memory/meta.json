@@ -1,0 +1,9 @@
+{
+  "title": "리눅스 커널의 메모리 관리 — 슬랩 할당자와 페이지 캐시",
+  "date": "2026-02-22",
+  "tags": ["linux", "kernel", "memory", "slab"],
+  "series": "Linux/kernel",
+  "seriesOrder": 2,
+  "excerpt": "리눅스 커널이 물리 메모리를 어떻게 관리하는지 살펴본다. 버디 시스템부터 슬랩 할당자, 페이지 캐시까지 핵심 메커니즘을 분석한다.",
+  "readTime": "20 min"
+}

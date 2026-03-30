@@ -1,0 +1,7 @@
+{
+  "title": "Go 인터페이스의 내부 구현 — iface와 eface 구조체",
+  "date": "2026-02-18",
+  "tags": ["go", "interface", "runtime", "internals"],
+  "excerpt": "Go 인터페이스가 런타임에서 어떻게 표현되는지 분석한다. iface와 eface 구조체의 메모리 레이아웃과 타입 어서션의 동작 원리를 살펴본다.",
+  "readTime": "11 min"
+}
