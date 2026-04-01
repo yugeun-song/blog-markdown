@@ -1,0 +1,11 @@
+{
+  "title": "GDB 고급 디버깅 — Python 스크립팅과 리버스 디버깅",
+  "date": "2025-10-18",
+  "tags": [
+    "gdb",
+    "debugging",
+    "linux"
+  ],
+  "excerpt": "GDB의 Python API로 커스텀 커맨드를 만들고, record and replay로 리버스 디버깅하는 방법을 다룬다.",
+  "readTime": "11 min"
+}

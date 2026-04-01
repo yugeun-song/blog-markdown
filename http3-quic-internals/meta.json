@@ -1,0 +1,12 @@
+{
+  "title": "HTTP/3과 QUIC — UDP 기반 전송 프로토콜의 혁신",
+  "date": "2026-02-28",
+  "tags": [
+    "http3",
+    "quic",
+    "networking",
+    "protocol"
+  ],
+  "excerpt": "QUIC의 연결 마이그레이션, 스트림 다중화, 0-RTT 연결 재개를 프로토콜 레벨에서 분석한다.",
+  "readTime": "13 min"
+}

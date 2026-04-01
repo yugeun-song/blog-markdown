@@ -1,0 +1,14 @@
+{
+  "title": "Kubernetes CNI 플러그인 내부 동작",
+  "date": "2025-11-05",
+  "tags": [
+    "kubernetes",
+    "cni",
+    "networking",
+    "containers"
+  ],
+  "excerpt": "CNI 스펙부터 Calico, Cilium의 데이터플레인 구현까지, Pod 네트워크의 실체를 파헤친다.",
+  "readTime": "14 min",
+  "series": "DevOps/containers",
+  "seriesOrder": 3
+}

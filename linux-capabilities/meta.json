@@ -1,0 +1,13 @@
+{
+  "title": "Linux Capabilities — root 권한 분리의 실체",
+  "date": "2025-10-25",
+  "tags": [
+    "linux",
+    "capabilities",
+    "security"
+  ],
+  "excerpt": "POSIX capabilities 모델과 effective/permitted/inheritable 셋의 동작을 실험으로 확인한다.",
+  "readTime": "10 min",
+  "series": "Security/linux",
+  "seriesOrder": 2
+}

@@ -1,0 +1,14 @@
+{
+  "title": "Kubernetes Operator 패턴 구현하기",
+  "date": "2025-12-28",
+  "tags": [
+    "kubernetes",
+    "operator",
+    "go",
+    "containers"
+  ],
+  "excerpt": "controller-runtime으로 커스텀 Operator를 구현하며 Reconcile 루프의 설계 원칙을 익힌다.",
+  "readTime": "15 min",
+  "series": "DevOps/containers",
+  "seriesOrder": 4
+}

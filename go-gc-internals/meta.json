@@ -1,0 +1,13 @@
+{
+  "title": "Go GC 내부 — 삼색 마킹과 write barrier",
+  "date": "2025-10-10",
+  "tags": [
+    "go",
+    "gc",
+    "runtime"
+  ],
+  "excerpt": "Go 런타임의 concurrent mark-sweep GC 알고리즘과 write barrier 구현을 소스 코드로 분석한다.",
+  "readTime": "14 min",
+  "series": "Go/internals",
+  "seriesOrder": 2
+}

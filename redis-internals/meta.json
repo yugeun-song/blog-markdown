@@ -1,0 +1,11 @@
+{
+  "title": "Redis 내부 구조 — SDS, ziplist, skiplist",
+  "date": "2026-01-28",
+  "tags": [
+    "redis",
+    "data-structures",
+    "database"
+  ],
+  "excerpt": "Redis의 핵심 자료구조 구현을 소스 코드 레벨에서 분석하고 메모리 최적화 전략을 이해한다.",
+  "readTime": "13 min"
+}

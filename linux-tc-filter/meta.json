@@ -1,0 +1,14 @@
+{
+  "title": "tc와 eBPF로 트래픽 셰이핑 구현하기",
+  "date": "2025-11-20",
+  "tags": [
+    "linux",
+    "tc",
+    "networking",
+    "qos"
+  ],
+  "excerpt": "Linux tc 서브시스템의 qdisc/class/filter 계층과 eBPF classifier를 조합한 트래픽 제어를 다룬다.",
+  "readTime": "11 min",
+  "series": "Linux/networking",
+  "seriesOrder": 5
+}

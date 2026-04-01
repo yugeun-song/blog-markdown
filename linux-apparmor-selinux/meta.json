@@ -1,0 +1,14 @@
+{
+  "title": "AppArmor vs SELinux — MAC 정책 비교 분석",
+  "date": "2025-11-30",
+  "tags": [
+    "linux",
+    "apparmor",
+    "selinux",
+    "security"
+  ],
+  "excerpt": "두 LSM 모듈의 정책 모델 차이와 컨테이너 환경에서의 실전 설정을 비교한다.",
+  "readTime": "13 min",
+  "series": "Security/linux",
+  "seriesOrder": 3
+}

@@ -1,0 +1,13 @@
+{
+  "title": "async fn in traits — RPITIT와 AFIT 이해하기",
+  "date": "2025-12-22",
+  "tags": [
+    "rust",
+    "async",
+    "traits"
+  ],
+  "excerpt": "Rust 1.75의 async fn in traits 안정화 배경과 dyn 호환성 문제를 분석한다.",
+  "readTime": "10 min",
+  "series": "Rust/async",
+  "seriesOrder": 4
+}

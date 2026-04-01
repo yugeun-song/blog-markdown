@@ -1,0 +1,12 @@
+{
+  "title": "perf로 성능 프로파일링하기 — CPU, 메모리, 락",
+  "date": "2025-11-15",
+  "tags": [
+    "perf",
+    "profiling",
+    "linux",
+    "performance"
+  ],
+  "excerpt": "perf stat, perf record, perf report를 활용한 성능 병목 분석과 flamegraph 생성을 실습한다.",
+  "readTime": "13 min"
+}

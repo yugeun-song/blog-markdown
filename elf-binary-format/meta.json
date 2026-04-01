@@ -1,0 +1,12 @@
+{
+  "title": "ELF 바이너리 포맷 완전 분석",
+  "date": "2025-10-02",
+  "tags": [
+    "elf",
+    "linux",
+    "binary",
+    "linker"
+  ],
+  "excerpt": "ELF 헤더, 프로그램 헤더, 섹션 헤더를 readelf로 분석하고 동적 링킹 과정을 추적한다.",
+  "readTime": "16 min"
+}

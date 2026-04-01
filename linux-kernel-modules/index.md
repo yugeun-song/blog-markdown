@@ -42,7 +42,7 @@ clean:
 #include <linux/kernel.h>
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("archgeek");
+MODULE_AUTHOR("devlog");
 MODULE_DESCRIPTION("A simple hello world kernel module");
 
 static int __init hello_init(void)

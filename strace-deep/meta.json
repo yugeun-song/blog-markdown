@@ -1,0 +1,12 @@
+{
+  "title": "strace 고급 활용 — 시스템 콜 추적의 기술",
+  "date": "2025-12-05",
+  "tags": [
+    "strace",
+    "linux",
+    "debugging",
+    "syscall"
+  ],
+  "excerpt": "strace의 필터링, 통계, 인젝션 기능과 프로덕션 환경에서의 안전한 사용법을 정리한다.",
+  "readTime": "9 min"
+}

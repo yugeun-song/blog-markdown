@@ -1,0 +1,11 @@
+{
+  "title": "Python 디스크립터 프로토콜 내부 동작",
+  "date": "2026-03-02",
+  "tags": [
+    "python",
+    "descriptor",
+    "metaclass"
+  ],
+  "excerpt": "__get__, __set__, __delete__의 호출 메커니즘과 property, classmethod 구현 원리를 분석한다.",
+  "readTime": "10 min"
+}

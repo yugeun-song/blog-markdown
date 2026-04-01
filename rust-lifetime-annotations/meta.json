@@ -1,0 +1,13 @@
+{
+  "title": "Rust 라이프타임 어노테이션 완전 이해",
+  "date": "2025-10-20",
+  "tags": [
+    "rust",
+    "lifetime",
+    "memory"
+  ],
+  "excerpt": "라이프타임 생략 규칙부터 복잡한 구조체 라이프타임까지, 컴파일러의 시선으로 라이프타임을 이해한다.",
+  "readTime": "10 min",
+  "series": "Rust/basics",
+  "seriesOrder": 3
+}

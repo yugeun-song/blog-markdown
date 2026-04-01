@@ -1,0 +1,14 @@
+{
+  "title": "XDP로 패킷 필터링 시작하기",
+  "date": "2025-10-15",
+  "tags": [
+    "linux",
+    "xdp",
+    "networking",
+    "ebpf"
+  ],
+  "excerpt": "XDP 프로그램을 작성하여 커널 네트워크 스택 진입 전에 패킷을 처리하는 방법을 단계별로 실습한다.",
+  "readTime": "12 min",
+  "series": "Linux/networking",
+  "seriesOrder": 4
+}

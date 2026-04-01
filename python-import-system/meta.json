@@ -1,0 +1,11 @@
+{
+  "title": "Python 임포트 시스템 완전 이해",
+  "date": "2026-03-12",
+  "tags": [
+    "python",
+    "import",
+    "modules"
+  ],
+  "excerpt": "sys.meta_path, finder, loader의 동작과 커스텀 임포터 구현으로 임포트 메커니즘을 이해한다.",
+  "readTime": "11 min"
+}

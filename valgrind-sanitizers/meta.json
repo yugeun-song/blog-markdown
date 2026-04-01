@@ -1,0 +1,12 @@
+{
+  "title": "Valgrind와 Sanitizer로 메모리 버그 잡기",
+  "date": "2025-11-28",
+  "tags": [
+    "valgrind",
+    "asan",
+    "debugging",
+    "memory"
+  ],
+  "excerpt": "Valgrind Memcheck와 ASan/MSan/TSan의 동작 원리와 사용법을 비교한다.",
+  "readTime": "10 min"
+}

@@ -1,0 +1,11 @@
+{
+  "title": "LLVM IR 입문 — 컴파일러 중간 표현 이해하기",
+  "date": "2025-09-25",
+  "tags": [
+    "llvm",
+    "compiler",
+    "ir"
+  ],
+  "excerpt": "Clang이 생성하는 LLVM IR의 구조를 분석하고, opt를 이용한 최적화 패스를 실습한다.",
+  "readTime": "14 min"
+}

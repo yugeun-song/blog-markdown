@@ -1,0 +1,11 @@
+{
+  "title": "SQLite B-tree와 WAL 내부 구현",
+  "date": "2026-02-12",
+  "tags": [
+    "sqlite",
+    "database",
+    "btree"
+  ],
+  "excerpt": "SQLite의 페이지 기반 B-tree 구조와 WAL 저널 모드의 동시성 제어를 분석한다.",
+  "readTime": "14 min"
+}

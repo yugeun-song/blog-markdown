@@ -1,0 +1,12 @@
+{
+  "title": "bpftrace로 커널 동적 추적하기",
+  "date": "2026-03-30",
+  "tags": [
+    "ebpf",
+    "bpftrace",
+    "tracing",
+    "linux"
+  ],
+  "excerpt": "bpftrace의 프로브 타입과 내장 변수를 활용한 커널/유저 공간 동적 추적을 실습한다.",
+  "readTime": "9 min"
+}

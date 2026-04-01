@@ -1,0 +1,13 @@
+{
+  "title": "Pin과 Unpin — 자기참조 구조체의 비밀",
+  "date": "2025-10-28",
+  "tags": [
+    "rust",
+    "async",
+    "pin"
+  ],
+  "excerpt": "Pin의 존재 이유와 자기참조 Future의 메모리 안전성 보장 메커니즘을 도해와 함께 설명한다.",
+  "readTime": "11 min",
+  "series": "Rust/async",
+  "seriesOrder": 3
+}

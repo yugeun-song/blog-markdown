@@ -1,0 +1,13 @@
+{
+  "title": "Go 채널 내부 구현 — hchan 구조체 해부",
+  "date": "2025-11-25",
+  "tags": [
+    "go",
+    "channel",
+    "concurrency"
+  ],
+  "excerpt": "runtime.hchan의 링버퍼, 대기 큐, lock-free 최적화를 소스 코드와 함께 살펴본다.",
+  "readTime": "12 min",
+  "series": "Go/internals",
+  "seriesOrder": 3
+}

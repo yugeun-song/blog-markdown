@@ -1,0 +1,12 @@
+{
+  "title": "gRPC + Protocol Buffers — Go 서버 구현",
+  "date": "2026-01-22",
+  "tags": [
+    "grpc",
+    "protobuf",
+    "go",
+    "api"
+  ],
+  "excerpt": "proto3 스키마 정의부터 Go gRPC 서버/클라이언트, 스트리밍 RPC까지 구현한다.",
+  "readTime": "11 min"
+}

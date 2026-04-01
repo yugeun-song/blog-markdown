@@ -1,0 +1,12 @@
+{
+  "title": "DPDK로 고성능 패킷 처리 시작하기",
+  "date": "2026-03-05",
+  "tags": [
+    "dpdk",
+    "networking",
+    "performance",
+    "linux"
+  ],
+  "excerpt": "DPDK의 PMD, 메모리 풀, 링 버퍼를 이용한 커널 바이패스 패킷 처리 파이프라인을 구축한다.",
+  "readTime": "13 min"
+}

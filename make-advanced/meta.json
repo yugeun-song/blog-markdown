@@ -1,0 +1,11 @@
+{
+  "title": "GNU Make 고급 패턴 — 자동 의존성과 재귀 빌드",
+  "date": "2025-10-08",
+  "tags": [
+    "make",
+    "build-system",
+    "linux"
+  ],
+  "excerpt": "GNU Make의 패턴 규칙, 자동 변수, 의존성 생성, 비재귀 빌드 설계를 실전 예제로 다룬다.",
+  "readTime": "9 min"
+}

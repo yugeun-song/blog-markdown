@@ -1,0 +1,11 @@
+{
+  "title": "systemd 유닛 파일 심층 분석",
+  "date": "2025-09-05",
+  "tags": [
+    "systemd",
+    "linux",
+    "init"
+  ],
+  "excerpt": "systemd의 유닛 타입별 설정과 의존성 그래프, 리소스 제어 디렉티브를 체계적으로 정리한다.",
+  "readTime": "10 min"
+}

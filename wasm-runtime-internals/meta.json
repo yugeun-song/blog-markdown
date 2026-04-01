@@ -1,0 +1,11 @@
+{
+  "title": "WebAssembly 런타임 내부 구조 — Wasmtime 분석",
+  "date": "2026-03-20",
+  "tags": [
+    "wasm",
+    "wasmtime",
+    "runtime"
+  ],
+  "excerpt": "Wasmtime의 Cranelift JIT 컴파일러와 선형 메모리 모델, WASI 시스템 인터페이스를 분석한다.",
+  "readTime": "14 min"
+}

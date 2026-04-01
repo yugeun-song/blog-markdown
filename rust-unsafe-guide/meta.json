@@ -1,0 +1,13 @@
+{
+  "title": "Rust unsafe 블록의 올바른 사용법",
+  "date": "2026-01-08",
+  "tags": [
+    "rust",
+    "unsafe",
+    "ffi"
+  ],
+  "excerpt": "unsafe가 필요한 5가지 상황과 safety invariant를 유지하는 패턴을 정리한다.",
+  "readTime": "13 min",
+  "series": "Rust/basics",
+  "seriesOrder": 6
+}

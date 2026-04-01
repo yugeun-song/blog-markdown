@@ -1,0 +1,14 @@
+{
+  "title": "Loki로 로그 수집 파이프라인 구축하기",
+  "date": "2025-12-15",
+  "tags": [
+    "loki",
+    "grafana",
+    "logging",
+    "observability"
+  ],
+  "excerpt": "Promtail → Loki → Grafana 로그 파이프라인을 설정하고 LogQL 쿼리를 작성한다.",
+  "readTime": "10 min",
+  "series": "DevOps/observability",
+  "seriesOrder": 3
+}

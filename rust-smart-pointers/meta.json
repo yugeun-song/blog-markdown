@@ -1,0 +1,13 @@
+{
+  "title": "Rust 스마트 포인터 — Box, Rc, Arc, RefCell",
+  "date": "2025-12-10",
+  "tags": [
+    "rust",
+    "smart-pointers",
+    "memory"
+  ],
+  "excerpt": "각 스마트 포인터의 메모리 레이아웃과 사용 시나리오를 비교하고, 순환 참조 문제를 해결한다.",
+  "readTime": "12 min",
+  "series": "Rust/basics",
+  "seriesOrder": 5
+}

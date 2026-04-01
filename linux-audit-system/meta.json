@@ -1,0 +1,14 @@
+{
+  "title": "Linux Audit 프레임워크 — 감사 로그 수집과 분석",
+  "date": "2026-01-12",
+  "tags": [
+    "linux",
+    "audit",
+    "security",
+    "logging"
+  ],
+  "excerpt": "auditd의 규칙 설정부터 ausearch/aureport를 이용한 보안 이벤트 분석까지 실습한다.",
+  "readTime": "9 min",
+  "series": "Security/linux",
+  "seriesOrder": 4
+}

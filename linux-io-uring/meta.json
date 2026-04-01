@@ -1,0 +1,14 @@
+{
+  "title": "io_uring 완전 정복 — 커널 비동기 I/O의 미래",
+  "date": "2025-11-12",
+  "tags": [
+    "linux",
+    "io_uring",
+    "async",
+    "kernel"
+  ],
+  "excerpt": "io_uring의 SQ/CQ 링 버퍼 구조, 커널 폴링 모드, 그리고 기존 epoll 대비 성능 이점을 코드와 함께 살펴본다.",
+  "readTime": "16 min",
+  "series": "Linux/kernel",
+  "seriesOrder": 6
+}

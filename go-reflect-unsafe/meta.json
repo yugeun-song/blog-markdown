@@ -1,0 +1,13 @@
+{
+  "title": "Go reflect와 unsafe.Pointer 실전 활용",
+  "date": "2026-01-18",
+  "tags": [
+    "go",
+    "reflect",
+    "unsafe"
+  ],
+  "excerpt": "reflect 패키지의 내부 구조와 unsafe.Pointer를 이용한 zero-allocation 기법을 실습한다.",
+  "readTime": "10 min",
+  "series": "Go/internals",
+  "seriesOrder": 4
+}

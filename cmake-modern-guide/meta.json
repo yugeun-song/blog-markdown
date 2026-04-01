@@ -1,0 +1,11 @@
+{
+  "title": "Modern CMake 실전 가이드 — 타겟 기반 빌드",
+  "date": "2025-09-10",
+  "tags": [
+    "cmake",
+    "cpp",
+    "build-system"
+  ],
+  "excerpt": "CMake 3.x의 타겟 중심 설계와 INTERFACE/PUBLIC/PRIVATE 속성을 활용한 빌드 구성을 정리한다.",
+  "readTime": "12 min"
+}

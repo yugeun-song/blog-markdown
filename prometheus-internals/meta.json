@@ -1,0 +1,14 @@
+{
+  "title": "Prometheus TSDB 내부 구조",
+  "date": "2025-09-28",
+  "tags": [
+    "prometheus",
+    "tsdb",
+    "monitoring",
+    "observability"
+  ],
+  "excerpt": "Prometheus의 시계열 데이터 저장소 구조 — 청크, 인덱스, WAL, 컴팩션 과정을 분석한다.",
+  "readTime": "13 min",
+  "series": "DevOps/observability",
+  "seriesOrder": 1
+}

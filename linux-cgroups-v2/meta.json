@@ -1,0 +1,13 @@
+{
+  "title": "cgroups v2로 리소스 격리하기",
+  "date": "2025-10-05",
+  "tags": [
+    "linux",
+    "cgroups",
+    "containers"
+  ],
+  "excerpt": "cgroups v2의 통합 계층 구조와 리소스 컨트롤러를 분석하고, systemd 슬라이스와의 연동을 실습한다.",
+  "readTime": "13 min",
+  "series": "Linux/kernel",
+  "seriesOrder": 5
+}

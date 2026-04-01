@@ -1,0 +1,12 @@
+{
+  "title": "ZFS 내부 구조 — COW, ARC, ZIL",
+  "date": "2026-03-28",
+  "tags": [
+    "zfs",
+    "filesystem",
+    "linux",
+    "storage"
+  ],
+  "excerpt": "ZFS의 Copy-on-Write 트랜잭션 모델, ARC 캐시, ZIL 인텐트 로그의 동작을 분석한다.",
+  "readTime": "15 min"
+}

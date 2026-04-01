@@ -1,0 +1,14 @@
+{
+  "title": "nftables 내부 구조와 패킷 흐름",
+  "date": "2025-12-18",
+  "tags": [
+    "linux",
+    "nftables",
+    "firewall",
+    "networking"
+  ],
+  "excerpt": "iptables를 대체하는 nftables의 바이트코드 VM과 넷필터 훅 체인을 소스 레벨에서 분석한다.",
+  "readTime": "14 min",
+  "series": "Linux/networking",
+  "seriesOrder": 6
+}

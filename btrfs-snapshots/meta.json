@@ -1,0 +1,12 @@
+{
+  "title": "Btrfs 스냅숏과 서브볼륨 활용 가이드",
+  "date": "2025-12-25",
+  "tags": [
+    "btrfs",
+    "filesystem",
+    "linux",
+    "backup"
+  ],
+  "excerpt": "Btrfs의 COW 기반 스냅숏 생성, 서브볼륨 관리, snapper를 이용한 자동 백업을 실습한다.",
+  "readTime": "10 min"
+}

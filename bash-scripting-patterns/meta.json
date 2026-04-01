@@ -1,0 +1,11 @@
+{
+  "title": "Bash 스크립팅 안티패턴과 모범 사례",
+  "date": "2025-12-08",
+  "tags": [
+    "bash",
+    "shell",
+    "linux"
+  ],
+  "excerpt": "자주 발생하는 Bash 스크립팅 실수와 ShellCheck로 잡아내는 안전한 패턴을 정리한다.",
+  "readTime": "8 min"
+}

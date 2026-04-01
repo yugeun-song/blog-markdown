@@ -1,0 +1,12 @@
+{
+  "title": "QEMU/KVM 가상화 내부 구조",
+  "date": "2025-12-20",
+  "tags": [
+    "qemu",
+    "kvm",
+    "virtualization",
+    "linux"
+  ],
+  "excerpt": "KVM의 하드웨어 가상화 인터페이스와 QEMU의 디바이스 에뮬레이션 아키텍처를 분석한다.",
+  "readTime": "15 min"
+}

@@ -1,0 +1,14 @@
+{
+  "title": "eBPF Maps 심층 분석 — 해시, 배열, 링버퍼",
+  "date": "2025-12-01",
+  "tags": [
+    "linux",
+    "ebpf",
+    "bpf",
+    "kernel"
+  ],
+  "excerpt": "eBPF map 타입별 내부 구현과 성능 특성을 비교하고, 유저스페이스와의 데이터 교환 패턴을 정리한다.",
+  "readTime": "14 min",
+  "series": "Linux/kernel",
+  "seriesOrder": 7
+}

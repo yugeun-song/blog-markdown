@@ -1,0 +1,14 @@
+{
+  "title": "containerd 아키텍처와 OCI 런타임",
+  "date": "2026-02-02",
+  "tags": [
+    "containerd",
+    "oci",
+    "containers",
+    "runc"
+  ],
+  "excerpt": "containerd의 스냅숏터, 컨텐츠 스토어, OCI 번들 생성 과정을 코드 레벨에서 추적한다.",
+  "readTime": "12 min",
+  "series": "DevOps/containers",
+  "seriesOrder": 5
+}

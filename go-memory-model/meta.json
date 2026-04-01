@@ -1,0 +1,13 @@
+{
+  "title": "Go 메모리 모델과 happens-before 관계",
+  "date": "2025-09-15",
+  "tags": [
+    "go",
+    "concurrency",
+    "memory-model"
+  ],
+  "excerpt": "Go의 happens-before 보장과 채널/뮤텍스/atomic의 동기화 시맨틱을 공식 문서 기반으로 정리한다.",
+  "readTime": "11 min",
+  "series": "Go/internals",
+  "seriesOrder": 1
+}

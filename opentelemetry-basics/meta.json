@@ -1,0 +1,13 @@
+{
+  "title": "OpenTelemetry로 분산 추적 시작하기",
+  "date": "2025-11-02",
+  "tags": [
+    "opentelemetry",
+    "tracing",
+    "observability"
+  ],
+  "excerpt": "OTel의 trace/metric/log 시그널과 Go SDK를 이용한 계측 파이프라인을 구축한다.",
+  "readTime": "11 min",
+  "series": "DevOps/observability",
+  "seriesOrder": 2
+}
