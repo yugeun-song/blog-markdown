@@ -62,7 +62,7 @@ fn main() {
 
 `&dyn Draw`는 메모리에서 두 개의 포인터(16바이트)로 표현된다.
 
-```
+```text
 &dyn Draw (fat pointer):
 ┌──────────────┬──────────────┐
 │ data pointer │ vtable ptr   │

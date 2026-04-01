@@ -12,7 +12,7 @@
 
 bash의 기본적인 동작 원리를 이해하려면 먼저 내부 구조를 파악해야 한다. 아래 예제를 통해 핵심 메커니즘을 확인할 수 있다.
 
-```
+```text
 // 구조 예시
 bash_init()
 bash_configure()
@@ -57,7 +57,7 @@ sudo bashctl apply -f config.yaml
 
 기본 설정 대비 최적화 후 약 2-3배의 처리량 향상을 확인했다. 특히 대규모 데이터셋에서 차이가 두드러진다.
 
-```
+```text
 # 벤치마크 실행
 $ benchmark --iterations 10000 --threads 4
 Throughput: 45,230 ops/sec

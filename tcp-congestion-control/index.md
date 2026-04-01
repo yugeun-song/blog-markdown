@@ -6,7 +6,7 @@
 
 TCP 송신자는 혼잡 윈도우(cwnd)를 유지한다. 한 번에 전송할 수 있는 미확인 데이터의 최대량이다. 혼잡 제어 알고리즘은 네트워크 상태를 추정하여 이 cwnd를 조절한다.
 
-```
+```text
 전송률 ≈ cwnd / RTT
 
 cwnd = 10 segments, RTT = 50ms → 약 200 segments/sec

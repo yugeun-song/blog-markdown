@@ -10,7 +10,7 @@ eBPF 프로그램은 커널 내부의 가상 머신에서 실행되는 바이트
 
 eBPF 프로그램은 이벤트 기반으로 동작한다. 특정 커널 이벤트(kprobe, tracepoint, 소켓 이벤트 등)에 연결되어, 해당 이벤트 발생 시 자동으로 실행된다.
 
-```
+```text
 User Space                    Kernel Space
 ┌─────────┐                  ┌──────────────┐
 │ bpftool │──bpf()───────────│ BPF Verifier │
