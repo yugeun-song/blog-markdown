@@ -120,8 +120,8 @@ echo "archbox" > /etc/hostname
 
 # 루트 비밀번호 및 사용자 생성
 passwd
-useradd -m -G wheel -s /bin/zsh archgeek
-passwd archgeek
+useradd -m -G wheel -s /bin/zsh devlog
+passwd devlog
 EDITOR=vim visudo  # %wheel ALL=(ALL) ALL 주석 해제
 ```
 
