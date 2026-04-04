@@ -1,9 +1,0 @@
-{
-  "title": "직접 만드는 async 런타임 — Waker와 Future의 원리",
-  "date": "2026-02-05",
-  "tags": ["rust", "async", "future", "waker"],
-  "series": "Rust/async",
-  "seriesOrder": 2,
-  "excerpt": "Rust의 async/await가 내부적으로 어떻게 동작하는지 이해하기 위해, 간단한 async 런타임을 직접 구현해 본다.",
-  "readTime": "18 min"
-}

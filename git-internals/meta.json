@@ -1,7 +1,0 @@
-{
-  "title": "Git 내부 구조 — blob, tree, commit 객체의 실체",
-  "date": "2026-01-05",
-  "tags": ["git", "internals", "devops", "hash"],
-  "excerpt": "Git의 .git 디렉토리를 열어 내부 객체 모델을 직접 확인한다. blob, tree, commit의 구조와 저수준 명령어를 사용한 조작법을 알아본다.",
-  "readTime": "10 min"
-}

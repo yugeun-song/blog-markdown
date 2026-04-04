@@ -1,7 +1,0 @@
-{
-  "title": "TCP 혼잡 제어 알고리즘 비교 — Reno에서 BBR까지",
-  "date": "2026-01-30",
-  "tags": ["tcp", "networking", "bbr", "congestion"],
-  "excerpt": "TCP 혼잡 제어의 역사와 주요 알고리즘을 비교한다. 손실 기반 Reno/CUBIC부터 모델 기반 BBR까지, 각각의 설계 철학과 성능 특성을 분석한다.",
-  "readTime": "14 min"
-}

@@ -1,9 +1,0 @@
-{
-  "title": "CFS 스케줄러 깊이 읽기 — 레드블랙 트리와 가상 런타임",
-  "date": "2026-03-01",
-  "tags": ["linux", "kernel", "scheduler", "cfs"],
-  "series": "Linux/kernel",
-  "seriesOrder": 3,
-  "excerpt": "리눅스의 기본 프로세스 스케줄러인 CFS의 내부 동작을 분석한다. 가상 런타임 개념과 레드블랙 트리 기반 스케줄링의 원리를 코드 수준에서 살펴본다.",
-  "readTime": "22 min"
-}

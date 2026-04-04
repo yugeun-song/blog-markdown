@@ -1,7 +1,0 @@
-{
-  "title": "Arch Linux 설치 가이드 — UEFI + Btrfs + systemd-boot",
-  "date": "2026-03-18",
-  "tags": ["arch", "linux", "btrfs", "systemd-boot"],
-  "excerpt": "Arch Linux를 UEFI 환경에서 Btrfs 파일시스템과 systemd-boot 부트로더로 설치하는 전체 과정을 정리한다.",
-  "readTime": "15 min"
-}

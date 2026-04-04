@@ -1,9 +1,0 @@
-{
-  "title": "리눅스 네트워킹 스택 — sk_buff에서 소켓까지",
-  "date": "2026-03-08",
-  "tags": ["linux", "networking", "kernel", "tcp"],
-  "series": "Linux/networking",
-  "seriesOrder": 2,
-  "excerpt": "패킷이 NIC에 도착해서 애플리케이션 소켓까지 전달되는 전체 경로를 추적한다. sk_buff 구조체와 넷필터 훅을 중심으로 살펴본다.",
-  "readTime": "16 min"
-}

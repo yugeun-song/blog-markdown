@@ -1,7 +1,0 @@
-{
-  "title": "GIL 완전 해부 — CPython의 동시성 한계와 우회 전략",
-  "date": "2026-01-25",
-  "tags": ["python", "gil", "concurrency", "cpython"],
-  "excerpt": "CPython의 GIL이 존재하는 이유와 그것이 동시성에 미치는 영향을 분석한다. 멀티프로세싱, C 확장, 그리고 free-threaded Python까지 우회 전략을 정리한다.",
-  "readTime": "13 min"
-}

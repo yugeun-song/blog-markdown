@@ -1,9 +1,0 @@
-{
-  "title": "Kubernetes 네트워킹 모델 — Pod 간 통신의 모든 것",
-  "date": "2026-02-25",
-  "tags": ["kubernetes", "networking", "cni", "devops"],
-  "series": "DevOps/containers",
-  "seriesOrder": 2,
-  "excerpt": "Kubernetes의 플랫 네트워크 모델과 CNI 플러그인의 동작 원리를 분석한다. Pod 간, Service를 통한, 외부와의 통신 흐름을 추적한다.",
-  "readTime": "17 min"
-}
