@@ -1,0 +1,8 @@
+{
+  "title": "ftrace 사용법 — tracefs 진입부터 dynamic events, trace-cmd까지",
+  "date": "2026-05-13",
+  "tags": ["linux", "kernel", "ftrace", "tracing", "debugging"],
+  "series": "linux-kernel/tracing",
+  "seriesOrder": 1,
+  "excerpt": "Linux 커널에 내장된 트레이서 ftrace의 사용법을 tracefs 진입, function/function_graph 트레이서, tracepoint 이벤트, kprobe/uprobe 기반 동적 이벤트, 필터·트리거·스냅샷, trace-cmd 활용 순으로 정리한다."
+}
