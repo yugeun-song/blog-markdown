@@ -14,6 +14,7 @@ Each post = one slug directory:
 
 - `{slug}/meta.json` — metadata
 - `{slug}/index.md` — body (no frontmatter; first line is `# Title`)
+- `{slug}/<assets>` — optional per-post images and supporting files. Page-bundle pattern: place assets directly inside the slug directory (flat or under `images/`) and reference from `index.md` via relative path (`./foo.png` / `./images/foo.png`). The build copies every entry except `meta.json` and `index.md` to `dist/posts/{slug}/` verbatim, preserving subfolder layout. Final URL: `/posts/{slug}/foo.png`. Rendered images are center-aligned by default via the global `img` rule in sister `blog/styles/base.css` (`display: block; margin-inline: auto`); override per-image with explicit inline styles or wrapping HTML only when a different alignment is intentional.
 
 `{slug}` is kebab-case ASCII; the directory name is the URL path verbatim. Example: `cfs-scheduler/` → `https://<deploy-url>/posts/cfs-scheduler/`.
 
