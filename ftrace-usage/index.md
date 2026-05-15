@@ -369,6 +369,8 @@ cat /sys/kernel/tracing/trace
 
 세 조합 모두 유효한 사용 패턴이며, 시나리오에 맞춰 골라 쓰는 도구일 뿐 우열 관계가 아니다.
 
+한 가지 자주 받는 질문은 "`current_tracer` 를 `function` 또는 `function_graph` 로 두면서도 함수는 하나도 추적하지 않고 이벤트만 잡는 네 번째 조합" 이 가능하냐, 그리고 그게 권장되느냐 이다. 기술적으로는 가능하다 — `set_ftrace_filter` 에 어떤 함수도 매칭되지 않는 패턴(예: `echo 'zzz_no_such_function' > set_ftrace_filter`) 을 쓰면 function tracer 인프라는 활성화되어 있지만 매칭이 0건이라 호출 라인이 나오지 않고, tracepoint 이벤트만 buffer 에 쌓인다. 그러나 이는 **권장되지 않는다.** function tracer 가 활성화된 상태는 ftrace_caller 분기·필터 매칭 점검 같은 오버헤드를 매 함수 호출마다 동반하는데, 매칭이 0건이라 결과적으로 그 비용만 치르고 아무 함수 호출도 잡지 않는 셈이다. 이벤트만 잡을 때의 표준은 `current_tracer = nop` 이며, 위의 "이벤트만" 케이스가 그것이다.
+
 문제는 이 세 가지 어디에도 속하지 않는 한 가지 **함정** 이다.
 
 - **함수 추적기 활성화 + 필터 미지정**: `current_tracer=function` (또는 `function_graph`) 인데 `set_ftrace_filter` 가 비어 있는 상태. 커널의 모든 함수 — 수만 ~ 수십만 개 — 가 한꺼번에 추적 대상이 되어 ring buffer 가 1초 안에 가득 차고, 정작 관심 영역의 호출은 buffer 밖으로 밀려나거나 처음부터 덮어쓰여 분석이 사실상 불가능해진다. 위 "함수만" 케이스가 필터 없이 무너진 형태이며, ftrace 사용에서 가장 흔한 실수이다. 다음 절에서 이 함정의 대처를 별도로 다룬다.
@@ -435,7 +437,7 @@ echo 'ksys_*'       >> /sys/kernel/tracing/set_ftrace_filter
 
 ```c
 // kernel/sched/core.c — __schedule() 본체 (긴 설명 주석 일부만 생략)
-static void __sched notrace __schedule(int sched_mode)
+static void __sched notrace __schedule(int sched_mode) /* [!hl] */
 {
 	struct task_struct *prev, *next;
 	/*
@@ -511,7 +513,7 @@ picked:
 		psi_sched_switch(prev, next, !task_on_rq_queued(prev) ||
 					     prev->se.sched_delayed);
 
-		trace_sched_switch(preempt, prev, next, prev_state);
+		trace_sched_switch(preempt, prev, next, prev_state); /* [!hl] */
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
@@ -523,7 +525,9 @@ picked:
 }
 ```
 
-함수 전체는 100 줄을 훌쩍 넘기는 길이이며, `trace_sched_switch` 호출은 함수 끝부분 — 실제 `context_switch` 가 일어나기 직전 — 에 자리한다. 함수 진입부터 보이는 IRQ 비활성, RCU note, rq 락 획득, clock update, `prev->__state` 로드, `pick_next_task`, resched 플래그 정리에 이르기까지의 모든 단계는 "스케줄링 결정을 내리는 작업" 이며, `sched_switch` 이벤트가 fire 되는 시점은 그 결정이 실제로 실행으로 옮겨지기 직전의 한 점이다. 즉 "`__schedule` 함수 추적" 과 "`sched_switch` 이벤트 추적" 은 같은 함수 안에서 일어나지만 의미와 trigger 시점이 다르다. 전자는 진입 그 자체를, 후자는 "전환이라는 사건이 실제로 일어난 한 점" 을 포착한다. 함수 안에서 이벤트의 위치를 결정한 것은 커널 개발자이며, 그 자유도 자체가 tracepoint 추적의 가치이다.
+위 코드에서 형광으로 마킹된 두 라인이 각각 두 추적의 trigger 지점이다. 첫 번째 — 함수 시그니처 줄 — 가 함수 추적기의 hook 지점이고, 두 번째 — 함수 끝부분의 `trace_sched_switch(preempt, prev, next, prev_state);` — 가 sched_switch tracepoint 가 실제로 fire 되는 자리이다. 두 줄 사이에는 IRQ 비활성, RCU note, rq 락 획득, clock update, `prev->__state` 로드, `pick_next_task`, resched 플래그 정리에 이르는 100 줄 가까운 "스케줄링 결정" 로직이 끼어 있다. 즉 `__schedule` 진입을 hook 해서 얻는 정보(함수가 호출되었다는 사실 자체) 와 sched_switch 이벤트를 hook 해서 얻는 정보(결정이 실행으로 옮겨지기 직전의 한 점) 는, 같은 함수 안에서 일어나지만 시점도 의미도 다르다. 함수 안에서 이벤트의 위치를 결정한 것은 커널 개발자이며, 그 자유도 자체가 tracepoint 추적의 가치이다.
+
+부연하면, 시그니처에 보이는 `notrace` 키워드는 이 함수가 function tracer 의 추적 대상에서 명시적으로 제외되어 있음을 의미한다. ftrace 내부 함수들과 스케줄러 코어가 재귀적으로 자기 자신을 추적해 buffer 가 폭주하는 사고를 막기 위한 안전장치다. 따라서 실제로 `current_tracer=function` 인 상태에서도 `__schedule` 의 진입 라인은 잡히지 않으며, 위에서 시그니처 줄을 마킹한 것은 "여기가 함수 hook 지점에 대응하는 자리" 라는 개념 설명에 한정된다. 같은 도식이 `notrace` 가 없는 일반 커널 함수에는 그대로 적용된다.
 
 ### arm64 에서 함수 진입이 실제로 어떻게 hook 되는가
 
