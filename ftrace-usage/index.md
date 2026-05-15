@@ -525,9 +525,9 @@ picked:
 }
 ```
 
-위 코드에서 형광으로 마킹된 두 라인이 각각 두 추적의 trigger 지점이다. 첫 번째 — 함수 시그니처 줄 — 가 함수 추적기의 hook 지점이고, 두 번째 — 함수 끝부분의 `trace_sched_switch(preempt, prev, next, prev_state);` — 가 sched_switch tracepoint 가 실제로 fire 되는 자리이다. 두 줄 사이에는 IRQ 비활성, RCU note, rq 락 획득, clock update, `prev->__state` 로드, `pick_next_task`, resched 플래그 정리에 이르는 100 줄 가까운 "스케줄링 결정" 로직이 끼어 있다. 즉 `__schedule` 진입을 hook 해서 얻는 정보(함수가 호출되었다는 사실 자체) 와 sched_switch 이벤트를 hook 해서 얻는 정보(결정이 실행으로 옮겨지기 직전의 한 점) 는, 같은 함수 안에서 일어나지만 시점도 의미도 다르다. 함수 안에서 이벤트의 위치를 결정한 것은 커널 개발자이며, 그 자유도 자체가 tracepoint 추적의 가치이다.
+함수 시그니처 `static void __sched notrace __schedule(int sched_mode)` 가 함수 추적기의 hook 지점에 해당하며, 함수 끝부분의 `trace_sched_switch(preempt, prev, next, prev_state);` 호출이 sched_switch tracepoint 가 fire 되는 자리이다. 두 줄 사이에는 IRQ 비활성, RCU note, rq 락 획득, clock update, `prev->__state` 로드, `pick_next_task`, resched 플래그 정리에 이르는 100 줄 가까운 "스케줄링 결정" 로직이 끼어 있다. `__schedule` 진입을 hook 해서 얻는 정보(함수가 호출되었다는 사실 자체) 와 sched_switch 이벤트를 hook 해서 얻는 정보(결정이 실행으로 옮겨지기 직전의 한 점) 는 같은 함수 안에서 일어나지만 시점도 의미도 다르다. 함수 안에서 이벤트의 위치를 결정한 것은 커널 개발자이며, 그 자유도 자체가 tracepoint 추적의 가치이다.
 
-부연하면, 시그니처에 보이는 `notrace` 키워드는 이 함수가 function tracer 의 추적 대상에서 명시적으로 제외되어 있음을 의미한다. ftrace 내부 함수들과 스케줄러 코어가 재귀적으로 자기 자신을 추적해 buffer 가 폭주하는 사고를 막기 위한 안전장치다. 따라서 실제로 `current_tracer=function` 인 상태에서도 `__schedule` 의 진입 라인은 잡히지 않으며, 위에서 시그니처 줄을 마킹한 것은 "여기가 함수 hook 지점에 대응하는 자리" 라는 개념 설명에 한정된다. 같은 도식이 `notrace` 가 없는 일반 커널 함수에는 그대로 적용된다.
+시그니처에 보이는 `notrace` 키워드는 이 함수가 function tracer 의 추적 대상에서 명시적으로 제외되어 있음을 의미한다. ftrace 내부 함수들과 스케줄러 코어가 재귀적으로 자기 자신을 추적해 buffer 가 폭주하는 사고를 막기 위한 안전장치이다. 따라서 `current_tracer=function` 인 상태에서도 `__schedule` 의 진입 라인은 실제로는 잡히지 않으며, 시그니처를 함수 hook 지점에 대응하는 자리로 다룬 것은 어디까지나 개념 비교를 위한 것이다. 같은 도식이 `notrace` 가 없는 일반 커널 함수에는 그대로 적용된다.
 
 ### arm64 에서 함수 진입이 실제로 어떻게 hook 되는가
 
