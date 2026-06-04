@@ -1,6 +1,6 @@
 # blog-markdown
 
-Content repository for the [devlog](https://github.com/yugeun-song/blog) blog. Mounted as a git submodule at the main blog project's `content/` path. Pushing to `main` triggers GitHub Actions to bump the blog repo's submodule pointer, which in turn triggers a Cloudflare Pages build.
+Content repository for the [vmfault](https://github.com/yugeun-song/blog) blog. Mounted as a git submodule at the main blog project's `content/` path. Pushing to `main` triggers GitHub Actions to bump the blog repo's submodule pointer, which in turn triggers a Cloudflare Pages build.
 
 ## Status
 

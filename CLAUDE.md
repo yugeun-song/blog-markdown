@@ -1,6 +1,6 @@
 # blog-markdown
 
-Content repository for the `devlog` blog. Mounted as a git submodule at `blog/content/`. Pushing to `main` triggers `.github/workflows/notify.yml`, which checks out the sister `blog` repo, runs `git submodule update --remote content`, commits the bumped pointer, and pushes — that push triggers Cloudflare Pages deploy.
+Content repository for the `vmfault` blog. Mounted as a git submodule at `blog/content/`. Pushing to `main` triggers `.github/workflows/notify.yml`, which checks out the sister `blog` repo, runs `git submodule update --remote content`, commits the bumped pointer, and pushes — that push triggers Cloudflare Pages deploy.
 
 Sister repo: `yugeun-song/blog` (private; build/render code).
 
