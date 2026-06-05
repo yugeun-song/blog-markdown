@@ -81,6 +81,26 @@
         }
       }
     },
+    "ftrace_riscv": {
+      "path": "arch/riscv/include/asm/ftrace.h",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.12",
+      "versions": {
+        "6.12": {
+          "ref": "v6.12.79",
+          "code": "/*\n * A general call in RISC-V is a pair of insts:\n * 1) auipc: setting high-20 pc-related bits to ra register\n * 2) jalr: setting low-12 offset to ra, jump to ra, and set ra to\n *          return address (original pc + 4)\n *\n *<ftrace enable>:\n * 0: auipc  t0/ra, 0x?\n * 4: jalr   t0/ra, ?(t0/ra)\n *\n *<ftrace disable>:\n * 0: nop\n * 4: nop\n *\n * Dynamic ftrace generates probes to call sites, so we must deal with\n * both auipc and jalr at the same time.\n */\n\n/* ... */\n\n#define NOP4\t\t\t(0x00000013)\n\n/* ... */\n\n#define make_call_t0(caller, callee, call)\t\t\t\t\\\ndo {\t\t\t\t\t\t\t\t\t\\\n\tunsigned int offset =\t\t\t\t\t\t\\\n\t\t(unsigned long) (callee) - (unsigned long) (caller);\t\\\n\tcall[0] = to_auipc_t0(offset);\t\t\t\t\t\\\n\tcall[1] = to_jalr_t0(offset);\t\t\t\t\t\\\n} while (0)\n\n/* ... */\n\n/*\n * Let auipc+jalr be the basic *mcount unit*, so we make it 8 bytes here.\n */\n#define MCOUNT_INSN_SIZE 8"
+        },
+        "6.6": {
+          "ref": "v6.6.141",
+          "code": "/*\n * A general call in RISC-V is a pair of insts:\n * 1) auipc: setting high-20 pc-related bits to ra register\n * 2) jalr: setting low-12 offset to ra, jump to ra, and set ra to\n *          return address (original pc + 4)\n *\n *<ftrace enable>:\n * 0: auipc  t0/ra, 0x?\n * 4: jalr   t0/ra, ?(t0/ra)\n *\n *<ftrace disable>:\n * 0: nop\n * 4: nop\n *\n * Dynamic ftrace generates probes to call sites, so we must deal with\n * both auipc and jalr at the same time.\n */\n\n/* ... */\n\n#define NOP4\t\t\t(0x00000013)\n\n/* ... */\n\n#define make_call_t0(caller, callee, call)\t\t\t\t\\\ndo {\t\t\t\t\t\t\t\t\t\\\n\tunsigned int offset =\t\t\t\t\t\t\\\n\t\t(unsigned long) (callee) - (unsigned long) (caller);\t\\\n\tcall[0] = to_auipc_t0(offset);\t\t\t\t\t\\\n\tcall[1] = to_jalr_t0(offset);\t\t\t\t\t\\\n} while (0)\n\n/* ... */\n\n/*\n * Let auipc+jalr be the basic *mcount unit*, so we make it 8 bytes here.\n */\n#define MCOUNT_INSN_SIZE 8"
+        },
+        "5.15": {
+          "ref": "v5.15.208",
+          "code": "/*\n * A general call in RISC-V is a pair of insts:\n * 1) auipc: setting high-20 pc-related bits to ra register\n * 2) jalr: setting low-12 offset to ra, jump to ra, and set ra to\n *          return address (original pc + 4)\n *\n *<ftrace enable>:\n * 0: auipc  t0/ra, 0x?\n * 4: jalr   t0/ra, ?(t0/ra)\n *\n *<ftrace disable>:\n * 0: nop\n * 4: nop\n *\n * Dynamic ftrace generates probes to call sites, so we must deal with\n * both auipc and jalr at the same time.\n */\n\n/* ... */\n\n#define NOP4\t\t\t(0x00000013)\n\n/* ... */\n\n#define make_call_t0(caller, callee, call)\t\t\t\t\\\ndo {\t\t\t\t\t\t\t\t\t\\\n\tunsigned int offset =\t\t\t\t\t\t\\\n\t\t(unsigned long) (callee) - (unsigned long) (caller);\t\\\n\tcall[0] = to_auipc_t0(offset);\t\t\t\t\t\\\n\tcall[1] = to_jalr_t0(offset);\t\t\t\t\t\\\n} while (0)\n\n/* ... */\n\n/*\n * Let auipc+jalr be the basic *mcount unit*, so we make it 8 bytes here.\n */\n#define MCOUNT_INSN_SIZE 8"
+        }
+      }
+    },
     "trace_makefile": {
       "path": "kernel/trace/Makefile",
       "symbol": "",

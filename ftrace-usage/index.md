@@ -131,21 +131,21 @@ ftrace 는 현대적인 버전의 커널로 빌드된 대부분의 PC 용 리눅
 - `CONFIG_KPROBE_EVENTS=y`, `CONFIG_UPROBE_EVENTS=y` — `kprobe_events`, `uprobe_events` 인터페이스를 통한 동적 이벤트 등록.
 - `CONFIG_STACK_TRACER=y`, `CONFIG_TRACER_SNAPSHOT=y` — 스택 사용량 추적과 스냅샷 기능.
 
-v6.12.79 트리 기준으로, `make menuconfig` 를 실행하면 다음과 같은 최상위 메뉴를 만난다.
+v6.12.79 트리 기준으로, `make menuconfig` 를 실행하면 다음과 같은 최상위 메뉴를 만난다. 여기서 맨 아래의 `Kernel hacking` 항목으로 진입한다.
 
-![make menuconfig 진입 화면](./menuconfig.png)
-
-여기서 `Kernel hacking` 항목으로 진입한다.
-
-![최상위 메뉴에서 Kernel hacking 항목 선택](./kernel-hacking.png)
+![최상위 메뉴 — 맨 아래의 Kernel hacking 항목 선택](./menuconfig.png)
 
 Kernel hacking 메뉴 하위에 `Tracers` 항목이 보인다.
 
-![Kernel hacking 하위의 Tracers 메뉴](./tracers.png)
+![Kernel hacking 메뉴 — 하위의 Tracers 항목 선택](./kernel-hacking.png)
 
 `Tracers` 를 열면 ftrace 관련 옵션들이 나타난다. 위에서 적은 `CONFIG_FTRACE`, `CONFIG_FUNCTION_TRACER` 등을 여기서 직접 토글한다.
 
-![Tracers 메뉴 내부의 ftrace 관련 옵션들](./ftrace-option.png)
+![Tracers 메뉴 내부의 ftrace 관련 옵션들](./tracers.png)
+
+function tracer 핵심 옵션 부분을 확대하면 다음과 같다. 메뉴 라벨과 `CONFIG_*` 의 대응은 `kernel/trace/Kconfig` 의 prompt 문자열에서 나온다 — `Kernel Function Tracer` 가 `CONFIG_FUNCTION_TRACER`, `Kernel Function Graph Tracer` 가 `CONFIG_FUNCTION_GRAPH_TRACER`, `enable/disable function tracing dynamically` 가 `CONFIG_DYNAMIC_FTRACE` 이다.
+
+![function tracer 핵심 옵션 클로즈업](./ftrace-option.png)
 
 `make menuconfig` 같은 대화형 인터페이스를 거치지 않고 `CONFIG_*` 값을 설정하는 방법도 여러 가지 있다. 그 방법들을 이해하려면 우선 옵션이 어디에 어떻게 저장되어 있는지부터 짚어야 한다.
 
@@ -153,8 +153,9 @@ Kernel hacking 메뉴 하위에 `Tracers` 항목이 보인다.
 - **현재 빌드의 활성화 상태 — `.config`**: 실제로 "이번 빌드에서 어떤 옵션을 켤지" 는 커널 소스 루트의 `.config` 파일에 한 줄씩 (`CONFIG_FTRACE=y`, `# CONFIG_FOO is not set` 형식으로) 기록된다. `make menuconfig` 는 사실상 메뉴 기반 TUI 의 `.config` 편집기에 불과하며, 모든 빌드 단계는 결국 `.config` 만 참조한다.
 - **아키텍처별 baseline 과 목적별 fragment**: `.config` 와 동일한 텍스트 형식 — `CONFIG_X=y` (활성), `# CONFIG_X is not set` (비활성), `CONFIG_X=m` (모듈), `CONFIG_HZ=250` 같은 정수값 — 을 공유하는 사전 정의 파일들이 트리 곳곳에 있다. 정리하면 세 위치이다.
     - `arch/<arch>/configs/` — 아키텍처별 baseline + 그 아키텍처용 fragment 가 모여 있다.
-        - `arch/arm64/configs/` : baseline `defconfig`, fragment `hardening.config`, `virt.config`.
         - `arch/x86/configs/` : baseline `i386_defconfig`, `x86_64_defconfig`, fragment `hardening.config`, `tiny.config`, `xen.config`.
+        - `arch/arm64/configs/` : baseline `defconfig`, fragment `hardening.config`, `virt.config`.
+        - `arch/riscv/configs/` : baseline `defconfig` 와 nommu 타깃용 `nommu_virt_defconfig`, `nommu_k210_defconfig`, `nommu_k210_sdcard_defconfig`, fragment `32-bit.config`, `64-bit.config`.
     - `kernel/configs/*.config` — arch 독립적인 목적별 fragment. v6.12 에는 `debug.config`, `hardening.config`, `kvm_guest.config`, `nopm.config`, `rust.config`, `tiny.config`, `tiny-base.config`, `x86_debug.config`, `xen.config` 가 들어 있다.
     - `include/config/auto.conf` — 빌드 시점에 `.config` 에서 자동 파생되는 파일. 사용자가 직접 만질 일은 없지만 최상위 Makefile 이 실제로 `include` 하는 변환 결과물이다.
 
@@ -336,7 +337,7 @@ tracefs를 통해 ftrace를 키고 끄는 과정에서 가장 중요한 것은 "
 
 ```bash
 # 1) 설정 변경 자체가 ring buffer에 노이즈로 잡히지 않도록 우선 트레이싱을 끈다.
-echo 0 > /sys/kernel/tracing/tracing_on
+echo 0 > /sys/kernel/tracing/tracing_on # [!hl]
 
 # 2) 직전 세션의 tracer 상태를 깨끗하게 비운다.
 #    nop는 함수 추적기가 비활성화된 상태를 의미한다.
@@ -365,14 +366,14 @@ echo 1 > /sys/kernel/tracing/events/syscalls/sys_enter_openat/enable
 # 7) 측정 구간 시작. 이 줄 직후부터의 커널 이벤트가 ring buffer에 들어간다.
 #    이 줄 뒤에서 측정 대상 워크로드를 수행한다 — 별도 셸에서 명령 실행,
 #    자식 프로세스 호출, 또는 단순히 `sleep N` 으로 N초간 buffer가 채워지기를 기다리는 식이다.
-echo 1 > /sys/kernel/tracing/tracing_on
+echo 1 > /sys/kernel/tracing/tracing_on # [!hl]
 
 # 8) 측정 구간 종료. 이 줄 이후로는 새 이벤트가 buffer에 더 이상 들어가지 않는다.
-echo 0 > /sys/kernel/tracing/tracing_on
+echo 0 > /sys/kernel/tracing/tracing_on # [!hl]
 
 # 9) 결과를 읽는다.
 #    tracing_on=0 상태이므로 cat 도중에 buffer가 변하지 않는다.
-cat /sys/kernel/tracing/trace
+cat /sys/kernel/tracing/trace # [!hl]
 ```
 
 순서를 어겼을 때 실제로 나타나는 증상을 정리하면 다음과 같다.
@@ -407,7 +408,7 @@ echo 0 > /sys/kernel/tracing/tracing_on
 echo > /sys/kernel/tracing/trace
 
 # 바꾸고 싶은 옵션만 수정한다. 여기서는 필터에 패턴 하나를 추가하는 예시.
-echo 'do_filp_open*' >> /sys/kernel/tracing/set_ftrace_filter
+echo 'do_filp_open*' >> /sys/kernel/tracing/set_ftrace_filter # [!hl]
 
 # 다시 측정 시작.
 echo 1 > /sys/kernel/tracing/tracing_on
@@ -628,42 +629,9 @@ picked:
 
 시그니처에 보이는 `notrace` 키워드는 이 함수가 function tracer 의 추적 대상에서 명시적으로 제외되어 있음을 의미한다. ftrace 내부 함수들과 스케줄러 코어가 재귀적으로 자기 자신을 추적해 buffer 가 폭주하는 사고를 막기 위한 안전장치이다. 따라서 `current_tracer=function` 인 상태에서도 `__schedule` 의 진입 라인은 실제로는 잡히지 않으며, 시그니처를 함수 hook 지점에 대응하는 자리로 다룬 것은 어디까지나 개념 비교를 위한 것이다. 같은 도식이 `notrace` 가 없는 일반 커널 함수에는 그대로 적용된다.
 
-### arm64 에서 함수 진입이 실제로 어떻게 hook 되는가
+### x86_64 에서 함수 진입이 실제로 어떻게 hook 되는가
 
-함수 추적기가 말하는 "함수 진입 직후" 가 구체적으로 무엇을 의미하는지는 arm64 의 ftrace 구현에서 직접 확인할 수 있다. `arch/arm64/kernel/entry-ftrace.S` 의 `ftrace_caller` 정의 앞 주석은 다음과 같다.
-
-<!-- kernel-ref id="ftrace_arm64" -->
-```asm
-/*
- * Due to -fpatchable-function-entry=2, the compiler has placed two NOPs before
- * the regular function prologue. For an enabled callsite, ftrace_init_nop() and
- * ftrace_make_call() have patched those NOPs to:
- *
- * 	MOV	X9, LR
- * 	BL	ftrace_caller
- *
- * Each instrumented function follows the AAPCS, so here x0-x8 and x18-x30 are
- * live (x18 holds the Shadow Call Stack pointer), and x9-x17 are safe to
- * clobber.
- *
- * We save the callsite's context into a struct ftrace_regs before invoking any
- * ftrace callbacks. So that we can get a sensible backtrace, we create frame
- * records for the callsite and the ftrace entry assembly. This is not
- * sufficient for reliable stacktrace: until we create the callsite stack
- * record, its caller is missing from the LR and existing chain of frame
- * records.
- */
-SYM_CODE_START(ftrace_caller)
-	bti	c
-```
-
-arm64 빌드에서는 컴파일러가 모든 추적 가능 함수의 진입부에 **NOP 두 개** (`-fpatchable-function-entry=2`) 를 미리 끼워 둔다. 이 NOP 들은 ftrace 활성화 시점에 `ftrace_init_nop()` / `ftrace_make_call()` 에 의해 `MOV X9, LR; BL ftrace_caller` 로 동적 패치되어, 함수가 호출되는 매 순간 `ftrace_caller` 로 분기된다. 이것이 앞서 다룬 `CONFIG_DYNAMIC_FTRACE=y` 의 핵심, 곧 "비활성화된 함수의 진입부에는 NOP 만 남아 있어 오버헤드가 0 에 가깝고, 활성화될 때만 호출 분기 명령으로 살아난다" 의 실제 모습이다.
-
-따라서 함수 추적기는 함수의 실행 가능한 첫 명령보다도 더 앞, 즉 함수 프롤로그 직전의 패치된 NOP 자리에 hook 되어 있다. trigger 시점이 "함수 진입" 이라고 표현되는 이유이다.
-
-### x86_64 에서는 어떻게 hook 되는가
-
-같은 메커니즘이 다른 아키텍처에서도 형태만 바꿔 적용된다. x86_64 의 경우 `arch/x86/kernel/ftrace_64.S` 에서 다음과 같은 형태로 정의되어 있다.
+함수 추적기가 말하는 "함수 진입 직후" 가 구체적으로 무엇을 의미하는지는 각 아키텍처의 ftrace 구현에서 직접 확인할 수 있다. 먼저 x86_64 부터 본다. 함수 진입에서 분기해 들어오는 `ftrace_caller` 는 `arch/x86/kernel/ftrace_64.S` 에 다음과 같이 정의되어 있다.
 
 <!-- kernel-ref id="ftrace_x86" -->
 ```asm
@@ -718,7 +686,110 @@ SYM_INNER_LABEL(ftrace_caller_end, SYM_L_GLOBAL)
 SYM_FUNC_END(ftrace_caller);
 ```
 
-x86_64 의 컴파일러는 `-mfentry` 옵션으로 모든 함수 진입부에 `call __fentry__` 명령을 emit 한다. 그 호출 자리는 부팅 직후 모두 NOP 로 패치되어 있어 평소에는 오버헤드가 없고, ftrace 가 특정 함수에 대해 활성화될 때만 그 자리의 NOP 가 `call ftrace_caller` 로 다시 패치되어 위 코드의 dispatch 경로로 들어간다. arm64 의 `-fpatchable-function-entry=2` 와 명령 모양은 다르지만, "함수 진입부에 미리 patchable 자리를 만들어 두고, 활성화 시점에 동적으로 패치한다" 라는 큰 골격은 동일하다.
+x86_64 빌드에서 컴파일러는 모든 추적 가능 함수의 첫 명령 자리에 `call __fentry__` 를 emit 한다. 이 플래그의 출처는 빌드 시스템에서 그대로 추적할 수 있다. 최상위 `Makefile` 은 `CONFIG_FUNCTION_TRACER=y` 일 때 `CC_FLAGS_FTRACE := -pg` 를 기본값으로 잡고, `CONFIG_HAVE_FENTRY=y` 면 거기에 `-mfentry` 를 덧붙인다. x86 은 `arch/x86/Kconfig` 의 `select HAVE_FENTRY if X86_64 || DYNAMIC_FTRACE` 로 64비트 빌드에서 항상 이 경로를 탄다. `-pg` 단독으로는 profiling 호출이 함수 프롤로그 뒤에 들어가지만, `-mfentry` 가 그 호출을 함수의 가장 첫 명령(프롤로그보다 앞)으로 끌어올린다. 위 코드의 진입 심볼이 `__fentry__` 인 이유가 이 플래그이다.
+
+이렇게 emit 된 `call __fentry__` 자리(`arch/x86/include/asm/ftrace.h` 의 `MCOUNT_INSN_SIZE` = 5바이트)는 부팅 과정에서 모두 NOP 로 패치되어 평소에는 오버헤드가 없고, ftrace 가 특정 함수에 대해 활성화될 때만 그 자리가 `call ftrace_caller` 로 다시 패치되어 위 dispatch 경로로 들어간다. 이것이 앞서 다룬 `CONFIG_DYNAMIC_FTRACE=y` 의 핵심, 곧 "비활성화된 함수의 진입부에는 NOP 만 남아 있어 오버헤드가 0 에 가깝고, 활성화될 때만 호출 분기 명령으로 살아난다" 의 실제 모습이다. 한 가지 덧붙이면, 5바이트 명령 하나를 바꾸는 일조차 다른 CPU 가 그 중간 바이트를 실행하고 있을 수 있어 단순 메모리 쓰기로는 안전하지 않다. 그래서 `arch/x86/kernel/ftrace.c` 의 패치 경로는 breakpoint 기반의 `text_poke_bp()` / `text_poke_queue()` 인프라를 사용한다.
+
+### arm64 에서는 어떻게 hook 되는가
+
+같은 메커니즘이 arm64 에서는 형태를 바꿔 적용된다. `arch/arm64/kernel/entry-ftrace.S` 의 `ftrace_caller` 정의 앞 주석이 그 차이를 요약한다.
+
+<!-- kernel-ref id="ftrace_arm64" -->
+```asm
+/*
+ * Due to -fpatchable-function-entry=2, the compiler has placed two NOPs before
+ * the regular function prologue. For an enabled callsite, ftrace_init_nop() and
+ * ftrace_make_call() have patched those NOPs to:
+ *
+ * 	MOV	X9, LR
+ * 	BL	ftrace_caller
+ *
+ * Each instrumented function follows the AAPCS, so here x0-x8 and x18-x30 are
+ * live (x18 holds the Shadow Call Stack pointer), and x9-x17 are safe to
+ * clobber.
+ *
+ * We save the callsite's context into a struct ftrace_regs before invoking any
+ * ftrace callbacks. So that we can get a sensible backtrace, we create frame
+ * records for the callsite and the ftrace entry assembly. This is not
+ * sufficient for reliable stacktrace: until we create the callsite stack
+ * record, its caller is missing from the LR and existing chain of frame
+ * records.
+ */
+SYM_CODE_START(ftrace_caller)
+	bti	c
+```
+
+arm64 빌드에서는 컴파일러가 모든 추적 가능 함수의 진입부에 **NOP 두 개** (`-fpatchable-function-entry=2`) 를 미리 끼워 둔다. x86 의 `-mfentry` 가 "호출 명령을 emit 해 두고 부팅 시 NOP 로 바꾸는" 방식이라면, arm64 는 처음부터 NOP 를 emit 한다. 이 NOP 들은 ftrace 활성화 시점에 `ftrace_init_nop()` / `ftrace_make_call()` 에 의해 `MOV X9, LR; BL ftrace_caller` 로 동적 패치되어, 함수가 호출되는 매 순간 `ftrace_caller` 로 분기된다. `BL` 은 반환 주소를 항상 LR(x30) 에 덮어쓰므로, 호출자의 원래 반환 주소를 잃지 않기 위한 `MOV X9, LR` 한 명령이 앞에 붙는 것이다.
+
+플래그의 진실 원본은 `arch/arm64/Makefile` 이다. `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y` 면 `-fpatchable-function-entry=4,2`, 그 외 `CONFIG_DYNAMIC_FTRACE_WITH_ARGS=y` 면 `=2` 를 쓴다. `4,2` 는 NOP 네 개 중 두 개를 함수 심볼 **앞** 에 배치한다는 뜻으로, 그 8바이트 자리에 해당 callsite 가 쓸 `ftrace_ops` 포인터 리터럴이 저장된다. 위 발췌의 주석 바로 아래에서 `ftrace_caller` 가 `bic x11, x30, 0x7` 로 정렬을 맞춰 이 리터럴을 읽어 들인다 (`arch/arm64/kernel/entry-ftrace.S` 의 `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS` 분기). 앞서 "커널에 ftrace 활성화하기" 절의 `.config` 발췌에 있던 `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y` 가 바로 이 모드이다.
+
+패치 자체는 x86 보다 단순하다. 바꿔야 하는 것이 4바이트 정렬된 명령 하나(NOP ↔ `BL`)뿐이어서, `arch/arm64/kernel/ftrace.c` 의 `ftrace_modify_code()` 가 주석 그대로 "Replace a single instruction" — 단일 명령 교체로 끝난다. x86 처럼 breakpoint 를 거칠 필요가 없다.
+
+### RISC-V 에서는 어떻게 hook 되는가
+
+RISC-V 도 arm64 처럼 함수 진입부에 미리 깔린 NOP 를 동적 패치하는 patchable-entry 계열이다. 다른 점은 "호출 한 번" 을 만드는 데 명령이 두 개 필요하다는 ISA 특성이며, 이 제약이 구현 전반을 결정한다. `arch/riscv/include/asm/ftrace.h` 의 주석과 패치 매크로가 그 구조를 그대로 보여준다.
+
+<!-- kernel-ref id="ftrace_riscv" -->
+```c
+/*
+ * A general call in RISC-V is a pair of insts:
+ * 1) auipc: setting high-20 pc-related bits to ra register
+ * 2) jalr: setting low-12 offset to ra, jump to ra, and set ra to
+ *          return address (original pc + 4)
+ *
+ *<ftrace enable>:
+ * 0: auipc  t0/ra, 0x?
+ * 4: jalr   t0/ra, ?(t0/ra)
+ *
+ *<ftrace disable>:
+ * 0: nop
+ * 4: nop
+ *
+ * Dynamic ftrace generates probes to call sites, so we must deal with
+ * both auipc and jalr at the same time.
+ */
+
+/* ... */
+
+#define NOP4			(0x00000013)
+
+/* ... */
+
+#define make_call_t0(caller, callee, call)				\
+do {									\
+	unsigned int offset =						\
+		(unsigned long) (callee) - (unsigned long) (caller);	\
+	call[0] = to_auipc_t0(offset);					\
+	call[1] = to_jalr_t0(offset);					\
+} while (0)
+
+/* ... */
+
+/*
+ * Let auipc+jalr be the basic *mcount unit*, so we make it 8 bytes here.
+ */
+#define MCOUNT_INSN_SIZE 8
+```
+
+RISC-V 의 직접 분기 명령 `jal` 은 ±1 MB 까지밖에 닿지 않아, 커널 텍스트 어디서든 `ftrace_caller` 에 도달한다는 보장이 없다. 그래서 호출은 `auipc` (PC 기준 상위 20비트) + `jalr` (하위 12비트) 두 명령으로 32비트 상대 오프셋을 조립해야 한다. 주석의 도식이 보여주듯 비활성 상태는 NOP 두 개, 활성 상태는 `auipc t0` + `jalr t0` 쌍이며, `make_call_t0` 매크로가 호출지–목적지 오프셋으로부터 두 명령의 비트 패턴을 만든다. 이 8바이트 묶음이 패치의 최소 단위라는 점은 같은 파일의 `MCOUNT_INSN_SIZE 8` 정의("Let auipc+jalr be the basic *mcount unit*")에 명시되어 있고, `ftrace_make_nop()` (`arch/riscv/kernel/ftrace.c`) 는 그 8바이트를 4바이트 NOP(`NOP4` = `0x00000013`) 두 개로 되돌린다.
+
+NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile` 에 있다. `CONFIG_DYNAMIC_FTRACE=y` 일 때 `CONFIG_RISCV_ISA_C=y` (압축 명령 확장) 빌드면 `-fpatchable-function-entry=4`, 아니면 `=2` 를 고른다. C 확장 빌드에서는 컴파일러가 NOP 를 2바이트 압축형으로 emit 하므로, 같은 8바이트 영역을 확보하려면 4 개가 필요하기 때문이다. 같은 분기 안의 `LDFLAGS_vmlinux += --no-relax` 도 한 몸으로 움직인다. linker relaxation 이 호출 시퀀스를 더 짧은 명령으로 줄여 버리면 "함수 진입부에 정확히 8바이트" 라는 전제가 깨질 수 있기 때문이다.
+
+호출 쌍이 `ra` 가 아닌 `t0` 를 쓰는 데에도 이유가 있다. arm64 의 `BL` 은 링크 레지스터가 LR 로 고정이라 원래 반환 주소를 살리는 `MOV X9, LR` 이 따로 필요했지만, RISC-V 의 `jalr` 은 반환 주소를 받을 레지스터를 명령 안에서 고를 수 있다. 패치된 쌍은 반환 주소를 `t0` 에 받아 호출자의 `ra` 를 건드리지 않은 채 `ftrace_caller` 로 들어가고, `arch/riscv/kernel/mcount-dyn.S` 의 `ftrace_caller` 는 `addi a0, t0, -FENTRY_RA_OFFSET` (`FENTRY_RA_OFFSET` = 8 — `t0` 에서 패치 쌍의 크기를 빼면 곧 함수 진입 주소) 로 추적 대상 함수의 주소를, `mv a1, ra` 로 그 함수를 부른 쪽(parent IP)을 callback 인자로 구성한다. 레지스터를 스택에 보존하고 공통 ftrace 코어를 부르는 골격은 x86 의 `save_mcount_regs`, arm64 의 `stp` 연쇄와 같다.
+
+두 명령 패치의 대가는 패치 절차에서 치른다. arm64 는 4바이트 명령 하나만 바꾸면 되고 x86 은 breakpoint 트릭으로 5바이트 교체를 안전하게 만들지만, RISC-V 는 `auipc` 와 `jalr` 을 **함께** 바꿔야 하므로 다른 CPU 가 두 명령 사이를 실행 중일 가능성을 배제할 수 없다. 그래서 `arch/riscv/kernel/ftrace.c` 는 패치 구간 동안 `stop_machine()` 으로 머신 전체를 세운다. `ftrace_arch_code_modify_prepare()` 의 주석 그대로다 — "The code sequences we use for ftrace can't be patched while the kernel is running, so we need to use stop_machine() to modify them for now".
+
+### 세 아키텍처 정리
+
+| 구분 | x86_64 | arm64 | RISC-V |
+|---|---|---|---|
+| patchable 자리 예약 | `-pg -mfentry` (`call __fentry__` emit 후 부팅 시 NOP 화) | `-fpatchable-function-entry=2` (CALL_OPS 면 `4,2`) | `-fpatchable-function-entry=4` (C 확장) / `=2` |
+| 비활성 상태 | 5바이트 NOP | NOP 2개 (8바이트) | NOP 2개 (8바이트) |
+| 활성화 시 패치 | `call ftrace_caller` | `MOV X9, LR` + `BL ftrace_caller` | `auipc t0` + `jalr t0` |
+| 반환 주소 처리 | `call` 이 스택에 push | `MOV X9, LR` 로 별도 보존 | `jalr` 이 `t0` 에 기록, `ra` 무손상 |
+| 런타임 패치 방식 | breakpoint (`text_poke_bp()`) | 단일 명령 교체 | `stop_machine()` |
+
+디테일은 모두 다르지만 골격은 하나다. 함수의 프롤로그보다 앞, 실행 가능한 첫 명령 자리에 컴파일러가 미리 마련해 둔 patchable 영역이 있고, 추적이 꺼져 있으면 NOP 가, 켜지면 `ftrace_caller` 로의 분기가 그 자리에 들어간다. 함수 추적기의 trigger 시점이 "함수 진입" 이라고 표현되는 이유이며, 세 아키텍처의 `ftrace_caller` 가 모두 "레지스터 보존 → 공통 callback 호출 → 복원" 의 같은 순서로 짜여 있는 이유이기도 하다.
 
 ### tracepoint 이벤트는 어떻게 정의되고 어떻게 출력되는가
 
@@ -1223,7 +1294,7 @@ TRACE_EVENT(sched_switch,
 본 글의 앞 절에서 echo 9 줄로 풀어 쓴 측정 시퀀스는 trace-cmd 한 줄로 압축된다.
 
 ```bash
-sudo trace-cmd record \
+sudo trace-cmd record \ # [!hl]
     -p function \
     -l 'vfs_*' -l 'do_sys_open*' \
     -e sched:sched_switch \
@@ -1231,7 +1302,7 @@ sudo trace-cmd record \
     -o trace.dat \
     sleep 5
 
-sudo trace-cmd report -i trace.dat
+sudo trace-cmd report -i trace.dat # [!hl]
 ```
 
 각 옵션이 앞 절의 어느 단계에 대응되는지는 다음과 같다.
@@ -1249,14 +1320,14 @@ sudo trace-cmd report -i trace.dat
 
 ```bash
 # 셸 A — 측정 시작 (Ctrl-C 까지 기록 유지)
-sudo trace-cmd record -p function -l 'vfs_*' -e sched:sched_switch
+sudo trace-cmd record -p function -l 'vfs_*' -e sched:sched_switch # [!hl]
 
 # 셸 B — 워크로드 수행
 ls -R /var/log > /dev/null
 # 셸 A 로 돌아가 Ctrl-C → trace.dat 가 현재 디렉토리에 생성된다.
 
 # 셸 A 또는 어디서든 — 결과 읽기
-sudo trace-cmd report
+sudo trace-cmd report # [!hl]
 ```
 
 ### 자주 쓰는 서브커맨드
