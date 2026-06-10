@@ -32,6 +32,7 @@ Each post = one slug directory:
 ## Body rules
 
 - Tone: **평이체** (`~다 / ~이다 / ~한다`). Not 격식체 (`~습니다`), not 반말 (`~야`). The register is the objective, neutral tone of academic papers and technical reports.
+- 띄어쓰기 — **조사는 앞말에 붙인다** (국립국어원 한글 맞춤법 §41). 앞말이 영어·코드·숫자여도 동일: `ftrace는`, `tracefs에서`, `QEMU로`, `configuration을`, 인라인 코드 뒤도 `set_event`의 / `nop`이. 서술격조사(`nop`인, `1`이면), 명사+하다/되다 파생(`emit한다`, `trace된다`), 접미사(`CPU당`, `Makefile들이`)도 붙인다. 단 뒤가 **별도 명사·의존명사·부사**면 띄운다: `tracepoint 이벤트`, `Kernel hacking 항목`, `Rust 등`, `tracer 중`, `cat 같은`.
 - First line is `# Title`. Must match `meta.json.title` exactly.
 - Code fences must declare a language (`c`, `python`, `bash`, `text`, …). Use `text` for config dumps and pseudo-code.
 - GFM extensions allowed: tables, strikethrough, task lists.
