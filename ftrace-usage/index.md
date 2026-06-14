@@ -123,7 +123,7 @@ ftrace는 현대적인 버전의 커널로 빌드된 대부분의 PC용 리눅�
 - `CONFIG_KPROBE_EVENTS=y`, `CONFIG_UPROBE_EVENTS=y` — `kprobe_events`, `uprobe_events` 인터페이스를 통한 동적 이벤트 등록.
 - `CONFIG_STACK_TRACER=y`, `CONFIG_TRACER_SNAPSHOT=y` — 스택 사용량 추적과 스냅샷 기능.
 
-v6.12.79 트리 기준으로, `make menuconfig`를 실행하면 다음과 같은 최상위 메뉴를 만난다. 여기서 맨 아래의 `Kernel hacking` 항목으로 진입한다.
+v6.12.92 트리 기준으로, `make menuconfig`를 실행하면 다음과 같은 최상위 메뉴를 만난다. 여기서 맨 아래의 `Kernel hacking` 항목으로 진입한다.
 
 ![최상위 메뉴 — 맨 아래의 Kernel hacking 항목 선택](./menuconfig.png)
 
