@@ -1,0 +1,8 @@
+{
+  "title": "리눅스 커널 디버깅을 위한 gdb 사용법",
+  "date": "2026-06-15",
+  "tags": ["linux", "kernel", "gdb", "pwndbg", "debugging", "qemu"],
+  "series": "linux-kernel/debugging",
+  "seriesOrder": 1,
+  "excerpt": "QEMU gdbstub에 gdb를 붙여 vmlinux로 살아 있는 커널을 디버깅하는 실전 가이드. 배포판별 gdb, 크로스 디버깅 설치부터 break, watch, 조건부 중단점 같은 핵심 사용법, gdb 빌트인과 pwndbg 일반 기능, pwndbg 커널 전용 기능, 커널 lx-* 스크립트의 네 갈래 구분, KASLR, 디버거 점유 시간 같은 주의점, gdb 파이썬 API 자동화까지 arm64 v6.12를 비롯한 x86_64, arm64, riscv64 QEMU 랩에서 직접 돌려 확인한다."
+}
