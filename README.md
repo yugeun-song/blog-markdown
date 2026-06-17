@@ -14,7 +14,7 @@ Each post is one slug directory:
 - `{slug}/index.md` — markdown body (no frontmatter; first line is `# Title`)
 - `{slug}/<assets>` — optional per-post images and supporting files. Co-located with the markdown (flat in the slug directory, or under a subfolder like `images/`). Reference from `index.md` via relative path (`./foo.png` or `./images/foo.png`). The build copies every entry except `meta.json` and `index.md` verbatim to `dist/posts/{slug}/`, preserving subfolder layout. Rendered images are center-aligned by default via the global `img` rule in the sister `blog/styles/base.css`.
 
-The directory name becomes the URL path verbatim: `rust-async-runtime/` → `https://blog-213.pages.dev/posts/rust-async-runtime/`.
+The directory name becomes the URL path verbatim: `rust-async-runtime/` → `https://vmfault.dev/posts/rust-async-runtime/`.
 
 Slugs are kebab-case ASCII only.
 
