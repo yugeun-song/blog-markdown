@@ -4,5 +4,5 @@
   "tags": ["linux", "kernel", "ftrace", "tracing", "debugging"],
   "series": "linux-kernel/tracing",
   "seriesOrder": 1,
-  "excerpt": "ftrace 를 tracefs 파일 인터페이스로 직접 제어하는 실전 가이드. 측정 시퀀스와 set_ftrace_filter, nop·function·function_graph tracer, tracepoint 이벤트가 함수 추적과 어떻게 다르게 동작하는지(arm64·x86 hook 메커니즘 포함)를 짚고, 같은 작업을 trace-cmd 한 줄로 묶는 법까지 정리한다."
+  "excerpt": "tracefs와 trace-cmd로 다루는 ftrace 트레이싱"
 }
