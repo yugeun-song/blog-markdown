@@ -71,13 +71,13 @@ Follow this spec exactly. The two diagrams in `gdb-kernel-debugging/index.md` ar
 **Stroke width (global, uniform).** Every stroke — outer frame, caps, partition dividers, axis line, address ticks, and reference arrows — uses ONE shared width via `style="…;stroke-width:var(--diagram-stroke)"` (do not set per-line `stroke-width` attributes). `--diagram-stroke` (currently `2.4`) is defined once in `:root` (sister `blog` repo, `styles/base.css`), alongside `--wrap-radius`; changing it there rescales every diagram's lines at once. All lines stay the same thickness.
 
 **Text — weight, size, position, alignment.**
-- Boundary address labels (left of the column, one per region boundary): `font-size="13" font-weight="700" text-anchor="end"` at x=231, baseline on the boundary. Always bold.
-- Register / pointer marker (`X29 = sp`): `font-size="12" font-weight="700" text-anchor="end"`, red, sitting just above its address label.
+- Boundary address labels (left of the column, one per region boundary): `font-size="15" font-weight="700" text-anchor="end"` at x=231, baseline on the boundary. Always bold. (These side labels read larger than the in-region sub-labels.)
+- Register / pointer marker (`X29 = sp`): `font-size="15" font-weight="700" text-anchor="end"`, red, sitting just above its address label.
 - Region value (the hex address or instruction stored in the region): `font-size="15" font-weight="700" text-anchor="middle"` at x=350, `var(--text-primary)`. This is the most prominent token in the region — bold, but one notch smaller than a heading.
 - Region sub-label (`(caller frame)`, `(.text)`, `(kernel stack)`): `font-size="11"`, regular weight, centered, about 24px below the value.
 - A region with no concrete value (e.g. `truncated`) uses a `font-size="14"` centered word plus the `font-size="11"` sub-label.
 - `⋮` (omitted span): `font-size="26" font-weight="700"`, `var(--text-secondary)`, centered in the gap band.
-- Reference-arrow label: `font-size="11"`, bold, black (`var(--text-primary)`), left-anchored (`text-anchor="start"`) just to the right of the arrow's vertical leg, vertically near its arrow. Write the concrete dereference `*(<address>)` — the source's stored pointer value, which equals the destination's start address (e.g. `*(0xffff800083fcbc90)`), not a generic `*(void **)`. Pull the arrow's vertical leg in toward the column far enough that the address label fits inside the canvas without overflowing.
+- Reference-arrow label: `font-size="15"`, bold, black (`var(--text-primary)`), left-anchored (`text-anchor="start"`) just to the right of the arrow's vertical leg, vertically near its arrow. Write the concrete dereference `*(<address>)` — the source's stored pointer value, which equals the destination's start address (e.g. `*(0xffff800083fcbc90)`), not a generic `*(void **)`. Pull the arrow's vertical leg in toward the column far enough that the address label fits inside the canvas without overflowing.
 
 **Reference arrows — follow this rule without exception.**
 - Start the tail at the CENTER of the source region (the midpoint of its address span), on the right rail (x=455).
