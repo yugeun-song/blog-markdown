@@ -619,6 +619,8 @@ picked:
 
 함수 시그니처 `static void __sched notrace __schedule(int sched_mode)`가 함수 추적기의 hook 지점에 해당하며, 함수 후반부의 `trace_sched_switch(preempt, prev, next, prev_state);` 호출이 sched_switch tracepoint가 fire되는 자리이다. 두 줄 사이에는 IRQ 비활성, RCU note, rq 락 획득, clock update, `prev->__state` 로드, `pick_next_task`, resched 플래그 정리에 이르는 100 줄 가까운 "스케줄링 결정" 로직이 끼어 있다. `__schedule` 진입을 hook해서 얻는 정보(함수가 호출되었다는 사실 자체)와 sched_switch 이벤트를 hook해서 얻는 정보(결정이 실행으로 옮겨지기 직전의 한 점)는 같은 함수 안에서 일어나지만 시점도 의미도 다르다. 함수 안에서 이벤트의 위치를 결정한 것은 커널 개발자이며, 이러한 자유도가 tracepoint 추적의 가치이다.
 
+이렇게 코드의 특정 줄에 `trace_<event>(...)`를 심어 두는 발상은, 디버깅에서 관심 있는 줄에 `printf`를 끼워 넣는 것과 유사한 아이디어이다. 함수가 호출되었다는 사실이 아니라 "이 줄을 지났고 그때 상태가 이러했다"를 보려고, 보고 싶은 바로 그 자리에 관측점을 두기 때문이다. 차이는 비용과 형식에 있다. `printf`는 늘 실행되고 출력이 비정형 문자열이지만, tracepoint는 소스에 박혀 있어도 켜기 전에는 거의 비용 없이 잠들어 있다가 켤 때만 정해진 인자를 정형화된 방식으로 ring buffer에 남긴다. 요컨대 소스에 미리 심어 두되 평소에는 꺼져 있고 런타임에 켜고 끄는, 출력이 구조화된 `printf`인 셈이다.
+
 이 자유는 mainline 커널 개발자에게만 있는 것이 아니다. tracepoint는 전적으로 커널 소스 안에 정의되므로, 커널 소스를 따로 유지하는 쪽이면 누구든 자기 tracepoint를 새로 심어 넣을 수 있다. SoC 벤더, BSP 공급사, 배포판처럼 out-of-tree 또는 downstream 커널을 유지하는 곳에서는 실제로 자사 드라이버나 서브시스템의 관심 지점에 전용 tracepoint를 정의해 넣는다(모듈 안에서 정의하는 것도 가능하다). 이렇게 추가한 이벤트도 빌드되고 나면 mainline의 것과 똑같이 `events/` 아래 자기 서브시스템 디렉토리로 노출되고, `enable`이나 `set_event`로 켜고 끄는 방식까지 본 글에서 다룬 것과 동일하다.
 
 시그니처에 보이는 `notrace` 키워드는 이 함수가 function tracer의 추적 대상에서 명시적으로 제외되어 있음을 의미한다. ftrace 내부 함수들과 스케줄러 코어가 재귀적으로 자기 자신을 추적해 buffer가 폭주하는 사고를 막기 위한 안전장치이다. 따라서 `current_tracer=function`인 상태에서도 `__schedule`의 진입 라인은 실제로는 잡히지 않으며, 시그니처를 함수 hook 지점에 대응하는 자리로 다룬 것은 어디까지나 개념 비교를 위한 것이다. 같은 도식이 `notrace`가 없는 일반 커널 함수에는 그대로 적용된다.
