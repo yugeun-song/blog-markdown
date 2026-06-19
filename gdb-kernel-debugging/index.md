@@ -107,7 +107,7 @@ $ gdb ./vmlinux
 ## 2. gdb 핵심 사용법
 
 이 장에서 다루는 것은 모두 **gdb 빌트인** 기능이다. pwndbg나 커널 스크립트 없이 순정 gdb만으로 동작한다.
-### gdbstub에 붙어 커널 상태 들여다보기
+### 게스트 VM 커널에 remote로 연결하는 법
 
 가장 기본이 되는 흐름은 "gdbstub에 붙어서, 원하는 지점에 멈추고, 그 순간의 커널 상태를 읽는 것"이다. 커널 부팅의 진입점인 `start_kernel`에 멈춰 보자.
 
@@ -409,7 +409,16 @@ Value returned is $1 = 0 # [!hl]
 
 반환값 `0`은 대상 태스크가 이미 깨어 있어 깨우지 않았다는 뜻이다(`try_to_wake_up`은 실제로 깨웠으면 1을 돌려준다).
 
-### print로 값 들여다보기
+멈춘 지점의 C 소스 자체는 `list`(`l`)로 본다. 인자 없이 부르면 직전 출력에 이어 열 줄을, `list .`은 현재 실행 지점 주변을, `list 함수`나 `list 파일:줄`은 지정한 위치 주변을 보여 준다. pwndbg의 `context`가 `SOURCE` 패널로 자동으로 띄우는 것과 같은 정보를, 순정 gdb에서 얻는 방법이다. 예컨대 `start_kernel` 부근에서 부르면 다음과 같다.
+
+```text
+(gdb) list
+920        smp_setup_processor_id();
+921        debug_objects_early_init();
+922        init_vmlinux_build_id();
+```
+
+### print로 값 출력하기
 
 커널 메모리를 C 표현식으로 읽는 핵심 명령이 `print`(`p`)다. 포맷 글자 하나로 같은 값을 다른 진법, 형태로 보거나, 표현식, 캐스트, 특수 함수를 섞어 쓴다. `p/<글자> 식` 형태로 출력 형식을 지정한다.
 
@@ -501,6 +510,19 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>    mov x9, x30    X9 => 0xffff8000800fd
 ```
 
 `x`는 주소에서 메모리를 읽어 보여 준다는 점에서 C의 역참조 연산자 `*`와 가장 닮았다. 실제로 `x/1xg &jiffies_64`는 `*(unsigned long *)&jiffies_64`와 같은 8바이트를 읽는다. 다만 둘이 100% 같지는 않다. `*`는 포인터의 타입(`T *`)에 따라 `T` 값을 *만들어 내는* 연산자라 다른 식에 끼워 쓸 수 있는 반면, `x`는 식의 타입을 무시하고 `<크기><포맷>`을 직접 받아 그 바이트를 *표시만* 하는 명령이다. 같은 주소라도 `x/xg`(8바이트), `x/xw`(4바이트), `x/xb`(1바이트)로 읽는 폭이 달라지고 값을 돌려주지도 않는다. 그래서 `x`와 완벽히 동일한 C 연산자는 없고, 의미가 가장 가까운 것은 `*`이다.
+
+명령어 포맷 `i`로 디스어셈블할 때는 시작 주소 정렬에 주의해야 한다. AArch64처럼 명령어 폭이 4바이트로 고정된 ISA에서 정렬이 어긋난 주소를 주면 gdb가 4바이트 경계로 잘못 끊어 `.inst ... ; undefined`를 낸다. 예를 들어 `start_kernel` 첫 명령보다 10바이트 앞에서 시작하는 `x/20i ($pc - 10)`이 그렇다.
+
+```text
+(gdb) x/20i ($pc - 10)
+   0xffff8000829c0bce:    .inst    0x201fd503 ; undefined
+   0xffff8000829c0bd2:    .inst    0x201fd503 ; undefined
+   0xffff8000829c0bd6 <start_kernel-2>:    .inst    0x201fd503 ; undefined
+   0xffff8000829c0bda <start_kernel+2>:    .inst    0x201fd503 ; undefined
+   ...
+```
+
+같은 구간을 4바이트에 맞춰 `x/10i $pc`로 부르면 `nop`, `paciasp`, `adrp` …로 제대로 풀린다.
 
 ### step, next, finish로 흐름 제어하기
 
@@ -661,7 +683,7 @@ break-range -- Set a breakpoint for an address range.
 - **detach가 곧 실행 재개**: `-S`로 정지시킨 커널을 한 번 붙었다가 끊으면, 다음에 붙을 때는 이미 부팅이 끝나 있다. `start_kernel` 같은 일회성 지점은 매번 새로 부팅해서 잡아야 한다.
 - **심볼/버전 불일치**: 구조체 레이아웃마저 커널 버전 사이에서 바뀐다. 예컨대 `struct file`의 첫 멤버는 6.12에서 `atomic_long_t f_count`이지만 7.1에서는 `spinlock_t f_lock`으로 재배치되었다.
 
-### gdb가 멈춘 시간을 게스트 시계에서 제외하기
+### gdb가 멈춘 시간을 게스트 VM 타이머에서 제외하기
 
 부팅이 끝난 커널은 쉴 새 없이 스케줄링하고 타이머 틱을 센다. 그런데 중단점에 멈춰 gdb로 디버깅하는 동안 흘러간 "그 시간"을 게스트가 어떻게 처리하는지는 QEMU 가속 방식에 따라 갈린다.
 
@@ -744,9 +766,7 @@ slide = 0xffffffff95c00000 - 0xffffffff81000000 = 0x14c00000
 
 지금까지는 빌트인 gdb 명령어만 사용하였다. pwndbg는 gdb에 얹는 플러그인으로, 설치하면 순정 gdb에는 없는 더 편리한 기능을 쓸 수 있다.
 
-### pwndbg 공통 기능
-
-pwndbg는 본래 유저스페이스 익스플로잇용 도구이지만, 그 기능 상당수는 커널을 디버깅할 때도 그대로 동작한다. gdb에는 아예 없는 명령들이다.
+pwndbg는 본래 유저스페이스 익스플로잇용 도구이지만, 주소와 메모리만 다루는 기능 상당수는 커널을 디버깅할 때도 그대로 동작한다. 아래에서 다루는 `context`, `telescope`, `vmmap`, `hexdump`가 그런 공통 기능이다. 반대로 힙 분석(`bins`, `tcache` 같은 ptmalloc2 명령)은 유저스페이스 `malloc`을 전제하므로 커널 디버깅에는 못 쓴다. `bp`도 주소만 받는 명령(`bp <주소>`)이라 마찬가지다. 이 명령들은 모두 pwndbg가 얹는 것이라 플러그인 없는 순정 gdb에서는 거부된다.
 
 ```text
 (gdb) context
@@ -755,9 +775,9 @@ Undefined command: "context".  Try "help".
 Undefined command: "telescope".  Try "help".
 ```
 
-pwndbg를 로드하면 멈출 때마다 레지스터, 디스어셈블, 스택을 한 화면에 자동으로 그려 주고, `telescope`는 한 포인터를 따라가며 가리키는 대상을 재귀적으로 풀어 준다.
+### context로 멈춘 지점을 한 화면에 보기
 
-멈춤 직후 자동으로 뜨는 이 화면이 디버깅에 유용하다. arm64 v6.12 커널에서 `try_to_wake_up`에 멈췄을 때의 실제 모습은 다음과 같다.
+pwndbg를 로드하면 멈출 때마다 레지스터, 디스어셈블, 소스, 스택, 콜 스택을 한 화면에 자동으로 그려 준다. 멈춤 직후 자동으로 뜨는 이 화면이 디버깅에 유용하다. arm64 v6.12 커널에서 `try_to_wake_up`에 멈췄을 때의 실제 모습은 다음과 같다.
 
 <pre class="pwndbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
@@ -945,6 +965,59 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
   <text x="501" y="318" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff8000800e31ec)</text>
 </svg>
 
+이 화면은 멈출 때마다 자동으로 뜨지만, `context`를 직접 입력하면 언제든 다시 그릴 수 있다. pwndbg는 이를 `ctx`로 줄여 받는다. 다른 명령을 여러 번 실행해 화면이 위로 밀렸을 때 `ctx` 한 줄로 현재 문맥을 되살린다. 같은 화면을 부팅 첫 명령에서 직접 부른 예가 아래다. arm64 v6.12 커널을 `start_kernel`에 멈춘 직후다.
+
+<pre class="pwndbg-context">
+LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
+<span class="ansi-blue">─────────────[ REGISTERS / show-flags off / show-compact-regs off ]─────────────</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X1  </span> <span class="ansi-magenta">0xffff800083869dc0 (__boot_cpu_mode)</span> ◂— 0xe1100000e11
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X5  </span> <span class="ansi-magenta">0xffff800082147000 (kimage_voffset)</span> ◂— 0xffff80003fe00000
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X8  </span> <span class="ansi-red">0xffff800080010800 (vectors)</span> ◂— <span class="ansi-c-green">sub</span> <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x150</span>
+ <span class="ansi-gray">...</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X29 </span> <span class="ansi-yellow">0xffff800083853fe0 (init_thread_union+16352)</span> ◂— 0
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">SP  </span> <span class="ansi-yellow">0xffff800083853eb0 (init_thread_union+16048)</span> ◂— 0
+ <span class="ansi-b">LR  </span> <span class="ansi-red">0xffff8000829cad48 (__primary_switched+128)</span> ◂— <span class="ansi-c-green">brk</span> <span class="ansi-c-purple">#0x800</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">PC  </span> <span class="ansi-red">0xffff8000829c0bd8 (start_kernel)</span> ◂— <span class="ansi-c-green">nop</span>
+<span class="ansi-blue">─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────</span>
+<span class="ansi-red">b►</span> <span class="ansi-b ansi-green">0xffff8000829c0bd8</span> <span class="ansi-b ansi-green">&lt;start_kernel&gt;</span>       <span class="ansi-b ansi-c-green">nop</span>
+   0xffff8000829c0bdc &lt;start_kernel+4&gt;     <span class="ansi-c-green">nop</span>
+   0xffff8000829c0be0 &lt;start_kernel+8&gt;     <span class="ansi-c-green">paciasp</span>
+   0xffff8000829c0be4 &lt;start_kernel+12&gt;    <span class="ansi-c-green">adrp</span>   <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-purple">0xffff800083865000</span>     <span class="ansi-b ansi-red">X0</span> =&gt; <span class="ansi-magenta">0xffff800083865000 (vlan_packet_offloads+64)</span> —▸ <span class="ansi-red">0xffff80008140c2e0 (vlan_gro_receive)</span> ◂— <span class="ansi-c-green">nop</span>
+   0xffff8000829c0be8 &lt;start_kernel+16&gt;    <span class="ansi-c-green">stp</span>    <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">x30</span>, [<span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#-0x70</span>]!
+   0xffff8000829c0bec &lt;start_kernel+20&gt;    <span class="ansi-c-green">add</span>    <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-purple">#0x900</span>             <span class="ansi-b ansi-red">X0</span> =&gt; <span class="ansi-magenta">0xffff800083865900 (init_task)</span> (0xffff800083865000 + 0x900)
+   0xffff8000829c0bf0 &lt;start_kernel+24&gt;    <span class="ansi-c-green">mov</span>    <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">sp</span>                    <span class="ansi-b ansi-red">X29</span> =&gt; <span class="ansi-yellow">0xffff800083853e40 (init_thread_union+15936)</span> —▸ <span class="ansi-gray">...</span>
+ <span class="ansi-gray">...</span>
+<span class="ansi-blue">───────────────────────────────[ SOURCE (CODE) ]────────────────────────────────</span>
+   913 asmlinkage __visible __init __no_sanitize_address __noreturn __no_stack_protector
+   914 <span class="ansi-c-cyan">void</span> <span class="ansi-c-green">start_kernel</span>(<span class="ansi-c-cyan">void</span>)
+<span class="ansi-b ansi-green"> ► 915 </span><span class="ansi-b">{</span>
+   916         <span class="ansi-c-cyan">char</span> <span class="ansi-c-pink">*</span>command_line;
+   917         <span class="ansi-c-cyan">char</span> <span class="ansi-c-pink">*</span>after_dashes;
+   918 
+   919         <span class="ansi-c-green">set_task_stack_end_magic</span>(&amp;init_task);
+   920         <span class="ansi-c-green">smp_setup_processor_id</span>();
+<span class="ansi-blue">───────────────────────────────────[ STACK ]────────────────────────────────────</span>
+00:0000│  sp <span class="ansi-yellow">0xffff800083853eb0 (init_thread_union+16048)</span> ◂— 0
+<span class="ansi-gray">... ↓       7 skipped</span>
+<span class="ansi-blue">─────────────────────────────────[ BACKTRACE ]──────────────────────────────────</span>
+ ► 0 0xffff8000829c0bd8 start_kernel
+   1 0xffff8000829cad48 __primary_switched+128
+<span class="ansi-blue">─────────────────────────────[ THREADS (4 TOTAL) ]──────────────────────────────</span>
+  ► 1   "" stopped: 0xffff8000829c0bd8 &lt;start_kernel&gt;
+    4   "" stopped: 0
+    3   "" stopped: 0
+    2   "" stopped: 0
+<span class="ansi-blue">────────────────────────────────────────────────────────────────────────────────</span>
+</pre>
+
+`DISASM`을 보면 `adrp x0, ...`와 `add x0, x0, #0x900`이 짝을 이뤄 `init_task`의 주소를 만든다. `adrp`는 4KB 페이지 베이스만 싣기 때문에 단독으로는 무관한 심볼(`vlan_packet_offloads+64`) 근처를 가리키고, 뒤이은 `add #0x900`이 정확히 `init_task`에 닿는다. 이는 `SOURCE`의 첫 문장 `set_task_stack_end_magic(&init_task)`와 그대로 연결된다.
+
+부팅 진입점이라 상태가 단출하다. `X29`와 `SP`는 `init_thread_union`, 곧 부팅 CPU의 초기 커널 스택을 가리키고, `STACK`은 갓 잡힌 스택이라 거의 0이다. `BACKTRACE`도 `start_kernel`과 이를 호출한 어셈블리 진입점 `__primary_switched` 두 칸뿐이다. `SOURCE`의 `__noreturn`이 말해 주듯 `start_kernel`은 반환하지 않으며, `LR`이 가리키는 `__primary_switched+128`이 `brk` 명령인 것도 이 때문이다. `THREADS (4 TOTAL)`은 vCPU가 넷임을 보여 주는데, 1번만 `start_kernel`에 있고 2·3·4번은 `0`이다. 보조 CPU가 아직 올라오지 않은 SMP 부팅 이전 상태다.
+
+### telescope로 포인터 참조관계 확인하기
+
+`telescope`는 한 포인터를 따라가며 가리키는 대상을 재귀적으로 풀어 준다. 앞서 `try_to_wake_up`에 멈췄을 때의 `STACK` 패널이 바로 이 telescope 출력이다.
+
 ```text
 pwndbg> telescope $sp 6
 00:0000│ x29 sp 0xffff800083fcbc30 —▸ 0xffff800083fcbc90 —▸ 0xffff800083fcbcd0 —▸ 0xffff800083fcbd80 ◂— ...
@@ -956,9 +1029,9 @@ pwndbg> telescope $sp 6
 
 `telescope $sp 6`은 `sp`에서 8바이트씩 여섯 슬롯을 찍되, 각 슬롯의 값을 다시 역참조해 사슬로 풀어 준다. C로 보면 각 행은 `*(void **)(sp + 오프셋)`을 구하고, 그 결과가 또 주소이면 거기에 `*`를 거듭 적용해 더는 주소가 아닌 값에 닿을 때까지 따라가는 것이다. 그래서 화살표가 여러 개인 한 행은 시작 주소에 역참조를 그 개수만큼 거듭한 것과 같다. `A —▸ B —▸ C —▸ D ◂— ...`에서 `B == *(void **)A`, `C == *(void **)B`, `D == *(void **)C`이므로 `D`는 `A`를 세 번 역참조한 값, 즉 개념적으로 `***A`다(엄밀히는 매 단계에서 읽은 8바이트를 다시 포인터로 해석하므로 `*(void **)`를 세 번 포갠 꼴이다). 한 행은 이 다중 역참조의 최종 값만이 아니라 중간 단계(`*A`, `**A`, ...)까지 함께 찍어 준다. 끝의 `◂—`는 거기서 한 번 더 따라간 값이 포인터가 아니거나 표시 깊이에 걸려 사슬이 멈췄다는 표시다.
 
-`vmmap`(메모리 맵), `hexdump`(메모리 덤프), capstone 기반 디스어셈블 역시 주소와 메모리만 다루므로 커널 디버깅에서도 그대로 쓸 수 있다. 반대로 pwndbg의 힙 분석(`bins`, `tcache` 같은 ptmalloc2 명령)은 유저스페이스 `malloc`을 전제하므로 **커널 디버깅에는 못 쓴다**. `bp`도 주소만 받는 명령(`bp <주소>`)이라 마찬가지다.
+### vmmap으로 메모리 맵 분석하기
 
-예컨대 커널 디버깅에서 `vmmap`은 커널 이미지의 영역 배치를 권한과 함께 보여 준다.
+`vmmap`은 커널 이미지의 영역 배치를 권한과 함께 보여 준다.
 
 ```text
 pwndbg> vmmap
@@ -970,6 +1043,8 @@ pwndbg> vmmap
 ```
 
 `.text`는 `r-xp`(실행), `.bss`/`.data`는 `rw-p`로 갈려, 어떤 주소가 코드인지 데이터인지와 권한(W+X 위반 여부)을 한눈에 본다. 맨 위 `.text` 시작 주소 `0xffff800080010000`이 곧 `kbase`다(앞쪽 저주소 물리 RAM 영역은 생략했다).
+
+### hexdump로 메모리 덤프하기
 
 `hexdump <주소> [바이트 수]`는 주어진 주소부터 지정한 바이트 수만큼 메모리를 16진과 ASCII로 나란히 펼친다. 바이트 수를 생략하면 기본 64바이트다. 읽는 법을 보기 좋은 예로 커널 버전 문자열 `linux_banner`를 `0x60`(96)바이트만큼 덤프한다. 아래는 arm64 v6.12에서 직접 돌린 결과다.
 
@@ -1294,6 +1369,7 @@ pid=1 comm=init
 | `p/포맷` | 진법, 형태 지정(`x`16진 `d`10진 `t`2진 `c`문자 `a`주소) | `p/x init_task.flags` |
 | `x` (examine) | 메모리를 직접 검사 | `x/8xb &init_task` |
 | `disassemble` (`disas`) | 함수, 구간 기계어 덤프 | `disassemble try_to_wake_up` |
+| `list` (`l`) | 현재, 지정 위치의 C 소스 줄 표시 | `list .` |
 | `set var` | 변수 값 강제 수정 | `set var state = 1` |
 | `ptype` (`/o`) | 타입을 끝까지 펼침(`/o`는 오프셋, 크기까지) | `ptype /o struct file` |
 | `whatis` | 타입 이름만 한 단계 | `whatis init_task.files` |
@@ -1310,7 +1386,7 @@ pid=1 comm=init
 
 | 명령 | 하는 일 | 예시 |
 |---|---|---|
-| `context` | 멈출 때마다 레지스터, 디스어셈블, 소스, 스택, 콜스택을 한 화면에 | (멈추면 자동) |
+| `context` (`ctx`) | 멈출 때마다 레지스터, 디스어셈블, 소스, 스택, 콜스택을 한 화면에. 직접 입력해 다시 그림 | `ctx` |
 | `telescope` | 포인터를 따라가며 가리키는 대상을 재귀적으로 풀기 | `telescope $sp 6` |
 | `nearpc` (`u` / `pdisass`) | PC 근처 디스어셈블(에뮬레이션 주석) | `nearpc 5` |
 | `vmmap` | 메모리 매핑 표 | `vmmap` |
