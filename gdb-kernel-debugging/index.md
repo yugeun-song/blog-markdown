@@ -822,10 +822,10 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 
 <svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 692" font-family="Cascadia Code, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
   <!-- 1-D memory axis -->
-  <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">high</text>
-  <line x1="32" y1="652" x2="32" y2="86" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--text-primary)"/>
-  <text x="32" y="676" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">low</text>
+  <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
+  <line x1="32" y1="652" x2="32" y2="86" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--diagram-ink)"/>
+  <text x="32" y="676" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">low</text>
 
   <!-- partition fills (opaque, per-theme) -->
   <rect x="245" y="72"  width="210" height="116" style="fill:var(--diagram-area)"/>
@@ -835,42 +835,42 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
   <rect x="245" y="496" width="210" height="156" style="fill:var(--diagram-area)"/>
 
   <!-- outer frame + dividers -->
-  <line x1="245" y1="72" x2="245" y2="652" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="455" y1="72" x2="455" y2="652" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="72" x2="455" y2="72" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="652" x2="455" y2="652" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="188" x2="455" y2="188" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="264" x2="455" y2="264" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="420" x2="455" y2="420" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="496" x2="455" y2="496" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="72" x2="245" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="455" y1="72" x2="455" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="72" x2="455" y2="72" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="652" x2="455" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="188" x2="455" y2="188" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="264" x2="455" y2="264" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="420" x2="455" y2="420" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="496" x2="455" y2="496" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
 
   <!-- boundary addresses (bold) -->
-  <line x1="233" y1="188" x2="245" y2="188" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="192" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--text-primary)">0xffff800083fcbcd0</text>
-  <line x1="233" y1="420" x2="245" y2="420" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="424" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--text-primary)">0xffff800083fcbc90</text>
-  <line x1="233" y1="652" x2="245" y2="652" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
+  <line x1="233" y1="188" x2="245" y2="188" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <text x="231" y="192" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbcd0</text>
+  <line x1="233" y1="420" x2="245" y2="420" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <text x="231" y="424" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbc90</text>
+  <line x1="233" y1="652" x2="245" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
   <text x="231" y="640" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--syntax-keyword)">X29 = sp</text>
-  <text x="231" y="658" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--text-primary)">0xffff800083fcbc30</text>
+  <text x="231" y="658" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbc30</text>
 
   <!-- partition contents -->
-  <text x="350" y="126" font-size="14" text-anchor="middle" style="fill:var(--text-primary)">truncated</text>
-  <text x="350" y="148" font-size="11" text-anchor="middle" style="fill:var(--text-primary)">(caller's caller)</text>
+  <text x="350" y="126" font-size="14" text-anchor="middle" style="fill:var(--diagram-ink)">truncated</text>
+  <text x="350" y="148" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(caller's caller)</text>
   <text x="350" y="236" font-size="26" font-weight="700" text-anchor="middle" style="fill:var(--text-secondary)">⋮</text>
-  <text x="350" y="338" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">0xffff800083fcbcd0</text>
-  <text x="350" y="362" font-size="11" text-anchor="middle" style="fill:var(--text-primary)">(caller frame)</text>
+  <text x="350" y="338" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">0xffff800083fcbcd0</text>
+  <text x="350" y="362" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(caller frame)</text>
   <text x="350" y="468" font-size="26" font-weight="700" text-anchor="middle" style="fill:var(--text-secondary)">⋮</text>
-  <text x="350" y="570" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">0xffff800083fcbc90</text>
-  <text x="350" y="594" font-size="11" text-anchor="middle" style="fill:var(--text-primary)">(current frame)</text>
+  <text x="350" y="570" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">0xffff800083fcbc90</text>
+  <text x="350" y="594" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(current frame)</text>
 
   <!-- deref chain: tail at source center, head at dest lowest address -->
-  <path d="M 455 570 H 481 Q 493 570 493 558 V 432 Q 493 420 481 420 H 467" fill="none" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 454 420 L 466 414 L 466 426 Z" style="fill:var(--text-primary)"/>
-  <text x="501" y="498" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--text-primary)">*(0xffff800083fcbc90)</text>
+  <path d="M 455 570 H 481 Q 493 570 493 558 V 432 Q 493 420 481 420 H 467" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 454 420 L 466 414 L 466 426 Z" style="fill:var(--diagram-ink)"/>
+  <text x="501" y="498" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff800083fcbc90)</text>
 
-  <path d="M 455 342 H 481 Q 493 342 493 330 V 200 Q 493 188 481 188 H 467" fill="none" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 454 188 L 466 182 L 466 194 Z" style="fill:var(--text-primary)"/>
-  <text x="501" y="268" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--text-primary)">*(0xffff800083fcbcd0)</text>
+  <path d="M 455 342 H 481 Q 493 342 493 330 V 200 Q 493 188 481 188 H 467" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 454 188 L 466 182 L 466 194 Z" style="fill:var(--diagram-ink)"/>
+  <text x="501" y="268" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff800083fcbcd0)</text>
 </svg>
 
 **2. 디스어셈블**
@@ -908,10 +908,10 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 
 <svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 542" font-family="Cascadia Code, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
   <!-- 1-D memory axis -->
-  <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">high</text>
-  <line x1="32" y1="500" x2="32" y2="86" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--text-primary)"/>
-  <text x="32" y="524" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">low</text>
+  <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
+  <line x1="32" y1="500" x2="32" y2="86" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--diagram-ink)"/>
+  <text x="32" y="524" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">low</text>
 
   <!-- partition fills (opaque, per-theme) -->
   <rect x="245" y="72"  width="210" height="154" style="fill:var(--diagram-area)"/>
@@ -919,30 +919,30 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
   <rect x="245" y="312" width="210" height="188" style="fill:var(--diagram-area)"/>
 
   <!-- outer frame + dividers -->
-  <line x1="245" y1="72" x2="245" y2="500" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="455" y1="72" x2="455" y2="500" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="72" x2="455" y2="72" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="500" x2="455" y2="500" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="226" x2="455" y2="226" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="312" x2="455" y2="312" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="72" x2="245" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="455" y1="72" x2="455" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="72" x2="455" y2="72" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="500" x2="455" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="226" x2="455" y2="226" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="245" y1="312" x2="455" y2="312" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
 
   <!-- boundary addresses (bold) -->
-  <line x1="233" y1="226" x2="245" y2="226" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="230" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--text-primary)">0xffff800083fcbc38</text>
-  <line x1="233" y1="500" x2="245" y2="500" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="504" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--text-primary)">0xffff8000800e31ec</text>
+  <line x1="233" y1="226" x2="245" y2="226" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <text x="231" y="230" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbc38</text>
+  <line x1="233" y1="500" x2="245" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <text x="231" y="504" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff8000800e31ec</text>
 
   <!-- partition contents -->
-  <text x="350" y="145" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">0xffff8000800e31ec</text>
-  <text x="350" y="169" font-size="11" text-anchor="middle" style="fill:var(--text-primary)">(kernel stack)</text>
+  <text x="350" y="145" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">0xffff8000800e31ec</text>
+  <text x="350" y="169" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(kernel stack)</text>
   <text x="350" y="277" font-size="26" font-weight="700" text-anchor="middle" style="fill:var(--text-secondary)">⋮</text>
-  <text x="350" y="402" font-size="15" font-weight="700" text-anchor="middle" xml:space="preserve"><tspan style="fill:var(--text-primary)">add</tspan><tspan style="fill:var(--text-primary)">  x0, sp, #0x28</tspan></text>
-  <text x="350" y="426" font-size="11" text-anchor="middle" style="fill:var(--text-primary)">(.text)</text>
+  <text x="350" y="402" font-size="15" font-weight="700" text-anchor="middle" xml:space="preserve"><tspan style="fill:var(--diagram-ink)">add</tspan><tspan style="fill:var(--diagram-ink)">  x0, sp, #0x28</tspan></text>
+  <text x="350" y="426" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(.text)</text>
 
   <!-- deref: tail at source center, head at dest lowest address (.text start) -->
-  <path d="M 455 149 H 481 Q 493 149 493 161 V 488 Q 493 500 481 500 H 467" fill="none" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 454 500 L 466 494 L 466 506 Z" style="fill:var(--text-primary)"/>
-  <text x="501" y="318" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--text-primary)">*(0xffff8000800e31ec)</text>
+  <path d="M 455 149 H 481 Q 493 149 493 161 V 488 Q 493 500 481 500 H 467" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 454 500 L 466 494 L 466 506 Z" style="fill:var(--diagram-ink)"/>
+  <text x="501" y="318" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff8000800e31ec)</text>
 </svg>
 
 ```text
