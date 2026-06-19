@@ -820,7 +820,7 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 | `—▸ 0xffff800083fcbcd0` | `*(void **)0xffff800083fcbc90`. 다시 역참조한 값 |
 | `◂— ...` | 사슬이 더 이어지지만 표시 깊이에서 잘림 |
 
-<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" width="700" height="692" viewBox="0 0 700 692" font-family="Cascadia Code, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
+<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 692" font-family="Cascadia Code, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
   <!-- 1-D memory axis -->
   <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">high</text>
   <line x1="32" y1="652" x2="32" y2="86" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
@@ -906,7 +906,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 
 마지막 `add x0, sp, #0x28`은 스택에 든 값이 아니다. 슬롯에 담긴 값은 복귀 주소 `0xffff8000800e31ec`이고, 그 주소가 실행 가능한 코드 영역이라 pwndbg가 그 자리의 4바이트 기계어 워드(AArch64 명령어는 고정 4바이트다)를 숫자 대신 디스어셈블해 보여 준 것이다. 즉 명령은 `.text`에 있지 스택에 있지 않다. `x/i 0xffff8000800e31ec`로 같은 디스어셈블을, `x/4xb 0xffff8000800e31ec`로 그 원시 바이트를 직접 확인할 수 있다.
 
-<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" width="700" height="542" viewBox="0 0 700 542" font-family="Cascadia Code, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
+<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 542" font-family="Cascadia Code, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
   <!-- 1-D memory axis -->
   <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--text-primary)">high</text>
   <line x1="32" y1="500" x2="32" y2="86" style="stroke:var(--text-primary);stroke-width:var(--diagram-stroke)"/>
