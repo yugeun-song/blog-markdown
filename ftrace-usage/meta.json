@@ -1,5 +1,5 @@
 {
-  "title": "ftrace 사용법 — tracefs 진입부터 trace-cmd까지",
+  "title": "ftrace 사용법: tracefs 진입부터 trace-cmd까지",
   "date": "2026-05-13",
   "tags": ["linux", "kernel", "ftrace", "tracing", "debugging"],
   "series": "linux-kernel/tracing",

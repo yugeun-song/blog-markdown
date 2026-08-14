@@ -1,8 +1,8 @@
-# ftrace 사용법 — tracefs 진입부터 trace-cmd까지
+# ftrace 사용법: tracefs 진입부터 trace-cmd까지
 
 ftrace(function tracer)는 리눅스 커널 함수를 추적하거나, 사전에 정의된 특정 커널 이벤트를 추적하는 도구이다.
 
-## tracefs — ftrace의 인터페이스
+## ftrace의 인터페이스인 tracefs
 
 ftrace는 tracefs라는 가상 파일시스템으로 노출된다. 과거에는 debugfs의 일부였지만, 규모 증가 및 보안과 관련된 다양한 이유로 tracefs라는 별도 파일시스템으로 분리되었다. 이름에 `fs`라는 키워드가 붙은 만큼, 일반적인 리눅스 파일처럼 `echo`나 `cat` 같은 명령어로 각 항목의 값을 읽고 쓸 수 있다.
 
@@ -98,14 +98,14 @@ ftrace를 활용하기에 앞서 해당 폴더에 file operation에 대한 root 
 ftrace를 file I/O로 키고 끄는 데 자주 쓰는 옵션은 다음과 같다.
 
 - **`tracing_on`**: ftrace 전체 기능의 마스터 스위치. `1`이면 ring buffer로 trace가 기록되고, `0`이면 즉시 멈춘다. 아래 옵션들이 모두 설정되어 있더라도 이 값이 `0`이면 아무것도 기록되지 않는다.
-- `available_tracers`: 현재 커널이 지원하는 ftrace tracer의 목록. read-only 파일이며, 빌드 시 활성화된 CONFIG 옵션에 따라 내용이 달라진다. `timerlat`, `osnoise`, `hwlat`, `blk`, `mmiotrace`, `function`, `function_graph`, `wakeup_dl`, `wakeup_rt`, `wakeup`, `nop` 등 11종이 존재한다. 이 중 본 글에서 다루는 함수·이벤트 추적과 직접 연관된 것은 다음 셋이다.
+- `available_tracers`: 현재 커널이 지원하는 ftrace tracer의 목록. read-only 파일이며, 빌드 시 활성화된 CONFIG 옵션에 따라 내용이 달라진다. `timerlat`, `osnoise`, `hwlat`, `blk`, `mmiotrace`, `function`, `function_graph`, `wakeup_dl`, `wakeup_rt`, `wakeup`, `nop`, `irqsoff`, `preemptoff`, `preemptirqsoff`, `branch` 등이 존재한다. 이 중 본 글에서 다루는 함수·이벤트 추적과 직접 연관된 것은 다음 셋이다.
     - `function`: 모든 (또는 `set_ftrace_filter`로 좁힌) 커널 함수의 진입을 추적하는 가장 기본적인 tracer.
     - `function_graph`: 커널 함수의 entry/exit를 들여쓰기 트리로 표현하고, 함수별 실행 시간을 함께 기록. `function`과 함께 자주 활용.
     - `nop`: 함수 추적기를 비활성화한 상태를 나타내는 placeholder.
 - `current_tracer`: `available_tracers` 중 현재 활성화된 tracer 한 개를 가리키는 단일 슬롯. 별도 설정을 하지 않으면 `nop`으로 설정되어 있으며, 이 파일에 tracer 이름을 쓰면 즉시 그 tracer로 전환된다. 단, `nop`은 '아무것도 추적하지 않는' 상태가 아니라 '함수 추적기만 비활성화된' 상태이다. tracepoint 기반 이벤트(`events/` 하위 `enable`, `set_event`)는 `current_tracer`와 독립된 경로로 ring buffer에 기록되므로, `current_tracer=nop`인 상태에서도 활성화된 tracepoint 이벤트는 정상적으로 trace된다. 즉 `nop`은 "이벤트 추적은 그대로 두고 함수 추적만 끈다"는 의미에 가깝다.
 - `events/`: 커널 소스에 사전 정의된 tracepoint들을 서브시스템별로 디렉토리화해 둔 곳. 각 이벤트 폴더 안의 `enable` 파일에 `1`을 쓰면 그 이벤트가 켜지고, 상위 디렉토리의 `enable`에 쓰면 그 하위 전체가 일괄로 켜진다. `set_event` 파일에 `subsystem:event` 형식으로 쓰는 방식도 동일한 결과를 만든다. 한 번 켠 이벤트는 명시적으로 끄기 전까지 그대로 유지되므로, 직전 측정에서 켜 둔 이벤트가 다음 측정에 섞이지 않도록 매 측정을 시작할 때 비워 두는 편이 안전하다.
 - `set_ftrace_filter`: function tracer가 추적할 커널 함수의 whitelist. 이 파일이 비어 있으면 모든 함수가 추적 대상이 되며, 함수명을 쓰면 그 집합으로 좁혀진다. `vfs_*` 같은 glob 패턴도 받는다. 이 필터 역시 세션 간 그대로 남아, 직전에 등록해 둔 패턴이 다음 측정의 추적 대상을 의도치 않게 넓힐 수 있다. 이런 설정 충돌을 피하려면 매 측정의 시작에서 한 번 비우고 출발하는 것이 안전하다 (초기화 방법은 뒤에서 다룬다).
-- `set_ftrace_notrace`: `set_ftrace_filter`의 반대 — blacklist. whitelist에 포함되더라도 여기에 매칭되면 추적에서 제외된다.
+- `set_ftrace_notrace`: `set_ftrace_filter`의 반대인 blacklist. whitelist에 포함되더라도 여기에 매칭되면 추적에서 제외된다.
 
 ftrace와 tracepoint를 동일한 개념이라고 생각하는 경우가 많으나, 엄밀하게는 다른 개념이다. tracepoint에 ftrace를 attach할 수도, eBPF를 attach할 수도 있다.
 
@@ -115,41 +115,41 @@ ftrace와 tracepoint를 동일한 개념이라고 생각하는 경우가 많으�
 
 ftrace는 현대적인 버전의 커널로 빌드된 대부분의 PC용 리눅스 배포판에서 별다른 추가 설정 없이 tracefs에서 바로 사용할 수 있다. 하지만 QEMU로 커널을 새로 빌드해 가상머신에 구동할 목적이거나 호스트 커널이 ftrace를 활성화하여 빌드된 경우가 아니라면, 커널 configuration을 수정하고 (재)빌드해야 한다. `make menuconfig`의 `Kernel hacking` → `Tracers` 항목에서 최소한 다음 옵션들을 활성화해야 한다.
 
-- `CONFIG_FTRACE=y` — ftrace 인프라 자체.
-- `CONFIG_FUNCTION_TRACER=y` — 함수 진입을 추적하는 기본 tracer.
-- `CONFIG_FUNCTION_GRAPH_TRACER=y` — 함수 진입과 종료를 들여쓰기 트리로 표현하는 tracer.
-- `CONFIG_DYNAMIC_FTRACE=y` — 비활성화된 함수를 nop 명령으로 패치해, 추적이 꺼져 있을 때의 오버헤드를 0에 가깝게 만드는 옵션. 사실상 필수.
-- `CONFIG_FTRACE_SYSCALLS=y` — 시스템 콜 enter/exit 이벤트 활성화.
-- `CONFIG_KPROBE_EVENTS=y`, `CONFIG_UPROBE_EVENTS=y` — `kprobe_events`, `uprobe_events` 인터페이스를 통한 동적 이벤트 등록.
-- `CONFIG_STACK_TRACER=y`, `CONFIG_TRACER_SNAPSHOT=y` — 스택 사용량 추적과 스냅샷 기능.
+- `CONFIG_FTRACE=y`: ftrace 인프라 자체.
+- `CONFIG_FUNCTION_TRACER=y`: 함수 진입을 추적하는 기본 tracer.
+- `CONFIG_FUNCTION_GRAPH_TRACER=y`: 함수 진입과 종료를 들여쓰기 트리로 표현하는 tracer.
+- `CONFIG_DYNAMIC_FTRACE=y`: 비활성화된 함수를 nop 명령으로 패치해, 추적이 꺼져 있을 때의 오버헤드를 0에 가깝게 만드는 옵션. 사실상 필수.
+- `CONFIG_FTRACE_SYSCALLS=y`: 시스템 콜 enter/exit 이벤트 활성화.
+- `CONFIG_KPROBE_EVENTS=y`, `CONFIG_UPROBE_EVENTS=y`: `kprobe_events`, `uprobe_events` 인터페이스를 통한 동적 이벤트 등록.
+- `CONFIG_STACK_TRACER=y`, `CONFIG_TRACER_SNAPSHOT=y`: 스택 사용량 추적과 스냅샷 기능.
 
 v6.12.92 트리 기준으로, `make menuconfig`를 실행하면 다음과 같은 최상위 메뉴를 만난다. 여기서 맨 아래의 `Kernel hacking` 항목으로 진입한다.
 
-![최상위 메뉴 — 맨 아래의 Kernel hacking 항목 선택](./menuconfig.png)
+![최상위 메뉴에서 맨 아래의 Kernel hacking 항목 선택](./menuconfig.png)
 
 Kernel hacking 메뉴 하위에 `Tracers` 항목이 보인다.
 
-![Kernel hacking 메뉴 — 하위의 Tracers 항목 선택](./kernel-hacking.png)
+![Kernel hacking 메뉴에서 하위의 Tracers 항목 선택](./kernel-hacking.png)
 
 `Tracers`를 열면 ftrace 관련 옵션들이 나타난다. 위에서 적은 `CONFIG_FTRACE`, `CONFIG_FUNCTION_TRACER` 등을 여기서 직접 토글한다.
 
 ![Tracers 메뉴 내부의 ftrace 관련 옵션들](./tracers.png)
 
-function tracer 핵심 옵션 부분을 확대하면 다음과 같다. 메뉴 라벨과 `CONFIG_*`의 대응은 `kernel/trace/Kconfig`의 prompt 문자열에서 나온다 — `Kernel Function Tracer`가 `CONFIG_FUNCTION_TRACER`, `Kernel Function Graph Tracer`가 `CONFIG_FUNCTION_GRAPH_TRACER`, `enable/disable function tracing dynamically`가 `CONFIG_DYNAMIC_FTRACE`이다.
+function tracer 핵심 옵션 부분을 확대하면 다음과 같다. 메뉴 라벨과 `CONFIG_*`의 대응은 `kernel/trace/Kconfig`의 prompt 문자열에서 나온다. `Kernel Function Tracer`가 `CONFIG_FUNCTION_TRACER`, `Kernel Function Graph Tracer`가 `CONFIG_FUNCTION_GRAPH_TRACER`, `enable/disable function tracing dynamically`가 `CONFIG_DYNAMIC_FTRACE`이다.
 
 ![function tracer 핵심 옵션 클로즈업](./ftrace-option.png)
 
 `make menuconfig` 같은 대화형 인터페이스를 거치지 않고 `CONFIG_*` 값을 설정하는 방법도 여러 가지 있다. 그 방법들을 이해하려면 우선 옵션이 어디에 어떻게 저장되어 있는지부터 짚어야 한다.
 
-- **옵션 정의 — `Kconfig` 파일들**: `CONFIG_*`가 어떤 옵션인지, 어떤 의존성을 가지는지에 대한 메타정보는 커널 소스 트리 곳곳에 분산된 `Kconfig` 파일들에 정의되어 있다. ftrace 관련 옵션은 `kernel/trace/Kconfig`에 모여 있다. `make menuconfig`가 보여주는 메뉴 트리는 이 파일들을 파싱한 결과이다.
-- **현재 빌드의 활성화 상태 — `.config`**: 실제로 "이번 빌드에서 어떤 옵션을 켤지"는 커널 소스 루트의 `.config` 파일에 한 줄씩 (`CONFIG_FTRACE=y`, `# CONFIG_FOO is not set` 형식으로) 기록된다. `make menuconfig`는 사실상 메뉴 기반 TUI의 `.config` 편집기에 불과하며, 모든 빌드 단계는 결국 `.config`만 참조한다.
-- **아키텍처별 baseline과 목적별 fragment**: `.config`와 동일한 텍스트 형식 — `CONFIG_X=y` (활성), `# CONFIG_X is not set` (비활성), `CONFIG_X=m` (모듈), `CONFIG_HZ=250` 같은 정수값 — 을 공유하는 사전 정의 파일들이 트리 곳곳에 있다. 정리하면 세 위치이다.
-    - `arch/<arch>/configs/` — 아키텍처별 baseline + 그 아키텍처용 fragment가 모여 있다.
+- **옵션 정의를 담는 `Kconfig` 파일들**: `CONFIG_*`가 어떤 옵션인지, 어떤 의존성을 가지는지에 대한 메타정보는 커널 소스 트리 곳곳에 분산된 `Kconfig` 파일들에 정의되어 있다. ftrace 관련 옵션은 `kernel/trace/Kconfig`에 모여 있다. `make menuconfig`가 보여주는 메뉴 트리는 이 파일들을 파싱한 결과이다.
+- **현재 빌드의 활성화 상태를 담는 `.config`**: 실제로 "이번 빌드에서 어떤 옵션을 켤지"는 커널 소스 루트의 `.config` 파일에 한 줄씩 (`CONFIG_FTRACE=y`, `# CONFIG_FOO is not set` 형식으로) 기록된다. `make menuconfig`는 사실상 메뉴 기반 TUI의 `.config` 편집기에 불과하며, 모든 빌드 단계는 결국 `.config`만 참조한다.
+- **아키텍처별 baseline과 목적별 fragment**: `.config`와 텍스트 형식이 같다. `CONFIG_X=y`는 활성, `# CONFIG_X is not set`은 비활성, `CONFIG_X=m`은 모듈, `CONFIG_HZ=250`은 정수값이다. 이 형식을 공유하는 사전 정의 파일들이 트리 곳곳에 있다. 정리하면 세 위치이다.
+    - `arch/<arch>/configs/`: 아키텍처별 baseline + 그 아키텍처용 fragment가 모여 있다.
         - `arch/x86/configs/` : baseline `i386_defconfig`, `x86_64_defconfig`, fragment `hardening.config`, `tiny.config`, `xen.config`.
         - `arch/arm64/configs/` : baseline `defconfig`, fragment `hardening.config`, `virt.config`.
         - `arch/riscv/configs/` : baseline `defconfig`와 nommu 타깃용 `nommu_virt_defconfig`, `nommu_k210_defconfig`, `nommu_k210_sdcard_defconfig`, fragment `32-bit.config`, `64-bit.config`.
-    - `kernel/configs/*.config` — arch 독립적인 목적별 fragment. v6.12에는 `debug.config`, `hardening.config`, `kvm_guest.config`, `nopm.config`, `rust.config`, `tiny.config`, `tiny-base.config`, `x86_debug.config`, `xen.config`가 들어 있다.
-    - `include/config/auto.conf` — 빌드 시점에 `.config`에서 자동 파생되는 파일. 사용자가 직접 만질 일은 없지만 최상위 Makefile이 실제로 `include`하는 변환 결과물이다.
+    - `kernel/configs/*.config`: arch 독립적인 목적별 fragment. v6.12에는 `debug.config`, `hardening.config`, `kvm_guest.config`, `nopm.config`, `rust.config`, `tiny.config`, `tiny-base.config`, `x86_debug.config`, `xen.config`가 들어 있다.
+    - `include/config/auto.conf`: 빌드 시점에 `.config`에서 자동 파생되는 파일. 사용자가 직접 만질 일은 없지만 최상위 Makefile이 실제로 `include`하는 변환 결과물이다.
 
     baseline의 파일명 규칙은 아키텍처마다 다르다. x86은 `<variant>_defconfig` 식으로 여러 개를 두고, arm64는 `defconfig` 하나만 둔다. `make x86_64_defconfig` (x86)나 `make defconfig` (arm64, 또는 `ARCH=arm64` 환경) 같은 명령이 이 중 하나를 `.config`로 복사하는 동작이며, `kernel/configs/*.config`의 fragment들은 `scripts/kconfig/merge_config.sh`로 기존 `.config` 위에 합쳐 넣는다. 즉 `CONFIG_X=y` 형식이 등장하는 파일의 출처는 `.config`, `arch/<arch>/configs/`, `kernel/configs/*.config`, `include/config/auto.conf`의 네 곳이다.
 
@@ -211,7 +211,7 @@ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=../build LLVM=1 V=
 
 이 외에도 `KCONFIG_CONFIG=`, `INSTALL_MOD_PATH=`, `INSTALL_PATH=`, `W=1|2|3` 등 다양한 변수가 make 인자로 빌드 동작을 제어한다.
 
-다만 **`CONFIG_*` 이름의 옵션들만은 예외다.** `make CONFIG_FTRACE=y`처럼 인자를 넘겨도, 빌드 시스템이 "어떤 옵션이 켜졌는가"의 진실 원본으로 삼는 것은 `.config`와 그로부터 자동 생성되는 `include/config/auto.conf`, `include/generated/autoconf.h`이다. C 소스의 `#ifdef CONFIG_FTRACE` 분기와 Makefile의 `obj-$(CONFIG_FTRACE)` 라인 모두 이 두 파일을 읽기 때문에, 동명의 make 변수를 명령줄에 둔다고 해서 그 옵션이 활성화되지는 않는다. CONFIG 옵션을 비대화형으로 바꾸려면 결국 위에 정리한 네 가지 방법(`.config` 직접 편집 / `scripts/config` / fragment 병합 / `KCONFIG_CONFIG=`으로 파일 자체를 교체) 중 하나를 거쳐야 한다.
+다만 **`CONFIG_*` 이름의 옵션들만은 예외다.** `make CONFIG_FTRACE=y`처럼 인자를 넘겨도, 빌드 시스템이 "어떤 옵션이 켜졌는가"의 진실 원본으로 삼는 것은 `.config`와 그로부터 자동 생성되는 `include/config/auto.conf`, `include/generated/autoconf.h`이다. kconfig를 다시 돌리지 않으면 이 파일들이 그대로이므로 그 옵션은 켜지지 않는다. CONFIG 옵션을 비대화형으로 바꾸려면 결국 위에 정리한 네 가지 방법(`.config` 직접 편집 / `scripts/config` / fragment 병합 / `KCONFIG_CONFIG=`으로 파일 자체를 교체) 중 하나를 거쳐야 한다.
 
 ## 빌드 Makefile의 위치와 구성
 
@@ -221,7 +221,7 @@ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=../build LLVM=1 V=
 
 이 정적 Makefile들이 어떤 구조로 배치되어 있는지를 본다. 커널 빌드 시스템은 하나의 거대 Makefile이 아니라, 디렉토리마다 자리잡은 작은 Makefile / Kbuild들의 재귀 구조로 동작한다.
 
-- **최상위 Makefile** — `<kernel-source>/Makefile`. 커널 버전(`VERSION`, `PATCHLEVEL`, `SUBLEVEL`, `EXTRAVERSION`), 빌드 phony 타깃(`all`, `modules`, `menuconfig`, `clean`, ...), 빌드 인프라 전반을 정의한다. 첫 줄의 헤더는 다음과 같다.
+- **최상위 Makefile**: `<kernel-source>/Makefile`. 커널 버전(`VERSION`, `PATCHLEVEL`, `SUBLEVEL`, `EXTRAVERSION`), 빌드 phony 타깃(`all`, `modules`, `menuconfig`, `clean`, ...), 빌드 인프라 전반을 정의한다. 첫 줄의 헤더는 다음과 같다.
 
     ```makefile
     # SPDX-License-Identifier: GPL-2.0
@@ -233,8 +233,8 @@ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=../build LLVM=1 V=
     ```
 
     `make` 라고만 치면 이 파일의 기본 타깃부터 시작해 모든 빌드가 흘러나간다.
-- **build machinery** — `scripts/Makefile.build`, `scripts/Makefile.modpost`, `scripts/Makefile.lib`, `scripts/Makefile.host` 등. 최상위 Makefile이 각 서브 디렉토리로 재귀해 들어갈 때 이 파일들을 include하여 실제 컴파일·링크·모듈화 규칙을 적용한다. 일반 사용자가 직접 손댈 일은 거의 없다.
-- **서브 디렉토리별 Makefile / Kbuild** — 컴파일 대상 코드가 있는 모든 디렉토리에 자리잡고, "이 디렉토리에서 어떤 오브젝트 파일을 만들지"를 `obj-y`, `obj-m`, `obj-$(CONFIG_*)` 형식으로 선언한다. ftrace의 경우 `kernel/trace/Makefile`이 그 역할을 맡는다.
+- **build machinery**: `scripts/Makefile.build`, `scripts/Makefile.modpost`, `scripts/Makefile.lib`, `scripts/Makefile.host` 등. 최상위 Makefile이 각 서브 디렉토리로 재귀해 들어갈 때 이 파일들을 include하여 실제 컴파일·링크·모듈화 규칙을 적용한다. 일반 사용자가 직접 손댈 일은 거의 없다.
+- **서브 디렉토리별 Makefile / Kbuild**: 컴파일 대상 코드가 있는 모든 디렉토리에 자리잡고, "이 디렉토리에서 어떤 오브젝트 파일을 만들지"를 `obj-y`, `obj-m`, `obj-$(CONFIG_*)` 형식으로 선언한다. ftrace의 경우 `kernel/trace/Makefile`이 그 역할을 맡는다.
 
 `kernel/trace/Makefile`의 핵심부(빌드 대상 선언부)에서 발췌하면 다음과 같다.
 
@@ -335,8 +335,9 @@ echo 0 > /sys/kernel/tracing/tracing_on # [!hl]
 #    nop는 함수 추적기가 비활성화된 상태를 의미한다.
 echo nop > /sys/kernel/tracing/current_tracer
 
-# 3) 직전 데이터가 남아 있을 수 있는 ring buffer를 비운다.
-#    tracing_on=0 상태에서 비워야 새 데이터와 시간적으로 깨끗하게 분리된다.
+# 3) ring buffer를 비운다. 4번에서 tracer를 바꾸면 커널이 알아서 비우므로
+#    첫 측정에서는 없어도 되지만, 같은 setup으로 다시 잴 때는 이 줄이 있어야
+#    직전 결과 위에 누적되지 않는다.
 echo > /sys/kernel/tracing/trace
 
 # 4) 사용할 tracer를 지정한다.
@@ -371,8 +372,8 @@ cat /sys/kernel/tracing/trace # [!hl]
 순서를 어겼을 때 실제로 나타나는 증상을 정리하면 다음과 같다.
 
 - 1번 과정을 잊고 곧바로 설정을 만지면, 결과 trace의 시작 부분에 `current_tracer` / `set_ftrace_filter` 파일에 echo하는 동안 호출된 VFS·tty 관련 함수들이 섞여 들어와 분석을 방해한다.
-- 2번 과정을 잊으면 직전 세션에서 설정한 `set_ftrace_filter`, `current_tracer`가 그대로 살아 있다가 이번 측정에 영향을 준다.
-- 3번 과정을 잊으면 이번 측정 구간의 데이터와 직전 측정 데이터가 시간순으로 한 buffer에 섞이며, 타임스탬프만 보고는 구분이 어렵다.
+- 2번 과정을 건너뛰어도 `current_tracer`는 4번 과정의 쓰기가 덮어쓴다. 반면 `set_ftrace_filter`는 tracer를 무엇으로 바꾸든 남으므로, 직전 세션의 필터를 지우는 것은 5번 과정의 `>`다.
+- 3번 과정은 tracer를 바꾸지 않고 같은 setup으로 다시 측정할 때 필요하다. tracer를 교체하면 커널이 그 시점에 ring buffer를 비우기 때문이다.
 - 5번 과정 (필터) 또는 6번 과정 (tracepoint enable)을 7번 과정 (tracing_on=1) 뒤로 미루면, 7번 과정과 그 설정 사이의 짧은 시간 동안 필터·이벤트 설정이 적용되지 않은 채 측정이 진행되어 buffer가 의도하지 않은 데이터로 오염된다.
 - 8번 과정을 잊으면 9번 과정의 `cat` 도중에도 새 이벤트가 들어오므로, 출력 결과가 cat의 호출·종료 시점에 의존하는 비결정적 스냅샷이 된다.
 
@@ -383,7 +384,7 @@ cat /sys/kernel/tracing/trace # [!hl]
 위 9단계가 한 줄도 빠짐없이 그 순서대로 강제되는 것은 아니다. 단계 사이의 의존 관계를 풀어 보면 다음과 같다.
 
 - **고정된 골격**: `1 → 7 → 8 → 9`. "측정 외 구간에서는 `tracing_on=0`, 측정 구간에서만 `tracing_on=1`, 결과는 다시 동결 상태에서 읽기"라는 큰 윤곽은 깨면 안 된다.
-- **2 ~ 6 단계 사이의 상대 순서는 자유**: 모두 `tracing_on=0`인 구간 안에서 일어나는 setup 이므로, 어느 것을 먼저 하든 최종 ring buffer의 상태는 같다. 단, 4번(`current_tracer=function`) 단계는 2번(`current_tracer=nop`) 단계 뒤에 와야 한다. 그래야 직전 세션의 tracer 상태가 깨끗이 비워진 뒤에 새 tracer가 장전된다.
+- **2 ~ 6 단계 사이의 상대 순서는 자유**: 모두 `tracing_on=0`인 구간 안에서 일어나는 setup 이므로, 어느 것을 먼저 하든 최종 ring buffer의 상태는 같다. 단, 4번(`current_tracer=function`) 단계는 2번(`current_tracer=nop`) 단계 뒤에 와야 한다. 둘 다 같은 파일에 쓰는 동작이라 나중에 쓴 값이 남기 때문이다.
 - **3번 (buffer 클리어)단계의 위치도 유동적**: setup 구간 어디에 있어도 무방하지만, 4–6번 단계 (tracer / 필터 / 이벤트 설정)의 echo 호출 자체가 ring buffer에 흔적을 남기지는 않으므로(이 단계들은 `tracing_on=0` 상태이다) 실제로 위치 차이는 결과에 영향을 주지 않는다.
 
 ### 같은 setup으로 측정을 여러 번 반복하기
@@ -393,7 +394,7 @@ cat /sys/kernel/tracing/trace # [!hl]
 ```bash
 # 첫 번째 측정이 끝난 직후 (위 1~9 단계를 마치고 결과를 한 번 본 상태).
 
-# 측정 윈도우를 다시 닫는다 (이미 8번 딘계에서 닫혔다면 멱등적인 한 줄).
+# 측정 윈도우를 다시 닫는다 (이미 8번 단계에서 닫혔다면 멱등적인 한 줄).
 echo 0 > /sys/kernel/tracing/tracing_on
 
 # 이전 측정의 buffer 를 비운다. 이 줄을 빼면 다음 측정이 첫 번째 결과 위에 누적된다. (이 부분은 선택사항이다)
@@ -415,9 +416,9 @@ cat /sys/kernel/tracing/trace
 
 지금까지 다룬 옵션들을 어떻게 조합하느냐에 따라 ftrace의 측정 대상이 달라진다. 실제로 쓰이는 조합은 다음 셋이다.
 
-- **이벤트만** — `current_tracer=nop` + tracepoint enable. 커널이 사전 정의한 정형 이벤트(스케줄러, 시스템 콜, VM, 블록 I/O 등)만 buffer에 남는다. 함수 단위의 호출 정보가 필요 없을 때 가장 가벼운 선택이며, 오버헤드도 가장 낮다.
-- **함수만** — `current_tracer=function` (또는 `function_graph`) + `set_ftrace_filter`로 좁힘. tracepoint 이벤트는 enable하지 않으므로 buffer에는 함수 호출 라인만 남는다. 호출 그래프나 함수별 실행 시간을 보고 싶을 때 쓴다.
-- **둘 다** — function tracer + 필터 + tracepoint enable. 함수 호출 흐름 위에 tracepoint 이벤트를 "앵커"처럼 깔아 두 시야를 동시에 본다. 예를 들어 `vfs_*` 함수 호출과 `syscalls:sys_enter_*` 이벤트를 함께 잡으면, 사용자 공간의 syscall 진입 시점과 그 안에서 일어난 VFS 호출 흐름을 동일한 timeline 위에서 매핑할 수 있다.
+- **이벤트만**: `current_tracer=nop` + tracepoint enable. 커널이 사전 정의한 정형 이벤트(스케줄러, 시스템 콜, VM, 블록 I/O 등)만 buffer에 남는다. 함수 단위의 호출 정보가 필요 없을 때 가장 가벼운 선택이며, 오버헤드도 가장 낮다.
+- **함수만**: `current_tracer=function` (또는 `function_graph`) + `set_ftrace_filter`로 좁힘. tracepoint 이벤트는 enable하지 않으므로 buffer에는 함수 호출 라인만 남는다. 호출 그래프나 함수별 실행 시간을 보고 싶을 때 쓴다.
+- **둘 다**: function tracer + 필터 + tracepoint enable. 함수 호출 흐름 위에 tracepoint 이벤트를 "앵커"처럼 깔아 두 시야를 동시에 본다. 예를 들어 `vfs_*` 함수 호출과 `syscalls:sys_enter_*` 이벤트를 함께 잡으면, 사용자 공간의 syscall 진입 시점과 그 안에서 일어난 VFS 호출 흐름을 동일한 timeline 위에서 매핑할 수 있다.
 
 세 조합 모두 유효한 사용 패턴이며, 시나리오에 맞춰 골라 쓰는 도구일 뿐 우열 관계가 아니다.
 
@@ -437,10 +438,10 @@ cat /sys/kernel/tracing/trace
 
 쓰는 값은 단순 문자열이 아니라 glob 패턴이다. 다음 네 가지 형태를 가장 자주 쓴다.
 
-- `vfs_open` — 정확히 그 이름의 함수만 추적.
-- `vfs_*` — `vfs_`로 시작하는 모든 함수. `vfs_read`, `vfs_write`, `vfs_open`, `vfs_unlink`, `vfs_rename`, `vfs_statx`, `vfs_fsync` 등이 한꺼번에 잡힌다.
-- `*_read` — `_read`로 끝나는 모든 함수.
-- `*open*` — 이름 어디에든 `open`이 포함된 모든 함수.
+- `vfs_open`: 정확히 그 이름의 함수만 추적.
+- `vfs_*`: `vfs_`로 시작하는 모든 함수. `vfs_read`, `vfs_write`, `vfs_open`, `vfs_unlink`, `vfs_rename`, `vfs_statx`, `vfs_fsync` 등이 한꺼번에 잡힌다.
+- `*_read`: `_read`로 끝나는 모든 함수.
+- `*open*`: 이름 어디에든 `open`이 포함된 모든 함수.
 
 `vfs_` prefix가 의미하는 것은 추적하고 싶은 호출 계층의 위치다. 리눅스의 파일 I/O 경로는 대략 `사용자 코드 → syscall (sys_read 등) → VFS (vfs_read 등) → 파일시스템별 구현 (ext4_file_read_iter, btrfs_file_read_iter 등) → 블록 계층`의 순서를 거치는데, 이 중 VFS 계층은 모든 파일시스템이 공유하는 추상 진입점이며 함수 이름이 일관되게 `vfs_`로 시작한다. 따라서 `vfs_*` 한 패턴이면 "파일시스템 종류와 무관하게, 사용자가 일으킨 파일 I/O 동작 전반"을 단일 시야에서 볼 수 있다. ext4만 보고 싶다면 `ext4_*`, 네트워크 송신 경로를 보고 싶다면 `__dev_queue_xmit*`처럼 prefix만 바꾸면 그 계층으로 옮겨갈 수 있다.
 
@@ -472,7 +473,7 @@ echo 'ksys_*'       >> /sys/kernel/tracing/set_ftrace_filter
 
 요약하면 "모든 함수 추적"은 기술적으로 가능하지만, 사후 분석 가능한 결과로 이어지려면 buffer 확장 + 명시적 notrace + `trace_pipe` 스트리밍의 조합이 필요하다. 일반적인 워크플로에서는 `set_ftrace_filter`로 관심 영역을 좁히는 쪽이 훨씬 효율적이다.
 
-## tracepoint 이벤트의 동작 — 어디에 걸리고 무엇을 남기는가
+## tracepoint 이벤트는 어디에 걸리고 무엇을 남기는가
 
 본 글 앞부분에서 "ftrace는 함수 추적과 이벤트 추적 두 가지를 제공한다" 고 짧게 짚어둔 바 있다. 이 둘이 어떻게 다르게 작동하는지, 그리고 같은 ring buffer에 들어가는 결과가 왜 서로 다른 모습인지를 본 절에서 풀어둔다.
 
@@ -719,7 +720,7 @@ arm64 빌드에서는 컴파일러가 모든 추적 가능 함수의 진입부�
 
 플래그의 진실 원본은 `arch/arm64/Makefile`이다. `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y`면 `-fpatchable-function-entry=4,2`, 그 외 `CONFIG_DYNAMIC_FTRACE_WITH_ARGS=y`면 `=2`를 쓴다. `4,2`는 NOP 네 개 중 두 개를 함수 심볼 **앞** 에 배치한다는 뜻으로, 그 8바이트 자리에 해당 callsite가 쓸 `ftrace_ops` 포인터 리터럴이 저장된다. 위 발췌의 주석 바로 아래에서 `ftrace_caller`가 `bic x11, x30, 0x7`로 정렬을 맞춰 이 리터럴을 읽어 들인다 (`arch/arm64/kernel/entry-ftrace.S`의 `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS` 분기). 앞서 "커널에 ftrace 활성화하기" 절의 `.config` 발췌에 있던 `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y`가 바로 이 모드이다.
 
-패치 자체는 x86보다 단순하다. 바꿔야 하는 것이 4바이트 정렬된 명령 하나(NOP ↔ `BL`)뿐이어서, `arch/arm64/kernel/ftrace.c`의 `ftrace_modify_code()`가 주석 그대로 "Replace a single instruction" — 단일 명령 교체로 끝난다. x86처럼 breakpoint를 거칠 필요가 없다.
+패치 자체는 x86보다 단순하다. 바꿔야 하는 것이 4바이트 정렬된 명령 하나(NOP ↔ `BL`)뿐이어서, `arch/arm64/kernel/ftrace.c`의 `ftrace_modify_code()`가 주석 그대로 단일 명령 교체("Replace a single instruction")로 끝난다. x86처럼 breakpoint를 거칠 필요가 없다.
 
 ### RISC-V에서는 어떻게 hook되는가
 
@@ -771,16 +772,16 @@ RISC-V의 직접 분기 명령 `jal`은 ±1 MB 까지밖에 닿지 않아, 커�
 
 NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile`에 있다. `CONFIG_DYNAMIC_FTRACE=y`일 때 `CONFIG_RISCV_ISA_C=y` (압축 명령 확장) 빌드면 `-fpatchable-function-entry=4`, 아니면 `=2`를 고른다. C 확장 빌드에서는 컴파일러가 NOP를 2바이트 압축형으로 emit하므로, 같은 8바이트 영역을 확보하려면 4 개가 필요하기 때문이다. 같은 분기 안의 `LDFLAGS_vmlinux += --no-relax`도 한 몸으로 움직인다. linker relaxation이 호출 시퀀스를 더 짧은 명령으로 줄여 버리면 "함수 진입부에 정확히 8바이트"라는 전제가 깨질 수 있기 때문이다.
 
-호출 쌍이 `ra`가 아닌 `t0`를 쓰는 데에도 이유가 있다. arm64의 `BL`은 링크 레지스터가 LR로 고정이라 원래 반환 주소를 살리는 `MOV X9, LR`이 따로 필요했지만, RISC-V의 `jalr`은 반환 주소를 받을 레지스터를 명령 안에서 고를 수 있다. 패치된 쌍은 반환 주소를 `t0`에 받아 호출자의 `ra`를 건드리지 않은 채 `ftrace_caller`로 들어가고, `arch/riscv/kernel/mcount-dyn.S`의 `ftrace_caller`는 `addi a0, t0, -FENTRY_RA_OFFSET` (`FENTRY_RA_OFFSET` = 8 — `t0`에서 패치 쌍의 크기를 빼면 곧 함수 진입 주소)로 추적 대상 함수의 주소를, `mv a1, ra`로 그 함수를 부른 쪽(parent IP)을 callback 인자로 구성한다. 레지스터를 스택에 보존하고 공통 ftrace 코어를 부르는 골격은 x86의 `save_mcount_regs`, arm64의 `stp` 연쇄와 같다.
+호출 쌍이 `ra`가 아닌 `t0`를 쓰는 데에도 이유가 있다. arm64의 `BL`은 링크 레지스터가 LR로 고정이라 원래 반환 주소를 살리는 `MOV X9, LR`이 따로 필요했지만, RISC-V의 `jalr`은 반환 주소를 받을 레지스터를 명령 안에서 고를 수 있다. 패치된 쌍은 반환 주소를 `t0`에 받아 호출자의 `ra`를 건드리지 않은 채 `ftrace_caller`로 들어가고, `arch/riscv/kernel/mcount-dyn.S`의 `ftrace_caller`는 `addi a0, t0, -FENTRY_RA_OFFSET` (`FENTRY_RA_OFFSET`은 8이고, `t0`에서 패치 쌍의 크기를 빼면 곧 함수 진입 주소다)로 추적 대상 함수의 주소를, `mv a1, ra`로 그 함수를 부른 쪽(parent IP)을 callback 인자로 구성한다. 레지스터를 스택에 보존하고 공통 ftrace 코어를 부르는 골격은 x86의 `save_mcount_regs`, arm64의 `stp` 연쇄와 같다.
 
-두 명령 패치의 대가는 패치 절차에서 치른다. arm64는 4바이트 명령 하나만 바꾸면 되고 x86은 breakpoint 트릭으로 5바이트 교체를 안전하게 만들지만, RISC-V는 `auipc`와 `jalr`을 **함께** 바꿔야 하므로 다른 CPU가 두 명령 사이를 실행 중일 가능성을 배제할 수 없다. 그래서 `arch/riscv/kernel/ftrace.c`는 패치 구간 동안 `stop_machine()`으로 머신 전체를 세운다. `ftrace_arch_code_modify_prepare()`의 주석 그대로다 — "The code sequences we use for ftrace can't be patched while the kernel is running, so we need to use stop_machine() to modify them for now".
+두 명령 패치의 대가는 패치 절차에서 치른다. arm64는 4바이트 명령 하나만 바꾸면 되고 x86은 breakpoint 트릭으로 5바이트 교체를 안전하게 만들지만, RISC-V는 `auipc`와 `jalr`을 **함께** 바꿔야 하므로 다른 CPU가 두 명령 사이를 실행 중일 가능성을 배제할 수 없다. 그래서 `arch/riscv/kernel/ftrace.c`는 패치 구간 동안 `stop_machine()`으로 머신 전체를 세운다. `ftrace_arch_code_modify_prepare()`의 주석 그대로다. "The code sequences we use for ftrace can't be patched while the kernel is running, so we need to use stop_machine() to modify them for now".
 
 ### 세 아키텍처 정리
 
 | 구분 | x86_64 | arm64 | RISC-V |
 |---|---|---|---|
 | patchable 자리 예약 | `-pg -mfentry` (`call __fentry__` emit 후 부팅 시 NOP 화) | `-fpatchable-function-entry=2` (CALL_OPS면 `4,2`) | `-fpatchable-function-entry=4` (C 확장) / `=2` |
-| 비활성 상태 | 5바이트 NOP | NOP 2개 (8바이트) | NOP 2개 (8바이트) |
+| 비활성 상태 | 5바이트 NOP | `MOV X9, LR` + NOP | NOP 2개 (8바이트) |
 | 활성화 시 패치 | `call ftrace_caller` | `MOV X9, LR` + `BL ftrace_caller` | `auipc t0` + `jalr t0` |
 | 반환 주소 처리 | `call`이 스택에 push | `MOV X9, LR`로 별도 보존 | `jalr`이 `t0`에 기록, `ra` 무손상 |
 | 런타임 패치 방식 | breakpoint (`text_poke_bp()`) | 단일 명령 교체 | `stop_machine()` |
@@ -845,10 +846,10 @@ TRACE_EVENT(sched_switch,
 
 각 매크로 인자의 역할은 다음과 같다.
 
-- **`TP_PROTO`** — tracepoint 호출 시 넘기는 C 함수 시그니처. `__schedule`이 `trace_sched_switch(preempt, prev, next, prev_state)`로 부를 때의 인자 타입을 정의한다.
-- **`TP_STRUCT__entry`** — 이 이벤트 하나가 ring buffer에 차지하는 레코드의 필드 구성. 위 예에서는 prev/next task의 comm·pid·prio와 prev_state.
-- **`TP_fast_assign`** — tracepoint가 fire 될 때 인자(`prev`, `next` 등)로부터 `__entry` 필드들을 채우는 코드. 가능한 한 짧고 빨라야 hot path의 오버헤드가 작다.
-- **`TP_printk`** — `cat /sys/kernel/tracing/trace` 등으로 buffer를 텍스트로 출력할 때 한 라인이 어떤 모양으로 찍힐지의 포맷 문자열. `prev_comm=... prev_pid=... ==> next_comm=... next_pid=...` 형식이 바로 여기서 결정된다.
+- **`TP_PROTO`**: tracepoint 호출 시 넘기는 C 함수 시그니처. `__schedule`이 `trace_sched_switch(preempt, prev, next, prev_state)`로 부를 때의 인자 타입을 정의한다.
+- **`TP_STRUCT__entry`**: 이 이벤트 하나가 ring buffer에 차지하는 레코드의 필드 구성. 위 예에서는 prev/next task의 comm·pid·prio와 prev_state.
+- **`TP_fast_assign`**: tracepoint가 fire 될 때 인자(`prev`, `next` 등)로부터 `__entry` 필드들을 채우는 코드. 가능한 한 짧고 빨라야 hot path의 오버헤드가 작다.
+- **`TP_printk`**: `cat /sys/kernel/tracing/trace` 등으로 buffer를 텍스트로 출력할 때 한 라인이 어떤 모양으로 찍힐지의 포맷 문자열. `prev_comm=... prev_pid=... ==> next_comm=... next_pid=...` 형식이 바로 여기서 결정된다.
 
 이 정의로부터 실제 buffer에 남는 한 줄은 다음과 같은 모양이 된다 (앞서 nop tracer 예시에서도 본 형태이다).
 
@@ -864,7 +865,7 @@ TRACE_EVENT(sched_switch,
             find-170     [003] ...1.    16.429552: sys_openat(dfd: ffffffffffffff9c, filename: aaab1f299620, flags: 241, mode: 1b6)
 ```
 
-시스템 콜 enter 이벤트는 `sched_switch:`처럼 `이름: payload` 형태가 아니라 **`sys_openat(...)` 같은 함수 호출 형태**로 찍히며, 괄호 안에 인자 4개(`dfd` / `filename` 포인터 / `flags` / `mode`)가 16진수로 나열된다. (위 raw `cat trace` 출력은 값을 16진수 그대로 보여주지만, 배포판처럼 libtraceevent가 끼는 환경에서는 `filename`이 실제 경로 문자열로, `flags`가 `O_RDONLY|O_CLOEXEC` 같은 심볼로 디코딩되어 보이기도 한다.)이 syscall 이벤트의 출력 포맷은 일반 `TRACE_EVENT`의 `TP_printk`가 아니라 커널의 시스템 콜 추적 인프라가 자동 생성한다.
+시스템 콜 enter 이벤트는 `sched_switch:`처럼 `이름: payload` 형태가 아니라 **`sys_openat(...)` 같은 함수 호출 형태**로 찍히며, 괄호 안에 인자 4개(`dfd` / `filename` 포인터 / `flags` / `mode`)가 16진수로 나열된다. (`filename`은 추적 대상 태스크의 사용자 공간 포인터 값이라 사후에 경로 문자열로 되살릴 수 없다.)이 syscall 이벤트의 출력 포맷은 일반 `TRACE_EVENT`의 `TP_printk`가 아니라 커널의 시스템 콜 추적 인프라가 자동 생성한다.
 
 정리하면 tracepoint 이벤트는 "커널 코드 곳곳의 의미 있는 지점에 미리 심어두고, 자기 자신의 출력 포맷까지 동봉한 정형 instrumentation 점"이다. 함수 추적기가 컴파일러 차원의 자동 hook이라면, tracepoint는 개발자가 그 함수 내부에서 정말 중요한 한 줄을 골라 "여기서 이런 이벤트가 일어난다" 고 명시한, 사람 손에 의한 hook이다.
 
@@ -874,7 +875,7 @@ TRACE_EVENT(sched_switch,
 
 ### function tracer 측
 
-- **켜기 / 끄기 / 전환** — `current_tracer`에 tracer 이름을 쓰면 즉시 활성화, `nop`을 쓰면 비활성화이다.
+- **켜기 / 끄기 / 전환**: `current_tracer`에 tracer 이름을 쓰면 즉시 활성화, `nop`을 쓰면 비활성화이다.
 
     ```bash
     echo function       > /sys/kernel/tracing/current_tracer   # 켜기
@@ -882,7 +883,7 @@ TRACE_EVENT(sched_switch,
     echo nop            > /sys/kernel/tracing/current_tracer   # 끄기
     ```
 
-- **대상 함수 좁히기 (whitelist)** — `set_ftrace_filter`. 빈 줄을 쓰면 다시 "모든 함수가 대상" 상태로 돌아간다.
+- **대상 함수 좁히기 (whitelist)**: `set_ftrace_filter`. 빈 줄을 쓰면 다시 "모든 함수가 대상" 상태로 돌아간다.
 
     ```bash
     echo 'vfs_*'        >  /sys/kernel/tracing/set_ftrace_filter
@@ -890,57 +891,57 @@ TRACE_EVENT(sched_switch,
     echo                >  /sys/kernel/tracing/set_ftrace_filter   # 초기화
     ```
 
-- **대상 함수 제외 (blacklist)** — `set_ftrace_notrace`. 형식은 동일하며, whitelist와 blacklist 양쪽에 매칭되면 blacklist가 이긴다.
-- **PID 단위 좁히기** — `set_ftrace_pid`에 PID를 쓰면 그 task의 호출만 잡힌다. `set_ftrace_notrace_pid`는 반대.
+- **대상 함수 제외 (blacklist)**: `set_ftrace_notrace`. 형식은 동일하며, whitelist와 blacklist 양쪽에 매칭되면 blacklist가 이긴다.
+- **PID 단위 좁히기**: `set_ftrace_pid`에 PID를 쓰면 그 task의 호출만 잡힌다. `set_ftrace_notrace_pid`는 반대.
 
 ### tracepoint 이벤트 측
 
 이벤트를 켜고 끄는 방법은 더 다양하다. 결과는 같지만 경로가 여러 갈래다.
 
-- **단일 이벤트의 `enable` 토글** — 가장 직접적인 방법. 각 이벤트 디렉토리 안의 `enable`에 `1` / `0`을 쓴다.
+- **단일 이벤트의 `enable` 토글**: 가장 직접적인 방법. 각 이벤트 디렉토리 안의 `enable`에 `1` / `0`을 쓴다.
 
     ```bash
     echo 1 > /sys/kernel/tracing/events/sched/sched_switch/enable
     echo 0 > /sys/kernel/tracing/events/sched/sched_switch/enable
     ```
 
-- **서브시스템 단위 일괄 토글** — 상위 디렉토리의 `enable`에 쓰면 그 아래 모든 이벤트가 한꺼번에 켜진다.
+- **서브시스템 단위 일괄 토글**: 상위 디렉토리의 `enable`에 쓰면 그 아래 모든 이벤트가 한꺼번에 켜진다.
 
     ```bash
     echo 1 > /sys/kernel/tracing/events/sched/enable    # sched 서브시스템 전체
     echo 1 > /sys/kernel/tracing/events/enable          # 모든 tracepoint 이벤트
     ```
 
-- **`set_event` 한 줄로 묶어 지정** — `subsystem:event` 형식으로 켤 이벤트들을 공백 구분으로 한 번에 적는다. `>`면 전체 덮어쓰기, `>>`면 누적이다.
+- **`set_event` 한 줄로 묶어 지정**: `subsystem:event` 형식으로 켤 이벤트들을 공백 구분으로 한 번에 적는다. `>`면 전체 덮어쓰기, `>>`면 누적이다.
 
     ```bash
     echo 'sched:sched_switch syscalls:sys_enter_openat' >  /sys/kernel/tracing/set_event
     echo 'block:block_rq_issue'                         >> /sys/kernel/tracing/set_event
     ```
 
-- **`!` prefix로 `set_event`에서 제외** — `set_event`에 `!sys:event` 형태로 쓰면 해당 이벤트를 끄는 동작이다.
+- **`!` prefix로 `set_event`에서 제외**: `set_event`에 `!sys:event` 형태로 쓰면 해당 이벤트를 끄는 동작이다.
 
     ```bash
     echo '!sched:sched_switch' >> /sys/kernel/tracing/set_event
     ```
 
-- **모든 이벤트 일괄 해제** — `set_event`를 빈 줄로 덮어쓰면 enable된 이벤트가 전부 꺼진다.
+- **모든 이벤트 일괄 해제**: `set_event`를 빈 줄로 덮어쓰면 enable된 이벤트가 전부 꺼진다.
 
     ```bash
     echo > /sys/kernel/tracing/set_event
     ```
 
-- **PID 단위 좁히기** — `set_event_pid` / `set_event_notrace_pid`. 함수 쪽 `set_ftrace_pid`와 동일한 의미이다.
+- **PID 단위 좁히기**: `set_event_pid` / `set_event_notrace_pid`. 함수 쪽 `set_ftrace_pid`와 동일한 의미이다.
 
 ### 두 인터페이스의 관계
 
 같은 enable 비트를 건드리는 여러 표현이 공존하기 때문에, 어느 경로로 켜고 어느 경로로 꺼도 결과는 같다. `set_event`로 일부 이벤트를 켜둔 상태에서 추가로 `events/<sys>/<event>/enable`에 `1`을 써도 단순히 한 이벤트가 더 켜질 뿐이고, 반대로 `set_event`에 빈 줄을 쓰면 어떤 경로로 켜놨든 모두 일괄 해제된다. 짧은 일회성 작업에는 단일 `enable` 파일이 편하다. 여러 이벤트를 묶어 켜둘 때는 `set_event` 한 줄을 쓰고, 자주 쓰는 묶음을 재사용할 때는 fragment 파일과 `tee` / 셸 함수 같은 외부 도구를 쓰는 것이 효율적이다.
 
-## tracer 출력 읽기 — `nop`, `function`, `function_graph`
+## `nop`, `function`, `function_graph` 출력 읽기
 
 실전에서 가장 자주 쓰이는 tracer는 `nop`, `function`, `function_graph` 셋이다. 각각이 어떤 형태로 ring buffer에 결과를 남기는지 읽는 법을 정리한다.
 
-### `nop` — "함수 추적은 끄고 이벤트만 본다"
+### `nop`: "함수 추적은 끄고 이벤트만 본다"
 
 `nop`이 "추적이 일체 동작하지 않는 상태"라는 표현은 정확하지 않다. function tracer만 비활성화한 placeholder일 뿐이며, `cat /sys/kernel/tracing/trace`는 다음과 같이 항상 헤더를 출력한다.
 
@@ -983,7 +984,7 @@ TRACE_EVENT(sched_switch,
 
 `vfs_read <-ksys_read` 같은 함수 호출 라인이 한 줄도 없는 대신, 매 라인이 `sched_switch:`로 시작하는 tracepoint payload로 채워져 있다. 즉 `nop`은 **"이벤트 추적은 그대로 두고 함수 추적기만 끈다"** 의 의미이며, tracepoint 기반 분석을 할 때 함수 추적기의 노이즈를 제거한 default baseline으로 쓰인다.
 
-### `function` — "어떤 함수를, 누가 호출했나"
+### `function`: "어떤 함수를, 누가 호출했나"
 
 `current_tracer=function`으로 두고 워크로드를 돌리면 다음과 같은 형태의 라인이 buffer에 쌓인다.
 
@@ -1013,11 +1014,11 @@ TRACE_EVENT(sched_switch,
 
 각 컬럼의 의미는 다음과 같다.
 
-- `TASK-PID` — 호출 시점 task의 `comm`과 pid. `<idle>-0`은 idle task.
-- `CPU#` — 어느 CPU에서 일어났는지.
-- `|||||` (5자리 플래그) — 좌측부터 irqs-off / need-resched / hardirq·softirq / preempt-depth / migrate-disable. 위 사용자 컨텍스트의 `vfs_*` 호출은 다섯 자리가 모두 비활성인 `.....`이고, 뒤에서 볼 `sched_switch`의 `d..2.`는 `d`(IRQ 비활성)와 preempt depth `2`를 뜻한다.
-- `TIMESTAMP` — trace 시작 시점부터의 상대 시간(초.마이크로초).
-- `FUNCTION <-CALLER` — 호출된 함수와 그 즉시 상위 호출자. 화살표는 "함수 ← 호출자"로 읽는다.
+- `TASK-PID`: 호출 시점 task의 `comm`과 pid. `<idle>-0`은 idle task.
+- `CPU#`: 어느 CPU에서 일어났는지.
+- `|||||` (5자리 플래그): 좌측부터 irqs-off / need-resched / hardirq·softirq / preempt-depth / migrate-disable. 위 사용자 컨텍스트의 `vfs_*` 호출은 다섯 자리가 모두 비활성인 `.....`이고, 뒤에서 볼 `sched_switch`의 `d..2.`는 `d`(IRQ 비활성)와 preempt depth `2`를 뜻한다.
+- `TIMESTAMP`: 엔트리가 기록된 시각(초.마이크로초). 기본 clock인 `local`은 부팅 이후 경과 시간이라 추적을 다시 걸어도 0으로 돌아가지 않는다.
+- `FUNCTION <-CALLER`: 호출된 함수와 그 즉시 상위 호출자. 화살표는 "함수 ← 호출자"로 읽는다.
 
 따라서 `vfs_read <-ksys_read` 한 줄은 "어떤 CPU의 어떤 task가 어떤 시각에 `ksys_read` 안에서 `vfs_read`를 호출했다"를 뜻한다. 호출 깊이나 함수별 소요 시간 정보는 담겨 있지 않고, "누가 누구를 부르는 패턴"만 보인다. 호출 그래프를 거꾸로 따라가는 분석에 가장 적합하다.
 
@@ -1037,7 +1038,7 @@ TRACE_EVENT(sched_switch,
 
 라인 단위로 함수와 이벤트가 평면적으로 나란히 늘어선다는 점이 `function` tracer의 특징이다.
 
-### `function_graph` — "어디서 시간이 얼마나 쓰였나"
+### `function_graph`: "어디서 시간이 얼마나 쓰였나"
 
 `function_graph`는 함수의 진입과 탈출을 모두 기록해 들여쓰기 트리와 함수별 실행 시간을 동시에 보여준다.
 
@@ -1192,22 +1193,22 @@ TRACE_EVENT(sched_switch,
 
 각 컬럼은 다음과 같다.
 
-- `CPU` — 호출이 일어난 CPU.
-- `DURATION` — 함수 진입에서 탈출까지의 총 시간. **함수 탈출 라인(`}`)에만** 출력되며 진입 라인(`{`)에는 비어 있다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출(예: `kmem_cache_alloc_noprof();`)은 그 줄에 DURATION이 표시된다.
-- `FUNCTION CALLS` — 호출 트리. 들여쓰기로 호출 깊이를, `{`로 진입을, `}`로 탈출을 표현한다.
-- DURATION 앞 prefix marker — 함수 실행 시간이 어느 구간에 드는지를 기호로 표시한다. 각 기호는 "초과"가 아니라 한 구간을 뜻한다. 예를 들어 `+`는 10µs를 넘고 100µs 이하인 호출에만 붙는다.
-  - `+` — 10µs ~ 100µs
-  - `!` — 100µs ~ 1ms
-  - `#` — 1ms ~ 10ms
-  - `*` — 10ms ~ 100ms
-  - `@` — 100ms ~ 1초
-  - `$` — 1초 초과
+- `CPU`: 호출이 일어난 CPU.
+- `DURATION`: 함수 진입에서 탈출까지의 총 시간. **함수 탈출 라인(`}`)에만** 출력되며 진입 라인(`{`)에는 비어 있다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출(예: `kmem_cache_alloc_noprof();`)은 그 줄에 DURATION이 표시된다.
+- `FUNCTION CALLS`: 호출 트리. 들여쓰기로 호출 깊이를, `{`로 진입을, `}`로 탈출을 표현한다.
+- DURATION 앞 prefix marker: 함수 실행 시간이 어느 구간에 드는지를 기호로 표시한다. 각 기호는 "초과"가 아니라 한 구간을 뜻한다. 예를 들어 `+`는 10µs를 넘고 100µs 이하인 호출에만 붙는다.
+  - `+`: 10µs ~ 100µs
+  - `!`: 100µs ~ 1ms
+  - `#`: 1ms ~ 10ms
+  - `*`: 10ms ~ 100ms
+  - `@`: 100ms ~ 1초
+  - `$`: 1초 초과
 
 들여쓰기는 그대로 호출의 깊이를 나타낸다. 어떤 함수의 `{`와 `}` 사이에 한 단계 더 들어간 줄들이 그 함수가 부른 함수이고, 그 안에서 또 들어간 줄들은 다시 그 아래에서 불린 함수다. 그래서 `}` 줄에 찍힌 DURATION은 그 함수가 혼자 쓴 시간이 아니라, 진입부터 탈출까지 그 안에서 일어난 호출을 전부 더한 시간이다.
 
-바깥 함수의 시간은 그 안에서 부른 함수들의 시간을 모두 더한 값에, 바깥 함수가 호출과 호출 사이에 직접 쓴 시간을 합한 값이다. 추적 자체의 비용도 조금 추가되므로, 안쪽 함수들의 시간을 다 더해도 바깥 함수의 시간에 딱 맞지 않고 늘 조금 적은 실행시간이 잡힌다.
+바깥 함수의 시간은 그 안에서 부른 함수들의 시간을 모두 더한 값에, 바깥 함수가 호출과 호출 사이에 직접 쓴 시간을 합한 값이다. 여기에 자식 호출마다 붙는 추적 훅의 비용이 부모 구간에만 쌓이므로, 안쪽 함수들의 시간을 다 더한 값은 바깥 함수의 시간보다 늘 적게 잡힌다.
 
-위 트리에서 `do_sys_openat2`가 부른 `getname`(35.040), `get_unused_fd_flags`(52.464), `do_filp_open`(671.296), `fd_install`(20.992), `putname`(15.264)을 더하면 795.056µs다. `do_sys_openat2` 자신은 844.144µs이니, 그 차이인 약 49µs가 `do_sys_openat2`가 자식 바깥에서 직접 쓴 시간이다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출은 그 안에서 부른 함수가 없으니 그 줄의 시간이 곧 그 함수가 통째로 쓴 시간이다.
+위 트리에서 `do_sys_openat2`가 부른 `getname`(35.040), `get_unused_fd_flags`(52.464), `do_filp_open`(671.296), `fd_install`(20.992), `putname`(15.264)을 더하면 795.056µs다. `do_sys_openat2` 자신은 844.144µs다. 차이인 약 49µs에는 자식 호출마다 붙은 graph tracer의 훅 비용이 섞여 있어 그대로 self time으로 읽을 수 없다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출은 그 안에서 부른 함수가 없으니 그 줄의 시간이 곧 그 함수가 통째로 쓴 시간이다.
 
 DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라, 그 사이에 함수가 선점되거나 인터럽트를 처리하느라 멈춰 있던 시간까지 그대로 들어간다. 따라서 시간이 길다고 그 함수가 CPU를 오래 붙들고 있었다고 단정할 수는 없고, 병목으로 지목하기 전에 그 구간이 실제로 일을 한 시간인지 그냥 기다린 시간인지를 함께 봐야 한다.
 
@@ -1215,8 +1216,8 @@ DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라,
 
 한 가지 실전에서 자주 부딪히는 문제가 있다. `function_graph`의 `trace` 파일은 **모든 CPU의 출력을 타임스탬프 순으로 한데 섞어** 내보낸다. 그래서 CPU가 여러 개이고 같은 시간대에 여러 CPU가 바쁘면, 서로 다른 CPU의 호출 트리가 줄 단위로 교차해 찍히고 `{`와 `}`의 들여쓰기 대응이 시각적으로 무너져 호출 관계를 따라가기 어려워진다. 맨 앞의 `0)`·`3)` 같은 CPU 번호로 구분은 되지만, 눈으로 트리를 읽기는 힘들다. 깨끗한 단일 트리를 보려면 **CPU를 하나로 좁히면** 된다. 방법은 둘이다.
 
-- **추적 자체를 한 CPU로 제한** — `tracing_cpumask`에 비트마스크를 쓴다. `echo 1 > /sys/kernel/tracing/tracing_cpumask`는 CPU 0만(`1` = `0b0001`) 추적하므로, 처음부터 다른 CPU의 엔트리가 buffer에 섞이지 않는다.
-- **특정 CPU의 버퍼만 읽기** — ring buffer는 본래 CPU 별로 분리되어 있으므로, 모든 CPU를 추적했더라도 `cat /sys/kernel/tracing/per_cpu/cpu0/trace`로 CPU 0의 버퍼만 떠내면 그 CPU의 트리가 교차 없이 깨끗하게 중첩되어 나온다.
+- **추적 자체를 한 CPU로 제한**: `tracing_cpumask`에 비트마스크를 쓴다. `echo 1 > /sys/kernel/tracing/tracing_cpumask`는 CPU 0만(`1` = `0b0001`) 추적하므로, 처음부터 다른 CPU의 엔트리가 buffer에 섞이지 않는다.
+- **특정 CPU의 버퍼만 읽기**: ring buffer는 본래 CPU 별로 분리되어 있으므로, 모든 CPU를 추적했더라도 `cat /sys/kernel/tracing/per_cpu/cpu0/trace`로 CPU 0의 버퍼만 떠내면 그 CPU의 트리가 교차 없이 깨끗하게 중첩되어 나온다.
 
 여기에 측정 대상 명령을 특정 CPU에 붙박아 두려면 `taskset -c 0 <command>`로 그 CPU에 고정해 실행하면 된다. 위 `function_graph` 예시도 이렇게 CPU 0 하나의 트리만 떼어 본 것이며, 그래서 모든 줄의 머리가 `0)`으로 통일되어 들여쓰기 트리가 한눈에 읽힌다.
 
@@ -1274,12 +1275,12 @@ DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라,
 ### 세 tracer의 용도 요약
 
 - `nop`: function tracer의 부재. tracepoint 이벤트만으로 분석할 때의 default baseline.
-- `function`: "누가 누구를 호출하는지" — 호출 관계 추적에 적합. 오버헤드는 비교적 낮다.
-- `function_graph`: "어디서 시간이 얼마나 쓰이는지" — 시간 분포·핫스팟 분석에 적합. 진입/탈출을 모두 기록하므로 `function`보다 무겁다.
+- `function`: "누가 누구를 호출하는지". 호출 관계 추적에 적합. 오버헤드는 비교적 낮다.
+- `function_graph`: "어디서 시간이 얼마나 쓰이는지". 시간 분포·핫스팟 분석에 적합. 진입/탈출을 모두 기록하므로 `function`보다 무겁다.
 
 대상 함수 집합을 좁히지 않으면 두 tracer 모두 buffer를 순식간에 가득 채운다. 따라서 앞서 다룬 `set_ftrace_filter`로 관심 영역을 좁히는 것이 두 tracer를 실전에서 쓰기 위한 공통 전제이다.
 
-## trace-cmd — ftrace의 CLI front-end
+## ftrace의 CLI front-end인 trace-cmd
 
 지금까지 다룬 `echo X > /sys/kernel/tracing/Y` 흐름은 tracefs의 가장 원초적인 인터페이스이지만, 매 측정마다 9 줄짜리 echo 시퀀스를 직접 타이핑하는 것은 실전에서 번거롭다. `trace-cmd`는 이 시퀀스를 한 번의 CLI 호출로 묶어 주는 사용자 공간 front-end이다.
 
@@ -1288,8 +1289,8 @@ DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라,
 `trace-cmd`는 ftrace의 **wrapper** 라는 표현이 정확하다. 커널 측에 trace-cmd 전용 인터페이스가 따로 존재하지 않으며, 내부적으로는 본 글에서 다룬 것과 똑같은 `/sys/kernel/tracing/*` 파일들을 그대로 읽고 쓴다. 즉 trace-cmd가 하는 일은 다음 세 가지이다.
 
 - **인간 친화적인 CLI 래퍼**: `-p`로 tracer 선택, `-l`로 필터 추가, `-e`로 tracepoint 이벤트 활성화 등의 옵션을 받아 해당 echo들을 대신 실행한다.
-- **binary 형식의 dump**: 측정 종료 시 ring buffer의 내용을 `trace.dat` 파일로 떠낸다. 텍스트만 다루던 `cat trace`와 달리, 이 binary 포맷은 측정 직후의 원본 데이터를 손실 없이 저장하고 추후에 다양한 view로 재가공할 수 있게 해준다.
-- **후처리 도구 제공**: `trace-cmd report`가 그 `trace.dat`를 사람이 읽을 수 있는 텍스트로 변환한다 — 사실상 `cat trace`가 보여주던 라인 단위 출력을 재구성하는 역할이다.
+- **binary 형식의 dump**: 측정이 도는 동안 ring buffer를 임시 파일로 계속 빨아내고, 명령이 끝나면 합쳐 `trace.dat`를 만든다. 텍스트만 다루던 `cat trace`와 달리 원본 데이터를 손실 없이 저장해 추후에 다양한 view로 재가공할 수 있다.
+- **후처리 도구 제공**: `trace-cmd report`가 그 `trace.dat`를 사람이 읽을 수 있는 텍스트로 변환한다. 사실상 `cat trace`가 보여주던 라인 단위 출력을 재구성하는 역할이다.
 
 따라서 trace-cmd와 raw tracefs는 "같은 데이터에 대한 두 가지 사용자 인터페이스"이며, 한쪽으로 켜고 다른 쪽으로 끄는 식의 혼용도 (권장되지는 않지만) 동작한다.
 
@@ -1314,9 +1315,9 @@ sudo trace-cmd report -i trace.dat # [!hl]
 - `-p function` ↔ 4단계 (`echo function > current_tracer`).
 - `-l 'vfs_*' -l 'do_sys_open*'` ↔ 5단계의 `set_ftrace_filter` 누적(`> ... >> ...`). `-l`은 반복 지정이 가능하며, 각 호출이 한 줄씩 `set_ftrace_filter`에 append된다.
 - `-e sched:sched_switch -e syscalls:sys_enter_openat` ↔ 6단계의 tracepoint 이벤트 enable. `-e`도 반복 지정 가능.
-- 마지막 인자 `sleep 5` ↔ 7단계(`tracing_on=1`) 직후의 워크로드. trace-cmd는 이 자식 프로세스가 실행되는 동안만 측정 윈도우를 열어 두고, 프로세스 종료 시 자동으로 8단계(`tracing_on=0`)를 수행한 뒤 buffer를 `trace.dat`로 dump한다.
+- 마지막 인자 `sleep 5` ↔ 7단계(`tracing_on=1`) 직후의 워크로드. trace-cmd는 이 자식 프로세스가 실행되는 동안만 측정 윈도우를 열어 두고, 프로세스 종료 시 자동으로 8단계(`tracing_on=0`)를 수행한 뒤 `trace.dat`를 만든다.
 - `-o trace.dat` ↔ 출력 파일 지정 (생략하면 default가 현재 디렉토리의 `trace.dat`).
-- `trace-cmd report -i trace.dat` ↔ 9단계 (`cat /sys/kernel/tracing/trace`)의 대체 — binary dump를 사람이 읽을 수 있게 풀어 준다.
+- `trace-cmd report -i trace.dat` ↔ 9단계 (`cat /sys/kernel/tracing/trace`)의 대체. binary dump를 사람이 읽을 수 있게 풀어 준다.
 
 추가로 1, 2, 3단계 (`tracing_on=0`, `nop`으로 리셋, buffer 클리어)는 trace-cmd가 측정 시작 직전에 알아서 수행한다. 사용자가 따로 신경 쓸 필요 없이 매 `record` 호출이 깨끗한 상태에서 시작된다.
 
@@ -1336,13 +1337,13 @@ sudo trace-cmd report # [!hl]
 
 ### 자주 쓰는 서브커맨드
 
-- `trace-cmd record …` — 측정과 dump. 위 예시들이 모두 이 명령을 쓴다.
-- `trace-cmd report [-i trace.dat]` — `trace.dat`를 사람이 읽을 수 있는 텍스트로 변환. 옵션 없이 호출하면 현재 디렉토리의 `trace.dat`를 자동으로 찾는다.
-- `trace-cmd start` / `stop` / `reset` — `record` 없이 ftrace의 현재 상태만 수동 제어. binary dump는 없고 ring buffer에만 데이터가 쌓인다.
-- `trace-cmd extract` — 현재 ring buffer 상태를 그대로 `trace.dat`로 떠낸다. `start/stop` 흐름과 짝지어 쓰인다.
-- `trace-cmd list -p` — 사용 가능한 tracer 목록 (앞 절의 `available_tracers`와 같은 결과).
-- `trace-cmd list -e` — 사용 가능한 tracepoint 이벤트 목록 (`available_events`와 같은 결과).
-- `trace-cmd stat` — 현재 tracing 상태 요약 (어떤 tracer가 켜져 있고, 어떤 이벤트가 enable되어 있는지 등).
+- `trace-cmd record …`: 측정과 dump. 위 예시들이 모두 이 명령을 쓴다.
+- `trace-cmd report [-i trace.dat]`: `trace.dat`를 사람이 읽을 수 있는 텍스트로 변환. 옵션 없이 호출하면 현재 디렉토리의 `trace.dat`를 자동으로 찾는다.
+- `trace-cmd start` / `stop` / `reset`: `record` 없이 ftrace의 현재 상태만 수동 제어. binary dump는 없고 ring buffer에만 데이터가 쌓인다.
+- `trace-cmd extract`: 현재 ring buffer 상태를 그대로 `trace.dat`로 떠낸다. `start/stop` 흐름과 짝지어 쓰인다.
+- `trace-cmd list -p`: 사용 가능한 tracer 목록 (앞 절의 `available_tracers`와 같은 결과).
+- `trace-cmd list -e`: 사용 가능한 tracepoint 이벤트 목록 (`available_events`와 같은 결과).
+- `trace-cmd stat`: 현재 tracing 상태 요약 (어떤 tracer가 켜져 있고, 어떤 이벤트가 enable되어 있는지 등).
 
 ### 어느 쪽을 언제 쓰는가
 
@@ -1359,6 +1360,6 @@ cat /sys/kernel/tracing/trace > /tmp/my-trace.log
 cat /sys/kernel/tracing/trace_pipe > /tmp/my-trace.log &
 ```
 
-trace-cmd가 raw tracefs를 `echo`·`cat`으로 직접 조작하는 방식 대비 가지는 진짜 차별점은 **binary 포맷의 보존** 이다. `trace.dat`는 텍스트로 풀리기 전의 per-CPU ring buffer 원본 데이터를 그대로 담고 있어서, 추후 `trace-cmd report`의 옵션을 바꿔 가며 다양한 view (필드 선택, 시간 범위 자르기, 특정 CPU만 보기 등)로 재가공하기 쉽다. 단순한 텍스트 보존이 목적이라면 raw tracefs 쪽으로도 충분하고, "측정 직후의 원본을 후에 계속해서 쓰겠다"가 목적이라면 trace-cmd 쪽을 고르면 된다.
+trace-cmd가 raw tracefs를 `echo`·`cat`으로 직접 조작하는 방식 대비 가지는 진짜 차별점은 **binary 포맷의 보존** 이다. `trace.dat`는 텍스트로 풀리기 전의 per-CPU ring buffer 원본 데이터를 그대로 담고 있어서, 추후 `trace-cmd report`의 옵션을 바꿔 가며 다양한 view (필드 선택, 시간 범위 자르기, 특정 CPU만 보기 등)로 재가공하기 쉽다. 단순한 텍스트 보존이 목적이라면 raw tracefs 쪽으로도 충분하고, "측정 원본을 후에 계속해서 쓰겠다"가 목적이라면 trace-cmd 쪽을 고르면 된다.
 
 ftrace의 내부 모델을 raw tracefs로 한 번 익혀 두면 trace-cmd의 모든 옵션이 어느 tracefs 파일에 대응되는지를 자연스럽게 머릿속에 그릴 수 있다.
