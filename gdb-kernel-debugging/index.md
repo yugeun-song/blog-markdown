@@ -843,7 +843,7 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 <svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 692" font-family="Cascadia Code, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
   <!-- 1-D memory axis -->
   <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
-  <line x1="32" y1="652" x2="32" y2="86" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="32" y1="652" x2="32" y2="82" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
   <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--diagram-ink)"/>
   <text x="32" y="676" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">low</text>
 
@@ -884,11 +884,11 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
   <text x="350" y="594" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(current frame)</text>
 
   <!-- deref chain: tail at source center, head at dest lowest address -->
-  <path d="M 455 570 H 481 Q 493 570 493 558 V 432 Q 493 420 481 420 H 467" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 455 570 H 481 Q 493 570 493 558 V 432 Q 493 420 481 420 H 464" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
   <path d="M 454 420 L 466 414 L 466 426 Z" style="fill:var(--diagram-ink)"/>
   <text x="501" y="498" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff800083fcbc90)</text>
 
-  <path d="M 455 342 H 481 Q 493 342 493 330 V 200 Q 493 188 481 188 H 467" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 455 342 H 481 Q 493 342 493 330 V 200 Q 493 188 481 188 H 464" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
   <path d="M 454 188 L 466 182 L 466 194 Z" style="fill:var(--diagram-ink)"/>
   <text x="501" y="268" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff800083fcbcd0)</text>
 </svg>
@@ -929,7 +929,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 <svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 542" font-family="Cascadia Code, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
   <!-- 1-D memory axis -->
   <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
-  <line x1="32" y1="500" x2="32" y2="86" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <line x1="32" y1="500" x2="32" y2="82" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
   <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--diagram-ink)"/>
   <text x="32" y="524" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">low</text>
 
@@ -960,7 +960,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
   <text x="350" y="426" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(.text)</text>
 
   <!-- deref: tail at source center, head at dest lowest address (.text start) -->
-  <path d="M 455 149 H 481 Q 493 149 493 161 V 488 Q 493 500 481 500 H 467" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
+  <path d="M 455 149 H 481 Q 493 149 493 161 V 488 Q 493 500 481 500 H 464" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
   <path d="M 454 500 L 466 494 L 466 506 Z" style="fill:var(--diagram-ink)"/>
   <text x="501" y="318" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff8000800e31ec)</text>
 </svg>

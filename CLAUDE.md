@@ -84,7 +84,8 @@ Follow this spec exactly. The two diagrams in `gdb-kernel-debugging/index.md` ar
 - Land the head on the DESTINATION region's LOWEST (start) address edge — its bottom edge in this high-at-top layout — never its center or an arbitrary point. The machine accesses an object starting from its lowest address, so the pointer lands at the start.
 - For `*(some_ptr + offset)`, land the head `offset` worth of distance into the target (proportional to where `start + offset` falls within the region), not at the start.
 - Route the arrow as a right-angle elbow OUTSIDE the column, to the right: go horizontal from the source center, then vertical, then horizontal back to the destination edge. Round the corners with quadratic curves (`Q`, radius ~12). When several arrows share the right margin, push each one's vertical leg to a larger x so they never overlap.
-- Draw the arrowhead as an explicit filled triangle (`<path d="M … Z" style="fill:var(--text-primary)"/>`). Do NOT use an SVG `<marker>` — a `var(--…)` fill inside a `<marker>` does not resolve in browsers.
+- Draw the arrowhead as an explicit filled triangle (`<path d="M … Z" style="fill:var(--text-primary)"/>`). Do NOT use an SVG `<marker>`, since a `var(--…)` fill inside a `<marker>` does not resolve in browsers.
+- Run the line a couple of units PAST the arrowhead's base so the two overlap. Stopping the line exactly on the base leaves a visible seam: strokes use a butt cap, and antialiasing shows the join. The same applies to the axis line and its arrowhead.
 
 **Responsiveness and themes.** Nothing extra is required: the wrapper's `max-width:100%; height:auto` scales the SVG to the container on narrow screens, and the `var(--…)` colors retheme automatically. Still confirm a new diagram reads on a phone-width screen and in every theme.
 
