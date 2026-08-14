@@ -238,7 +238,7 @@ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=../build LLVM=1 V=
 
 `kernel/trace/Makefile`의 핵심부(빌드 대상 선언부)에서 발췌하면 다음과 같다.
 
-<!-- kernel-ref id="trace_makefile" -->
+<!-- source-ref id="trace_makefile" -->
 ```makefile
 obj-$(CONFIG_FUNCTION_TRACER) += libftrace.o
 obj-$(CONFIG_RING_BUFFER) += ring_buffer.o
@@ -488,7 +488,7 @@ echo 'ksys_*'       >> /sys/kernel/tracing/set_ftrace_filter
 
 이 점은 한 예시로 분명하게 드러난다. 스케줄러가 task를 전환할 때마다 발생하는 `sched_switch` 이벤트는 `__schedule()`이라는 한 함수 내부에서만 호출되지만, 그 함수 안에서 trace 호출이 위치한 자리는 함수 진입부와 멀리 떨어져 있다. `kernel/sched/core.c`에서 확인하면 다음과 같다.
 
-<!-- kernel-ref id="sched_core" -->
+<!-- source-ref id="sched_core" -->
 ```c
 static void __sched notrace __schedule(int sched_mode) /* [!hl] */
 {
@@ -630,7 +630,7 @@ picked:
 
 함수 추적기가 말하는 "함수 진입 직후"가 구체적으로 무엇을 의미하는지는 각 아키텍처의 ftrace 구현에서 직접 확인할 수 있다. 먼저 x86_64부터 본다. 함수 진입에서 분기해 들어오는 `ftrace_caller`는 `arch/x86/kernel/ftrace_64.S`에 다음과 같이 정의되어 있다.
 
-<!-- kernel-ref id="ftrace_x86" -->
+<!-- source-ref id="ftrace_x86" -->
 ```asm
 SYM_FUNC_START(__fentry__)
 	CALL_DEPTH_ACCOUNT
@@ -691,7 +691,7 @@ x86_64 빌드에서 컴파일러는 모든 추적 가능 함수의 첫 명령 �
 
 같은 메커니즘이 arm64에서는 형태를 바꿔 적용된다. `arch/arm64/kernel/entry-ftrace.S`의 `ftrace_caller` 정의 앞 주석이 그 차이를 요약한다.
 
-<!-- kernel-ref id="ftrace_arm64" -->
+<!-- source-ref id="ftrace_arm64" -->
 ```asm
 /*
  * Due to -fpatchable-function-entry=2, the compiler has placed two NOPs before
@@ -726,7 +726,7 @@ arm64 빌드에서는 컴파일러가 모든 추적 가능 함수의 진입부�
 
 RISC-V도 arm64처럼 함수 진입부에 미리 깔린 NOP를 동적 패치하는 patchable-entry 계열이다. 다른 점은 "호출 한 번"을 만드는 데 명령이 두 개 필요하다는 ISA 특성이며, 이 제약이 구현 전반을 결정한다. `arch/riscv/include/asm/ftrace.h`의 주석과 패치 매크로가 그 구조를 그대로 보여준다.
 
-<!-- kernel-ref id="ftrace_riscv" -->
+<!-- source-ref id="ftrace_riscv" -->
 ```c
 /*
  * A general call in RISC-V is a pair of insts:
@@ -792,7 +792,7 @@ NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile`에 있다. `CONFIG
 
 tracepoint 이벤트의 출력 포맷은 매크로 정의 자체에 박혀 있다. `include/trace/events/sched.h`의 `sched_switch` 정의를 보면 다음과 같다.
 
-<!-- kernel-ref id="sched_switch_event" -->
+<!-- source-ref id="sched_switch_event" -->
 ```c
 TRACE_EVENT(sched_switch,
 
