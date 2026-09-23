@@ -199,7 +199,7 @@ some target hardware may not have this support.
 ```
 
 - `tbreak`: 한 번 걸리면 이후에 자동으로 사라지는 일회용 소프트웨어 중단점.
-- `hbreak`: **하드웨어 중단점**. 메모리를 덮어쓰지 않고 CPU의 디버그 레지스터(QEMU gdbstub이 에뮬레이션)로 멈춘다.
+- `hbreak`: **하드웨어 중단점**. 메모리를 덮어쓰지 않는다. KVM에서는 CPU의 디버그 레지스터로 멈추고, TCG에서는 QEMU가 PC 비교로 구현해 멈춘다.
 
 그렇다면 `bp`는 무엇인가? 순정 gdb에는 그런 명령이 없다.
 
@@ -220,12 +220,12 @@ usage: bp [-h] where
 
 ### 초기 부팅에 hbreak를 권장하는 이유
 
-아키텍처마다 커널 부팅 극초기에 서로 다른 현상을 보인다.
+이 글의 환경에서는 아키텍처마다 커널 부팅 극초기에 서로 다른 현상을 보인다.
 
-x86_64에서는 QEMU가 `-S`로 vCPU를 레거시 리셋 벡터(real mode)에 세워 둔 채 멈춘다. 이 시점에는 커널의 상위 가상 주소가 전혀 매핑되어 있지 않아, `start_kernel`에 소프트웨어 중단점(`break`)을 걸고 `continue`하면 gdb가 그 주소에 브레이크를 거는데 실패한다.
+x86_64에서는 QEMU가 `-S`로 vCPU를 레거시 리셋 벡터(real mode)에 세워 둔 채 멈춘다. 이 글의 x86_64 세션은 KVM 가속(`-enable-kvm`)인데, KVM에서 소프트웨어 중단점은 게스트 메모리에 `int3`를 써넣는 것이다. 이 시점에는 커널의 상위 가상 주소가 전혀 매핑되어 있지 않아 그 주소에 쓸 수 없으므로, `start_kernel`에 소프트웨어 중단점(`break`)을 걸고 `continue`하면 gdb가 그 주소에 브레이크를 거는데 실패한다.
 
 ```text
-# x86_64: 리셋 벡터(real mode), 소프트웨어 중단점 삽입 실패
+# x86_64 (KVM): 리셋 벡터(real mode), 소프트웨어 중단점 삽입 실패
 (gdb) break start_kernel
 Breakpoint 1 at 0xffffffff83b4da60: file init/main.c, line 915.
 (gdb) continue
@@ -236,17 +236,17 @@ Cannot access memory at address 0xffffffff83b4da60 # [!hl]
 Command aborted.
 ```
 
-소프트웨어 중단점은 메모리를 써야 하는데 그 주소를 쓸 수 없으니 삽입에 실패하고 `continue`까지 중단된다. 그런데 똑같은 `break start_kernel`을 arm64나 riscv64에서 하면 결과가 다르다. 이 아키텍처들에서는 소프트웨어 중단점이 그대로 삽입되고 `start_kernel`에 곧바로 멈춘다.
+소프트웨어 중단점은 메모리를 써야 하는데 그 주소를 쓸 수 없으니 삽입에 실패하고 `continue`까지 중단된다. 그런데 똑같은 `break start_kernel`을 TCG로 띄운 arm64나 riscv64에서 하면 결과가 다르다. 소프트웨어 중단점이 그대로 삽입되고 `start_kernel`에 곧바로 멈춘다.
 
 ```text
-# arm64: 커널 엔트리에서 시작, 소프트웨어 중단점이 그대로 들어가고 정지
+# arm64 (TCG): 커널 엔트리에서 시작, 소프트웨어 중단점이 그대로 들어가고 정지
 (gdb) break start_kernel
 Breakpoint 1 at 0xffff8000829c0bd8: file init/main.c, line 915.
 (gdb) continue
 
 Breakpoint 1, start_kernel () at init/main.c:915 # [!hl]
 
-# riscv64: 동일하게 start_kernel에 정지
+# riscv64 (TCG): 동일하게 start_kernel에 정지
 (gdb) break start_kernel
 Breakpoint 1 at 0xffffffff80c00882 (2 locations)
 (gdb) continue
@@ -254,7 +254,7 @@ Breakpoint 1 at 0xffffffff80c00882 (2 locations)
 Breakpoint 1.1, 0xffffffff80c00882 in start_kernel () # [!hl]
 ```
 
-정리하면, 리셋 직후 소프트웨어 중단점이 실패하는 것은 x86_64 특유의 현상이다. 반면 하드웨어 중단점(`hbreak`)은 메모리를 건드리지 않으므로 어느 아키텍처에서나 이 시점에 안전하게 동작한다. 앞서 보인 표준 세션이 `hbreak`를 쓴 이유다. 부팅 극초기를 아키텍처 가리지 않고 확실히 잡으려면 `hbreak`가 무난하고, 페이징이 선 뒤의 일반 함수에는 소프트웨어 `break`(`b`)가 잘 듣는다.
+정리하면, 리셋 직후 소프트웨어 중단점이 실패하는 것은 아키텍처가 아니라 가속기의 차이다. KVM에서 `break`는 게스트 메모리에 `int3`를 써넣어야 하므로 페이지 테이블이 서기 전에는 실패한다. 반면 TCG에서는 QEMU가 소프트웨어 중단점(`Z0`)과 하드웨어 중단점(`Z1`)을 모두 내부의 PC 비교 중단점으로 구현해 메모리를 쓰지 않으므로, x86_64도 TCG로 띄우면 `break start_kernel`이 그대로 걸린다. 하드웨어 중단점(`hbreak`)은 메모리를 건드리지 않으므로 가속기와 아키텍처를 가리지 않고 이 시점에 안전하게 동작한다. 앞서 보인 표준 세션이 `hbreak`를 쓴 이유다. 부팅 극초기를 확실히 잡으려면 `hbreak`가 무난하고, 페이징이 선 뒤의 일반 함수에는 소프트웨어 `break`(`b`)가 잘 듣는다.
 
 ### watch는 왜 하드웨어 백업이 필요한가
 
@@ -272,7 +272,7 @@ New value = 4294892733
 tick_do_update_jiffies64 (now=<optimized out>) at kernel/time/tick-sched.c:130
 ```
 
-`Hardware watchpoint`라는 표기가 핵심이다. gdb가 CPU의 디버그 레지스터로 변경을 감시하므로 거의 공짜다. 만약 하드웨어 슬롯이 부족해 gdb가 **소프트웨어** watchpoint로 떨어지면(`Watchpoint`로 표기), gdb는 매 명령마다 멈춰 값을 비교한다. 유저 프로그램이라면 느릴 뿐이지만, 커널 전체를 매 명령마다 멈춰 가며 돌리면 진행이 사실상 기어갈 정도로 느려진다. 그래서 커널에서 watch를 실용적으로 쓰려면 하드웨어 백업이 거의 필수다. 참고로 x86의 하드웨어 디버그 레지스터는 4개(DR0–DR3)뿐이라, `hbreak`와 watchpoint류가 이 4개를 나눠 쓴다.
+`Hardware watchpoint`라는 표기가 핵심이다. gdb가 아니라 대상 쪽(KVM이면 CPU의 디버그 레지스터, TCG면 QEMU 내부)이 변경을 감시하므로 거의 공짜다. 만약 하드웨어 슬롯이 부족해 gdb가 **소프트웨어** watchpoint로 떨어지면(`Watchpoint`로 표기), gdb는 매 명령마다 멈춰 값을 비교한다. 유저 프로그램이라면 느릴 뿐이지만, 커널 전체를 매 명령마다 멈춰 가며 돌리면 진행이 사실상 기어갈 정도로 느려진다. 그래서 커널에서 watch를 실용적으로 쓰려면 하드웨어 백업이 거의 필수다. 참고로 KVM에서는 x86의 하드웨어 디버그 레지스터가 4개(DR0–DR3)뿐이라 `hbreak`와 watchpoint류가 이 4개를 나눠 쓴다. TCG에서는 QEMU가 소프트웨어로 구현하므로 이런 개수 제한이 없다.
 
 watchpoint는 한 종류가 아니라 *무엇을 잡을 것인가*에 따라 세 가지 종류가 존재한다. 쓰기(값이 바뀔 때)만 잡으려면 `watch`, 읽기만 잡으려면 `rwatch`, 읽기와 쓰기 모두 잡으려면 `awatch`다. 셋 다 하드웨어로 백업되고, `info watchpoints`가 종류를 구분해 보여 준다.
 
@@ -290,7 +290,7 @@ Num     Type            Disp Enb Address            What
 6       acc watchpoint  keep y                      jiffies_64
 ```
 
-셋 다 디버그 레지스터(x86은 4개)를 나눠 쓰므로 남발하면 디버그 활용에 필요한 여분의 레지스터가 부족해진다.
+KVM에서는 셋 다 디버그 레지스터(x86은 4개)를 나눠 쓰므로 남발하면 디버그 활용에 필요한 여분의 레지스터가 부족해진다.
 
 ### 조건부 중단점
 
@@ -394,7 +394,7 @@ type = struct task_struct {
 }
 ```
 
-- `backtrace`(`bt`)는 콜 스택을 보여 준다. 상위 프레임의 인자 다수가 `<optimized out>`인데, 이는 커널이 항상 `-O2`로 컴파일되어 해당 인자가 레지스터에 살아남지 않았다는 뜻이다.
+- `backtrace`(`bt`)는 콜 스택을 보여 준다. 상위 프레임의 인자 다수가 `<optimized out>`인데, 이는 커널이 최적화를 켜고(기본 `-O2`, `CONFIG_CC_OPTIMIZE_FOR_SIZE`면 `-Os`) 컴파일되어 해당 인자가 레지스터에 살아남지 않았다는 뜻이다.
 - `info registers`(`i r`)로 일부 레지스터만 골라 본다. `$TTBR1_EL1`(커널 페이지 테이블 베이스) 같은 시스템 레지스터도 순정 gdb에서 읽힌다. QEMU gdbstub이 시스템 레지스터를 노출하기 때문이다.
 - `ptype`은 `vmlinux`의 DWARF 정보로 구조체 레이아웃을 그대로 보여 준다.
 
