@@ -44,11 +44,11 @@ Choose the type that avoids collisions by construction:
 
 ### Memory tables
 
-For wide bitfields, struct layouts and memory regions, write a raw `<table class="mem-layout">`. Use `<th>` for headers, `<td class="field">` for data, `class="pad"` for padding and `class="offset"` for offsets. Use `colspan` for multi-byte or multi-bit fields. The engine draws the table as SVG with click-to-expand. 32-column bit tables wrap text vertically when narrow.
+For wide bitfields, struct layouts and memory regions, write a raw `<table class="mem-layout">`. Use `<th>` for headers, `<td class="field">` for data, `class="pad"` for padding and `class="offset"` for offsets. Use `colspan` for multi-byte or multi-bit fields. The engine draws the table as SVG with click-to-expand. 32-column bit tables wrap text vertically when narrow. `node dg.ts render x.json` in the diagram-design.md repo writes this table from a field list.
 
 ### Memory-layout SVG
 
-Draw address spaces, stack frames, pointer chains and region layouts this way when the point is addresses, stored values and the pointers between them. Write a raw `<svg class="mem-diagram">` in `index.md`. The engine wraps it in `<figure class="mem-diagram-wrap">`, which has the code-block background and border, `var(--wrap-radius)` and click-to-expand. The two diagrams in `gdb-kernel-debugging/index.md` are the reference.
+Draw address spaces, stack frames, pointer chains and region layouts this way when the point is addresses, stored values and the pointers between them. Write a raw `<svg class="mem-diagram">` in `index.md`. The engine wraps it in `<figure class="mem-diagram-wrap">`, which has the code-block background and border, `var(--wrap-radius)` and click-to-expand. The two diagrams in `gdb-kernel-debugging/index.md` are the reference. `node dg.ts render x.json` in the diagram-design.md repo writes this markup from a JSON spec and follows the rules below.
 
 - Canvas: `viewBox="0 0 700 H"` and `font-family="code-mono, monospace"` on the `<svg>`, with no `width` or `height`. H is about 40 below the column's bottom. The wrapper scales the diagram to the column, up to 700px.
 - Axis: the high address is at the top. At x=32 a line runs from the column's bottom up to y=82, under the triangle `M 32 74 L 26 86 L 38 86 Z`. `high` sits at y=54 and `low` 24 below the column's bottom, both bold 15 and centered on x=32.
