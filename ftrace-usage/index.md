@@ -91,7 +91,7 @@ drwxr-x---  2 root root 0 May 14 15:09 trace_stat
 
 이 디렉토리와 하위 디렉토리에 있는 모든 파일이 ftrace 전용은 아니다. kprobe, uprobe 등 다양한 트레이싱 도구가 같은 위치에 공존한다.
 
-ftrace를 활용하기에 앞서 해당 폴더에 file operation에 대한 root 권한이 필요하다. `sudo echo 0 > /sys/kernel/tracing/tracing_on`처럼 명령어 앞에 `sudo`만 붙이면 작동할 것으로 오해할 수도 있으나, 많은 경우 권한 오류로 실행되지 않는다. 따라서 `sudo -i` 또는 `sudo su` 같은 명령어로 루트 권한을 획득한 셸로 작업을 진행해야 한다.
+ftrace를 활용하기에 앞서 해당 폴더에 file operation에 대한 root 권한이 필요하다. `sudo echo 0 > /sys/kernel/tracing/tracing_on`처럼 명령어 앞에 `sudo`만 붙이면 작동할 것으로 오해할 수도 있으나, 리다이렉션(`>`)은 `sudo`가 아니라 현재 셸이 수행하므로 권한 오류로 실행되지 않는다. 따라서 `sudo -i` 또는 `sudo su` 같은 명령어로 루트 권한을 획득한 셸로 작업을 진행해야 한다.
 
 ## tracefs의 주요 옵션 파일
 
@@ -851,7 +851,7 @@ TRACE_EVENT(sched_switch,
 - **`TP_fast_assign`**: tracepoint가 fire될 때 인자(`prev`, `next` 등)로부터 `__entry` 필드들을 채우는 코드. 가능한 한 짧고 빨라야 hot path의 오버헤드가 작다.
 - **`TP_printk`**: `cat /sys/kernel/tracing/trace` 등으로 buffer를 텍스트로 출력할 때 한 라인이 어떤 모양으로 찍힐지의 포맷 문자열. `prev_comm=... prev_pid=... ==> next_comm=... next_pid=...` 형식이 바로 여기서 결정된다.
 
-이 정의로부터 실제 buffer에 남는 한 줄은 다음과 같은 모양이 된다 (앞서 nop tracer 예시에서도 본 형태이다).
+이 정의로부터 실제 buffer에 남는 한 줄은 다음과 같은 모양이 된다 (뒤의 nop tracer 예시에서도 같은 형태가 나온다).
 
 ```text
           <idle>-0       [002] d..2.     7.157935: sched_switch: prev_comm=swapper/2 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=160 next_prio=120
