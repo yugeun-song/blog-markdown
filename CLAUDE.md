@@ -1,113 +1,82 @@
 # blog-markdown
 
-Content repository for the `vmfault` blog. Mounted as a git submodule at `blog/content/`. Pushing to `main` triggers `.github/workflows/notify.yml`, which checks out the sister `blog` repo, runs `git submodule update --remote content`, commits the bumped pointer, and pushes — that push triggers Cloudflare Pages deploy.
+Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this one at `blog/content/`. Layout, `meta.json` and deployment: [README.md](README.md). All post work happens here, never in `blog/content/`.
 
-Sister repo: `yugeun-song/blog` (private; build/render code).
+## Prose
 
-## Status
+- Tone: 평이체 (`~다`, `~이다`, `~한다`), the neutral register of papers and technical reports. Not 격식체 (`~습니다`), not 반말. State facts with `~이다` / `~한다`. Keep `~할 수 있다` / `~로 보인다` for real uncertainty. Identifiers, terms, English messages and quotes stay verbatim. Chat replies keep the global 격식체.
+- 띄어쓰기: 조사는 앞말에 붙인다(한글 맞춤법 제41항). 앞말이 영어·코드·숫자여도 같다: `ftrace는`, `QEMU로`, `set_event`의, `nop`이. 서술격조사(`nop`인, `1`이면), 하다·되다 파생어(`emit한다`, `trace된다`), 접미사(`CPU당`, `Makefile들이`)도 붙인다. 뒤에 별도 명사·의존명사·부사가 오면 띄운다: `tracepoint 이벤트`, `Rust 등`, `cat 같은`. 코드 펜스 안에는 적용하지 않는다.
+- `# Title` must equal `meta.json.title` character for character, because the page `<h1>` comes from `meta.json`. Do not add `readTime`.
+- Images are centered by default. Add a lossless WebP twin with the engine's `build/encode-webp.py`.
 
-`main` is post-reset. Commit `02ff209` ("AI로 생성한 목업 콘텐츠 전체 삭제, 초기 상태로 리셋") cleared all AI-generated mock content. New posts must be authored fresh. The 11 mock posts visible inside the sister repo's `blog/content/` checkout come from a different snapshot — kept as mock references for tooling and design only, not authoritative.
+## Code
 
-## Post layout
+- Every fence names a language. `text` covers kernel config, boot parameters, logs, pseudo-code and sysfs paths.
+- UTF-8 with LF line endings. Non-C languages follow their idiomatic style (PEP 8, gofmt, rustfmt, common Bash).
+- C/C++: pick a tier from the source, and keep one tier across a series.
+  1. Linux kernel code, quoted or illustrative: kernel coding style exactly (tabs, K&R braces, function brace on its own line, `goto` cleanup). Never reformat it.
+  2. Code the user supplied (their module or driver, or a cited third party): keep it exactly as given.
+  3. Examples Claude writes, kernel-module-like ones included: 4-space indent and no tabs, braces on every control body, K&R braces for control flow, function brace on its own line.
+- Kernel source in several versions comes from the engine's `resolve_kernel.py` into `source-snippets.json`, not by hand.
 
-Each post = one slug directory:
+## Math
 
-- `{slug}/meta.json` — metadata
-- `{slug}/index.md` — body (no frontmatter; first line is `# Title`)
-- `{slug}/<assets>` — optional per-post images and supporting files. Page-bundle pattern: place assets directly inside the slug directory (flat or under `images/`) and reference from `index.md` via relative path (`./foo.png` / `./images/foo.png`). The build copies every entry except `meta.json` and `index.md` to `dist/posts/{slug}/` verbatim, preserving subfolder layout. Final URL: `/posts/{slug}/foo.png`. Rendered images are center-aligned by default via the global `img` rule in sister `blog/styles/base.css` (`display: block; margin-inline: auto`); override per-image with explicit inline styles or wrapping HTML only when a different alignment is intentional.
+Inline `$…$`, display `$$…$$`, rendered at build time. Inside table cells write `\lvert` / `\rvert` instead of `|`.
 
-`{slug}` is kebab-case ASCII; the directory name is the URL path verbatim. Example: `cfs-scheduler/` → `https://<deploy-url>/posts/cfs-scheduler/`.
+## Diagrams
 
-## meta.json schema
+Structured data never goes into ASCII art. Use a table, Mermaid or a memory-layout SVG.
 
-| Field | Type | Required | Notes |
-|---|---|---|---|
-| `title` | string | yes | Page title; matches first line of `index.md` |
-| `date` | string | yes | `YYYY-MM-DD`; sort key |
-| `tags` | string[] | yes | Lowercase ASCII recommended |
-| `excerpt` | string | yes | Card preview, search snippet |
-| `series` | string | no | `category/subcategory` (e.g. `linux-kernel/process`) |
-| `seriesOrder` | number | no | 1-based topical order, not chronological |
+### Mermaid
 
-## Body rules
+Choose the type that avoids collisions by construction:
 
-- Tone: **평이체** (`~다 / ~이다 / ~한다`). Not 격식체 (`~습니다`), not 반말 (`~야`). The register is the objective, neutral tone of academic papers and technical reports.
-- 띄어쓰기 — **조사는 앞말에 붙인다** (국립국어원 한글 맞춤법 §41). 앞말이 영어·코드·숫자여도 동일: `ftrace는`, `tracefs에서`, `QEMU로`, `configuration을`, 인라인 코드 뒤도 `set_event`의 / `nop`이. 서술격조사(`nop`인, `1`이면), 명사+하다/되다 파생(`emit한다`, `trace된다`), 접미사(`CPU당`, `Makefile들이`)도 붙인다. 단 뒤가 **별도 명사·의존명사·부사**면 띄운다: `tracepoint 이벤트`, `Kernel hacking 항목`, `Rust 등`, `tracer 중`, `cat 같은`.
-- First line is `# Title`. Must match `meta.json.title` exactly.
-- Code fences must declare a language (`c`, `python`, `bash`, `text`, …). Use `text` for config dumps and pseudo-code.
-- GFM extensions allowed: tables, strikethrough, task lists.
-- Math (KaTeX): inline `$...$`, display `$$...$$`. Build-time SSR — no client JS for math. Inside markdown table cells, use `\lvert` / `\rvert` instead of `|` to avoid colliding with the table parser.
-- Diagrams (Mermaid): ` ```mermaid ` fence. Renders client-side; theme follows the active site theme. Available node classes: `:::accent`, `:::info`, `:::warn`, `:::danger`, `:::muted`. Default to short edge labels (`SYN+ACK / ACK`, `2MSL timeout`, `wakeup`), since long ones are harder for auto-layout to place. Same for keeping Korean out of node labels. These are defaults; use a longer or Korean label when it is the only accurate one, then verify the render at phone width and in every theme.
+1. `sequenceDiagram` for ordered interactions: syscall traces, packet flow, handshakes, RPC, lifecycles.
+2. `flowchart TD` / `LR` with one direction and no cycles for pipelines and decision trees.
+3. `flowchart TD` with `subgraph` rank pinning for cycles and state machines, instead of `stateDiagram-v2`.
 
-  **Diagram type selection priority** — pick the type that minimizes label/arrow collisions by construction, not the one that "looks right":
+- A node label is by default a function name on one line, with the Korean explanation in the prose. Use a longer or Korean label only when nothing shorter is accurate, then check phone width in every theme. Long labels break phone layouts.
+- Edge labels sit on the arrow. Keep them to 1–3 words. Their background is transparent.
+- Node classes: `:::accent` (gold), `:::info` (green), `:::warn` (orange), `:::danger` (red), `:::muted` (gray, dashed), `:::code`.
+- Node labels use the body font. Mark a node `:::code` when its whole label is a code token (signature, variable, flag, hex value), and it switches to the code font. HTML labels are off, so one node has one font.
+- Prefer one language per diagram.
 
-  1. **`sequenceDiagram`** — first choice for any sequential interaction (syscall trace, packet flow, handshake, RPC, lifecycle). Grid layout (participants on fixed X axes, time-ordered Y) is collision-free by construction. The diagram in `iommu-internals/index.md` is the reference for "clean by default".
-  2. **`flowchart TD/LR`** with single direction and no cycles — second choice for unidirectional flows (pipelines, decision trees, request paths).
-  3. **Cyclic graphs and state machines**: `flowchart TD` with `subgraph` blocks pinning the ranks, not `stateDiagram-v2`. Auto-layout routes back-edges around the whole figure and strands their labels far from the arrow; pinning ranks is what shortens those edges. For what is left, a global CSS `paint-order: stroke` rule in the sister `blog` repo (`styles/components.css`) outlines edge-label glyphs so they stay readable over arrows. That is a visual patch, not a layout fix.
-- Wide tabular layouts (bitfields, struct layouts, memory regions): write raw HTML `<table class="mem-layout">` directly. Cells use `field` (data), `pad` (padding), `offset` (offset column); headers use `<th>`. Multi-byte fields: `colspan`. The build wraps it in `<div class="table-scroll">`; client JS converts it to a responsive inline SVG with click-to-expand. Use this pattern for horizontal data instead of forcing wide mermaid fan-outs — saves vertical space.
+### Memory tables
 
-## Memory-layout diagrams (inline SVG)
+For wide bitfields, struct layouts and memory regions, write a raw `<table class="mem-layout">`. Use `<th>` for headers, `<td class="field">` for data, `class="pad"` for padding and `class="offset"` for offsets. Use `colspan` for multi-byte or multi-bit fields. The engine draws the table as SVG with click-to-expand. 32-column bit tables wrap text vertically when narrow.
 
-Use these for address spaces, stack frames, pointer chains, and struct/region layouts — anywhere the point is **the addresses, the value stored at each address, and the reference (pointer) relationships between them**. Author each one as a raw `<svg class="mem-diagram">…</svg>` block placed directly in `index.md`. The build extracts the block, wraps it in `<figure class="mem-diagram-wrap">` (a padded container whose background and border match the code / shell-output blocks — `var(--code-bg)` / `var(--code-border)` — rounded with the shared `var(--wrap-radius)`, plus a click-to-expand modal), and makes it responsive. Color every element with CSS variables only — never hardcode hex — so all themes render correctly.
+### Memory-layout SVG
 
-Follow this spec exactly. The two diagrams in `gdb-kernel-debugging/index.md` are the reference; copy their structure.
+Draw address spaces, stack frames, pointer chains and region layouts this way when the point is addresses, stored values and the pointers between them. Write a raw `<svg class="mem-diagram">` in `index.md`. The engine wraps it in `<figure class="mem-diagram-wrap">`, which has the code-block background and border, `var(--wrap-radius)` and click-to-expand. The two diagrams in `gdb-kernel-debugging/index.md` are the reference.
 
-**Canvas.** Use `<svg viewBox="0 0 700 H">` with matching `width`/`height` attributes; `H` is whatever the content needs. Set `font-family="Cascadia Code, monospace"` on the `<svg>` so all text inherits it.
+- Canvas: `viewBox="0 0 700 H"` and `font-family="code-mono, monospace"` on the `<svg>`, with no `width` or `height`. The wrapper scales the diagram to the column, up to 700px.
+- Orientation: the high address is at the top. The axis sits at x=32: a line with a filled triangle pointing up, bold `high` above it, bold `low` below it.
+- Column: left rail x=245, right rail x=455 (210 wide), capped top and bottom. Horizontal dividers split it into regions, with the highest region on top. Region content is centered at x=350. Boundary addresses end at x=231.
+- Colors come from CSS variables only, never hex:
+  - frame, dividers, axis, ticks, arrows, arrowheads, arrow labels, default text: `var(--diagram-ink)`
+  - real regions: one opaque `var(--diagram-area)` for all of them
+  - omitted spans: opaque `var(--diagram-gap)`
+  - register or pointer markers such as `X29 = sp`: `var(--syntax-keyword)`
+  - the `⋮` glyph: `var(--text-secondary)`
+  - Keep both fills opaque, with no `fill-opacity`. The diagram then looks the same inline over `--code-bg` and in the modal over `--diagram-container-bg`.
+- Strokes: every line uses `style="…;stroke-width:var(--diagram-stroke)"`. The engine's `styles/base.css` sets the width once (2.4). Never put a `stroke-width` attribute on a single line.
+- Text:
 
-**Orientation.** Put the high address at the TOP and the low address at the BOTTOM. Draw a vertical axis on the far left (x=32): a line with an explicit triangle arrowhead pointing up, a `high` label above it, a `low` label below. Make the `high` / `low` labels bold (`font-weight="700"`).
+  | Element | Attributes |
+  |---|---|
+  | boundary address, left of the column | `font-size="15" font-weight="700" text-anchor="end"` at x=231, baseline on the boundary |
+  | register marker | the same, red, just above its address |
+  | region value | `font-size="15" font-weight="700" text-anchor="middle"` at x=350 |
+  | region sub-label such as `(caller frame)` | `font-size="11"`, regular, centered about 24px below the value |
+  | region without a value such as `truncated` | a `font-size="14"` word plus the 11px sub-label |
+  | `⋮` in an omitted span | `font-size="26" font-weight="700"`, centered |
+  | arrow label | `font-size="15"`, bold, `text-anchor="start"` right of the arrow's vertical leg. The text is the concrete `*(<address>)`: the stored pointer, which equals the target's start address, e.g. `*(0xffff800083fcbc90)`. |
 
-**The memory column.** Draw one vertical column, horizontally centered: left rail at x=245, right rail at x=455 (210 wide), capped top and bottom. Split it into stacked regions with horizontal dividers (highest region on top, lowest at the bottom). Center region content at x=350; right-anchor the left-side address labels at x=231.
-
-**Colors (CSS variables only).**
-- Frame, dividers, axis line, axis arrowhead, address tick marks, and all default text → `var(--text-primary)`.
-- Occupied (real) partition fill → `var(--diagram-area)` — an OPAQUE per-theme solid (light mint in clean-light, a clean forest/teal green in the dark themes). Tune it per theme to fit that theme's canvas and mood; use one unified fill for every real region (no per-region type colors unless a post specifically needs that). Keep it opaque (see consistency note).
-- Omitted / gap bands (the `⋮` spans) fill → `var(--diagram-gap)` — an OPAQUE per-theme solid: a neutral just off the canvas (light gray in clean-light, dark gray in midnight, navy in spaceduck).
-- Reference arrows, their arrowheads, and their labels → `var(--text-primary)` (black, same as the frame).
-- Register / pointer markers such as `X29 = sp` → `var(--syntax-keyword)` (red).
-- The `⋮` glyph → `var(--text-secondary)` (deep gray).
-
-**Inline vs expanded consistency.** Keep `--diagram-area` and `--diagram-gap` OPAQUE. Opaque fills are background-independent, so the diagram looks identical inline and when expanded in the modal — only the outer margin background differs. (A semi-transparent fill would composite over the inline wrapper `var(--code-bg)` versus the modal `var(--diagram-container-bg)` and look subtly different once expanded — so never put `fill-opacity` on the region fills.)
-
-**Stroke width (global, uniform).** Every stroke — outer frame, caps, partition dividers, axis line, address ticks, and reference arrows — uses ONE shared width via `style="…;stroke-width:var(--diagram-stroke)"` (do not set per-line `stroke-width` attributes). `--diagram-stroke` (currently `2.4`) is defined once in `:root` (sister `blog` repo, `styles/base.css`), alongside `--wrap-radius`; changing it there rescales every diagram's lines at once. All lines stay the same thickness.
-
-**Text — weight, size, position, alignment.**
-- Boundary address labels (left of the column, one per region boundary): `font-size="15" font-weight="700" text-anchor="end"` at x=231, baseline on the boundary. Always bold. (These side labels read larger than the in-region sub-labels.)
-- Register / pointer marker (`X29 = sp`): `font-size="15" font-weight="700" text-anchor="end"`, red, sitting just above its address label.
-- Region value (the hex address or instruction stored in the region): `font-size="15" font-weight="700" text-anchor="middle"` at x=350, `var(--text-primary)`. This is the most prominent token in the region — bold, but one notch smaller than a heading.
-- Region sub-label (`(caller frame)`, `(.text)`, `(kernel stack)`): `font-size="11"`, regular weight, centered, about 24px below the value.
-- A region with no concrete value (e.g. `truncated`) uses a `font-size="14"` centered word plus the `font-size="11"` sub-label.
-- `⋮` (omitted span): `font-size="26" font-weight="700"`, `var(--text-secondary)`, centered in the gap band.
-- Reference-arrow label: `font-size="15"`, bold, black (`var(--text-primary)`), left-anchored (`text-anchor="start"`) just to the right of the arrow's vertical leg, vertically near its arrow. Write the concrete dereference `*(<address>)` — the source's stored pointer value, which equals the destination's start address (e.g. `*(0xffff800083fcbc90)`), not a generic `*(void **)`. Pull the arrow's vertical leg in toward the column far enough that the address label fits inside the canvas without overflowing.
-
-**Reference arrows — follow this rule without exception.**
-- Start the tail at the CENTER of the source region (the midpoint of its address span), on the right rail (x=455).
-- Land the head on the DESTINATION region's LOWEST (start) address edge — its bottom edge in this high-at-top layout — never its center or an arbitrary point. The machine accesses an object starting from its lowest address, so the pointer lands at the start.
-- For `*(some_ptr + offset)`, land the head `offset` worth of distance into the target (proportional to where `start + offset` falls within the region), not at the start.
-- Route the arrow as a right-angle elbow OUTSIDE the column, to the right: go horizontal from the source center, then vertical, then horizontal back to the destination edge. Round the corners with quadratic curves (`Q`, radius ~12). When several arrows share the right margin, push each one's vertical leg to a larger x so they never overlap.
-- Draw the arrowhead as an explicit filled triangle (`<path d="M … Z" style="fill:var(--text-primary)"/>`). Do NOT use an SVG `<marker>`, since a `var(--…)` fill inside a `<marker>` does not resolve in browsers.
-- Run the line a couple of units PAST the arrowhead's base so the two overlap. Stopping the line exactly on the base leaves a visible seam: strokes use a butt cap, and antialiasing shows the join. The same applies to the axis line and its arrowhead.
-
-**Responsiveness and themes.** Nothing extra is required: the wrapper's `max-width:100%; height:auto` scales the SVG to the container on narrow screens, and the `var(--…)` colors retheme automatically. Still confirm a new diagram reads on a phone-width screen and in every theme.
-
-**Keep this spec current.** Whenever the diagram design changes, update this section so it stays the single source of truth.
-
-## Series naming
-
-- Format: `category/subcategory` (lowercase, hyphens, `/` as hierarchy separator).
-- URL slug = `replace("/", "-")` at build time. Display name keeps `/`.
-- Order is topical (prerequisite first), not chronological.
-- Examples: `linux-kernel/process`, `linux-system-programming/io`, `math/information-theory`. Single-tier (`bash`) is allowed.
-- Tags and series are independent namespaces.
-
-## Branching
-
-Single-branch (`main`). Direct commits, no feature branches. Roll back via `git revert` or `git restore`.
-
-## Auto-deploy
-
-`.github/workflows/notify.yml` watches `main` push events:
-
-1. Checks out `yugeun-song/blog` with `BLOG_REPO_TOKEN`.
-2. `git submodule update --remote content`.
-3. Commits "Update content submodule" if there's a diff and pushes.
-4. The pushed commit triggers Cloudflare Pages.
+- Reference arrows follow these rules without exception:
+  - The tail starts at the vertical center of the source region, on the right rail (x=455).
+  - The head lands on the target's lowest address, its bottom edge in this layout. For `*(ptr + offset)` it lands `offset` into the region, in proportion.
+  - The route is a right-angle elbow outside the column to the right: horizontal, vertical, horizontal. Corners are rounded with `Q` at radius ~12. Arrows that share the margin take increasing x for their vertical legs. A leg moves inward when its label would overflow the canvas.
+  - The arrowhead is an explicit triangle, `<path d="M … Z" style="fill:var(--diagram-ink)"/>`, never a `<marker>`, whose `var()` fill does not resolve.
+  - The line runs a couple of units past the arrowhead's base, because butt caps otherwise leave a seam. The same holds for the axis.
+- Scaling and theming come from the wrapper and the variables. Still check phone width and every theme.
+- This section is the single source of truth. Update it whenever the design changes.
