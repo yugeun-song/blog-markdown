@@ -37,8 +37,9 @@ Choose the type that avoids collisions by construction:
 
 - A node label is by default a function name on one line, with the Korean explanation in the prose. Use a longer or Korean label only when nothing shorter is accurate, then check phone width in every theme. Long labels break phone layouts.
 - Edge labels sit on the arrow. Keep them to 1–3 words. Their background is transparent.
-- Node classes: `:::accent` (gold), `:::info` (green), `:::warn` (orange), `:::danger` (red), `:::muted` (gray, dashed), `:::code`.
-- Node labels use the body font. Mark a node `:::code` when its whole label is a code token (signature, variable, flag, hex value), and it switches to the code font. HTML labels are off, so one node has one font.
+- Edges render solid. The engine draws `-.->` solid too, so write `-->` and `-- label -->`.
+- Node classes mark roles, and each theme colors them: `:::accent` the result or the point, `:::info` the normal or fast path, `:::warn` a slow or risky step, `:::danger` an error, `:::muted` something off the main path (dashed outline).
+- Node labels use the body font. `:::code` switches a node to the code font when its whole label is a code token (signature, variable, flag, hex value). A bare function name is not a code token. A node takes one class, so a code token that fits a role takes the role class. A label never mixes fonts.
 - Prefer one language per diagram.
 
 ### Memory tables
@@ -49,9 +50,9 @@ For wide bitfields, struct layouts and memory regions, write a raw `<table class
 
 Draw address spaces, stack frames, pointer chains and region layouts this way when the point is addresses, stored values and the pointers between them. Write a raw `<svg class="mem-diagram">` in `index.md`. The engine wraps it in `<figure class="mem-diagram-wrap">`, which has the code-block background and border, `var(--wrap-radius)` and click-to-expand. The two diagrams in `gdb-kernel-debugging/index.md` are the reference.
 
-- Canvas: `viewBox="0 0 700 H"` and `font-family="code-mono, monospace"` on the `<svg>`, with no `width` or `height`. The wrapper scales the diagram to the column, up to 700px.
-- Orientation: the high address is at the top. The axis sits at x=32: a line with a filled triangle pointing up, bold `high` above it, bold `low` below it.
-- Column: left rail x=245, right rail x=455 (210 wide), capped top and bottom. Horizontal dividers split it into regions, with the highest region on top. Region content is centered at x=350. Boundary addresses end at x=231.
+- Canvas: `viewBox="0 0 700 H"` and `font-family="code-mono, monospace"` on the `<svg>`, with no `width` or `height`. H is about 40 below the column's bottom. The wrapper scales the diagram to the column, up to 700px.
+- Axis: the high address is at the top. At x=32 a line runs from the column's bottom up to y=82, under the triangle `M 32 74 L 26 86 L 38 86 Z`. `high` sits at y=54 and `low` 24 below the column's bottom, both bold 15 and centered on x=32.
+- Column: left rail x=245, right rail x=455 (210 wide), top at y=72, capped top and bottom. Horizontal dividers split it into regions, with the highest region on top. Region content is centered at x=350. Each labeled boundary gets a 12-unit tick (x 233–245) and an address ending at x=231.
 - Colors come from CSS variables only, never hex:
   - frame, dividers, axis, ticks, arrows, arrowheads, arrow labels, default text: `var(--diagram-ink)`
   - real regions: one opaque `var(--diagram-area)` for all of them
@@ -64,19 +65,19 @@ Draw address spaces, stack frames, pointer chains and region layouts this way wh
 
   | Element | Attributes |
   |---|---|
-  | boundary address, left of the column | `font-size="15" font-weight="700" text-anchor="end"` at x=231, baseline on the boundary |
-  | register marker | the same, red, just above its address |
-  | region value | `font-size="15" font-weight="700" text-anchor="middle"` at x=350 |
-  | region sub-label such as `(caller frame)` | `font-size="11"`, regular, centered about 24px below the value |
+  | boundary address, left of the column | `font-size="15" font-weight="700" text-anchor="end"` at x=231, baseline 4 below the boundary |
+  | register marker | the same in `var(--syntax-keyword)`, baseline 12 above the boundary; its address then moves to 6 below |
+  | region value | `font-size="15" font-weight="700" text-anchor="middle"` at x=350, baseline 4 above the region's center |
+  | region sub-label such as `(caller frame)` | `font-size="11"`, regular, centered about 24 below the value |
   | region without a value such as `truncated` | a `font-size="14"` word plus the 11px sub-label |
-  | `⋮` in an omitted span | `font-size="26" font-weight="700"`, centered |
-  | arrow label | `font-size="15"`, bold, `text-anchor="start"` right of the arrow's vertical leg. The text is the concrete `*(<address>)`: the stored pointer, which equals the target's start address, e.g. `*(0xffff800083fcbc90)`. |
+  | `⋮` in an omitted span | `font-size="26" font-weight="700"`, baseline about 10 below the span's center |
+  | arrow label | `font-size="15"`, bold, `text-anchor="start"` 8 right of the vertical leg, baseline near the leg's midpoint. The text is the concrete `*(<address>)`: the stored pointer, which equals the target's start address, e.g. `*(0xffff800083fcbc90)`. |
 
 - Reference arrows follow these rules without exception:
   - The tail starts at the vertical center of the source region, on the right rail (x=455).
   - The head lands on the target's lowest address, its bottom edge in this layout. For `*(ptr + offset)` it lands `offset` into the region, in proportion.
-  - The route is a right-angle elbow outside the column to the right: horizontal, vertical, horizontal. Corners are rounded with `Q` at radius ~12. Arrows that share the margin take increasing x for their vertical legs. A leg moves inward when its label would overflow the canvas.
-  - The arrowhead is an explicit triangle, `<path d="M … Z" style="fill:var(--diagram-ink)"/>`, never a `<marker>`, whose `var()` fill does not resolve.
-  - The line runs a couple of units past the arrowhead's base, because butt caps otherwise leave a seam. The same holds for the axis.
+  - The route runs right 26, turns through a radius-12 `Q` corner, runs a vertical leg at x=493 and comes back the same way: `M 455 ys H 481 Q 493 ys 493 ys∓12 V yt±12 Q 493 yt 481 yt H 464`, with ys the tail, yt the head and the upper signs for an upward arrow. Arrows whose vertical spans overlap take increasing x for their legs. A leg moves inward when its label would overflow the canvas.
+  - The arrowhead is its own triangle, `M 454 yt L 466 yt-6 L 466 yt+6 Z` with `fill:var(--diagram-ink)`, never a `<marker>`, so its size and position stay explicit.
+  - The line ends at x=464, 2 past the arrowhead's base, because butt caps otherwise leave a seam. The axis line overlaps its triangle's base by 4.
 - Scaling and theming come from the wrapper and the variables. Still check phone width and every theme.
 - This section is the single source of truth. Update it whenever the design changes.
