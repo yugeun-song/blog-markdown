@@ -840,58 +840,19 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 | `—▸ 0xffff800083fcbcd0` | `*(void **)0xffff800083fcbc90`. 다시 역참조한 값 |
 | `◂— ...` | 사슬이 더 이어지지만 표시 깊이에서 잘림 |
 
-<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 692" font-family="code-mono, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
-  <!-- 1-D memory axis -->
-  <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
-  <line x1="32" y1="652" x2="32" y2="82" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--diagram-ink)"/>
-  <text x="32" y="676" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">low</text>
-
-  <!-- partition fills (opaque, per-theme) -->
-  <rect x="245" y="72"  width="210" height="116" style="fill:var(--diagram-area)"/>
-  <rect x="245" y="188" width="210" height="76"  style="fill:var(--diagram-gap)"/>
-  <rect x="245" y="264" width="210" height="156" style="fill:var(--diagram-area)"/>
-  <rect x="245" y="420" width="210" height="76"  style="fill:var(--diagram-gap)"/>
-  <rect x="245" y="496" width="210" height="156" style="fill:var(--diagram-area)"/>
-
-  <!-- outer frame + dividers -->
-  <line x1="245" y1="72" x2="245" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="455" y1="72" x2="455" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="72" x2="455" y2="72" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="652" x2="455" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="188" x2="455" y2="188" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="264" x2="455" y2="264" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="420" x2="455" y2="420" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="496" x2="455" y2="496" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-
-  <!-- boundary addresses (bold) -->
-  <line x1="233" y1="188" x2="245" y2="188" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="192" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbcd0</text>
-  <line x1="233" y1="420" x2="245" y2="420" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="424" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbc90</text>
-  <line x1="233" y1="652" x2="245" y2="652" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="640" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--syntax-keyword)">X29 = sp</text>
-  <text x="231" y="658" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbc30</text>
-
-  <!-- partition contents -->
-  <text x="350" y="126" font-size="14" text-anchor="middle" style="fill:var(--diagram-ink)">truncated</text>
-  <text x="350" y="148" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(caller's caller)</text>
-  <text x="350" y="236" font-size="26" font-weight="700" text-anchor="middle" style="fill:var(--text-secondary)">⋮</text>
-  <text x="350" y="338" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">0xffff800083fcbcd0</text>
-  <text x="350" y="362" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(caller frame)</text>
-  <text x="350" y="468" font-size="26" font-weight="700" text-anchor="middle" style="fill:var(--text-secondary)">⋮</text>
-  <text x="350" y="570" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">0xffff800083fcbc90</text>
-  <text x="350" y="594" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(current frame)</text>
-
-  <!-- deref chain: tail at source center, head at dest lowest address -->
-  <path d="M 455 570 H 481 Q 493 570 493 558 V 432 Q 493 420 481 420 H 464" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 454 420 L 466 414 L 466 426 Z" style="fill:var(--diagram-ink)"/>
-  <text x="501" y="498" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff800083fcbc90)</text>
-
-  <path d="M 455 342 H 481 Q 493 342 493 330 V 200 Q 493 188 481 188 H 464" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 454 188 L 466 182 L 466 194 Z" style="fill:var(--diagram-ink)"/>
-  <text x="501" y="268" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff800083fcbcd0)</text>
-</svg>
+```memory-layout
+{
+  "id": "frame-chain",
+  "label": "스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다",
+  "regions": [
+    {"id": "outer", "word": "truncated", "sub": "(caller's caller)", "start": "0xffff800083fcbcd0"},
+    {"gap": true},
+    {"id": "caller", "value": "0xffff800083fcbcd0", "sub": "(caller frame)", "start": "0xffff800083fcbc90", "to": "outer"},
+    {"gap": true},
+    {"id": "current", "value": "0xffff800083fcbc90", "sub": "(current frame)", "start": "0xffff800083fcbc30", "marker": "X29 = sp", "to": "caller"}
+  ]
+}
+```
 
 **2. 디스어셈블**
 
@@ -926,44 +887,17 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 
 마지막 `add x0, sp, #0x28`은 스택에 든 값이 아니다. 슬롯에 담긴 값은 복귀 주소 `0xffff8000800e31ec`이고, 그 주소가 실행 가능한 코드 영역이라 pwndbg가 그 자리의 4바이트 기계어 워드(AArch64 명령어는 고정 4바이트다)를 숫자 대신 디스어셈블해 보여 준 것이다. 즉 명령은 `.text`에 있지 스택에 있지 않다. `x/i 0xffff8000800e31ec`로 같은 디스어셈블을, `x/4xb 0xffff8000800e31ec`로 그 원시 바이트를 직접 확인할 수 있다.
 
-<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 542" font-family="code-mono, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
-  <!-- 1-D memory axis -->
-  <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
-  <line x1="32" y1="500" x2="32" y2="82" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 32 74 L 26 86 L 38 86 Z" style="fill:var(--diagram-ink)"/>
-  <text x="32" y="524" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">low</text>
-
-  <!-- partition fills (opaque, per-theme) -->
-  <rect x="245" y="72"  width="210" height="154" style="fill:var(--diagram-area)"/>
-  <rect x="245" y="226" width="210" height="86"  style="fill:var(--diagram-gap)"/>
-  <rect x="245" y="312" width="210" height="188" style="fill:var(--diagram-area)"/>
-
-  <!-- outer frame + dividers -->
-  <line x1="245" y1="72" x2="245" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="455" y1="72" x2="455" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="72" x2="455" y2="72" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="500" x2="455" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="226" x2="455" y2="226" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <line x1="245" y1="312" x2="455" y2="312" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-
-  <!-- boundary addresses (bold) -->
-  <line x1="233" y1="226" x2="245" y2="226" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="230" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff800083fcbc38</text>
-  <line x1="233" y1="500" x2="245" y2="500" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <text x="231" y="504" font-size="15" font-weight="700" text-anchor="end" style="fill:var(--diagram-ink)">0xffff8000800e31ec</text>
-
-  <!-- partition contents -->
-  <text x="350" y="145" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">0xffff8000800e31ec</text>
-  <text x="350" y="169" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(kernel stack)</text>
-  <text x="350" y="277" font-size="26" font-weight="700" text-anchor="middle" style="fill:var(--text-secondary)">⋮</text>
-  <text x="350" y="402" font-size="15" font-weight="700" text-anchor="middle" xml:space="preserve"><tspan style="fill:var(--diagram-ink)">add</tspan><tspan style="fill:var(--diagram-ink)">  x0, sp, #0x28</tspan></text>
-  <text x="350" y="426" font-size="11" text-anchor="middle" style="fill:var(--diagram-ink)">(.text)</text>
-
-  <!-- deref: tail at source center, head at dest lowest address (.text start) -->
-  <path d="M 455 149 H 481 Q 493 149 493 161 V 488 Q 493 500 481 500 H 464" fill="none" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
-  <path d="M 454 500 L 466 494 L 466 506 Z" style="fill:var(--diagram-ink)"/>
-  <text x="501" y="318" font-size="15" font-weight="700" text-anchor="start" style="fill:var(--diagram-ink)">*(0xffff8000800e31ec)</text>
-</svg>
+```memory-layout
+{
+  "id": "return-address",
+  "label": "커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다",
+  "regions": [
+    {"id": "slot", "value": "0xffff8000800e31ec", "sub": "(kernel stack)", "start": "0xffff800083fcbc38", "to": "code", "h": 154},
+    {"gap": true, "h": 86},
+    {"id": "code", "value": "add  x0, sp, #0x28", "sub": "(.text)", "start": "0xffff8000800e31ec", "h": 188}
+  ]
+}
+```
 
 이 화면은 멈출 때마다 자동으로 뜨지만, `context`를 직접 입력하면 언제든 다시 그릴 수 있다. pwndbg는 이를 `ctx`로 줄여 받는다. 다른 명령을 여러 번 실행해 화면이 위로 밀렸을 때 `ctx` 한 줄로 현재 문맥을 되살린다. 같은 화면을 부팅 첫 명령에서 직접 부른 예가 아래다. arm64 v6.12 커널을 `start_kernel`에 멈춘 직후다.
 
