@@ -779,7 +779,7 @@ Undefined command: "telescope".  Try "help".
 
 pwndbg를 로드하면 멈출 때마다 레지스터, 디스어셈블, 소스, 스택, 콜 스택을 한 화면에 자동으로 그려 준다. 멈춤 직후 자동으로 뜨는 이 화면이 디버깅에 유용하다. arm64 v6.12 커널에서 `try_to_wake_up`에 멈췄을 때의 실제 모습은 다음과 같다.
 
-<pre class="pwndbg-context">
+<pre class="dbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
 <span class="ansi-blue">─────────────[ REGISTERS / show-flags off / show-compact-regs off ]─────────────</span>
 <span class="ansi-red">*</span><span class="ansi-b ansi-red">X0  </span> <span class="ansi-magenta">0xffff000004669300</span> ◂— 8
@@ -840,7 +840,7 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 | `—▸ 0xffff800083fcbcd0` | `*(void **)0xffff800083fcbc90`. 다시 역참조한 값 |
 | `◂— ...` | 사슬이 더 이어지지만 표시 깊이에서 잘림 |
 
-<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 692" font-family="Cascadia Code, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
+<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 692" font-family="code-mono, monospace" role="img" aria-label="스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다">
   <!-- 1-D memory axis -->
   <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
   <line x1="32" y1="652" x2="32" y2="82" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
@@ -926,7 +926,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 
 마지막 `add x0, sp, #0x28`은 스택에 든 값이 아니다. 슬롯에 담긴 값은 복귀 주소 `0xffff8000800e31ec`이고, 그 주소가 실행 가능한 코드 영역이라 pwndbg가 그 자리의 4바이트 기계어 워드(AArch64 명령어는 고정 4바이트다)를 숫자 대신 디스어셈블해 보여 준 것이다. 즉 명령은 `.text`에 있지 스택에 있지 않다. `x/i 0xffff8000800e31ec`로 같은 디스어셈블을, `x/4xb 0xffff8000800e31ec`로 그 원시 바이트를 직접 확인할 수 있다.
 
-<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 542" font-family="Cascadia Code, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
+<svg xmlns="http://www.w3.org/2000/svg" class="mem-diagram" viewBox="0 0 700 542" font-family="code-mono, monospace" role="img" aria-label="커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다">
   <!-- 1-D memory axis -->
   <text x="32" y="54" font-size="15" font-weight="700" text-anchor="middle" style="fill:var(--diagram-ink)">high</text>
   <line x1="32" y1="500" x2="32" y2="82" style="stroke:var(--diagram-ink);stroke-width:var(--diagram-stroke)"/>
@@ -967,7 +967,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 
 이 화면은 멈출 때마다 자동으로 뜨지만, `context`를 직접 입력하면 언제든 다시 그릴 수 있다. pwndbg는 이를 `ctx`로 줄여 받는다. 다른 명령을 여러 번 실행해 화면이 위로 밀렸을 때 `ctx` 한 줄로 현재 문맥을 되살린다. 같은 화면을 부팅 첫 명령에서 직접 부른 예가 아래다. arm64 v6.12 커널을 `start_kernel`에 멈춘 직후다.
 
-<pre class="pwndbg-context">
+<pre class="dbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
 <span class="ansi-blue">─────────────[ REGISTERS / show-flags off / show-compact-regs off ]─────────────</span>
 <span class="ansi-red">*</span><span class="ansi-b ansi-red">X1  </span> <span class="ansi-magenta">0xffff800083869dc0 (__boot_cpu_mode)</span> ◂— 0xe1100000e11
