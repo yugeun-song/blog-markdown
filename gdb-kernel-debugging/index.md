@@ -2,7 +2,7 @@
 
 gdb로 커널을 디버깅한다는 것은, `호스트`의 gdb가 QEMU에 내장된 gdbstub에 원격으로 접속해, GDB 원격 시리얼 프로토콜(RSP)로 `vmlinux`의 심볼을 써서 VM으로 띄운 커널의 메모리와 실행을 들여다보고 제어하는 것이다.
 
-이 글의 모든 명령 출력은 stable 6.12.92 버전의 x86_64, arm64, riscv64 세 아키텍처의 커널과 최신의 x86_64 mainline(7.1-rc) 커널을 QEMU에 올린 환경에서 실제로 실행한 결과이다. 각 커널은 `CONFIG_DEBUG_INFO_DWARF5`, `CONFIG_GDB_SCRIPTS`, `CONFIG_KALLSYMS_ALL`로 빌드되어 있고, 디버깅에 쓰는 호스트 OS 환경은 7.0.1 버전의 Arch Linux이고, gdb 17.2에 pwndbg 플러그인을 얹은 것이다. 부팅 런처는 기본적으로 CPU를 정지(`-S`)시킨 채 gdb 접속을 기다린다.
+이 글의 모든 명령 출력은 stable 6.12.92 버전의 x86_64, arm64, riscv64 세 아키텍처의 커널과 최신의 x86_64 mainline(7.1-rc) 커널을 QEMU에 올린 환경에서 실제로 실행한 결과이다. 각 커널은 `CONFIG_DEBUG_INFO_DWARF5`, `CONFIG_GDB_SCRIPTS`, `CONFIG_KALLSYMS_ALL`로 빌드되어 있고, 디버깅에 쓰는 호스트 OS 환경은 7.0.1 버전의 Arch Linux이고, 디버거는 gdb 17.2에 pwndbg 플러그인을 얹은 것이다. 부팅 런처는 기본적으로 CPU를 정지(`-S`)시킨 채 gdb 접속을 기다린다.
 
 ```bash
 # 게스트: QEMU를 -S로 정지시킨 채 gdbstub에서 gdb 접속을 기다린다 (포트는 예시로 1234)
@@ -16,7 +16,7 @@ qemu-system-aarch64 -M virt -cpu cortex-a72 -accel tcg,thread=multi -m 2G -smp 1
 gdb ./vmlinux -ex 'target remote :포트번호'
 ```
 
-`-S`로 정지된 CPU는 호스트 gdb에서 `continue` 명령을 보내야 비로소 실행된다. 그리고 gdb가 접속을 끊으면(`detach`) QEMU는 다시 실행을 재개한다.
+`-S`로 정지된 CPU는 호스트 gdb에서 `continue` 명령을 보내야 비로소 실행된다. 그리고 gdb가 접속을 끊으면(`detach`) QEMU는 실행을 재개한다.
 
 ## 1. 배포판별 gdb 설치와 크로스 디버깅 환경
 
@@ -62,10 +62,10 @@ $ command -v gdb gdb-multiarch aarch64-linux-gnu-gdb riscv64-linux-gnu-gdb
 디버깅 대상인 `vmlinux`는 빌드 산출물이다. gdb가 심볼과 소스 라인, 구조체 레이아웃을 알려면 커널이 디버그 정보를 담아 빌드되어 있어야 한다. 적어도 다음 커널 configuration이 켜져 있어야 한다.
 
 - `CONFIG_DEBUG_INFO_DWARF5=y` (또는 DWARF4): 타입, 지역변수, 소스 라인 정보. `CONFIG_DEBUG_INFO_REDUCED`가 켜져 있으면 구조체 멤버 정보가 깎여 `ptype`이 부실해진다.
-- `CONFIG_GDB_SCRIPTS=y`: 커널 제공 `lx-*` 헬퍼(`lx-*`)를 쓰기 위한 옵션.
+- `CONFIG_GDB_SCRIPTS=y`: 커널 제공 `lx-*` 헬퍼를 쓰기 위한 옵션.
 - `CONFIG_KALLSYMS_ALL=y`: 더 많은 심볼을 커널 이미지에 포함.
 
-크로스 컴파일이라면 커널 빌드용 툴체인(`aarch64-linux-gnu-gcc` 등)과 gdb의 대상 아키텍처가 일치해야 한다. 한 가지 자주 겪는 혼동은, 게스트에 올리는 부팅 이미지(`arch/*/boot/bzImage`, `Image`)와 gdb에 지정하는 심볼 파일(`vmlinux`)이 서로 다른 파일이라는 것이다. QEMU에는 부팅 이미지를, gdb에는 **같은 빌드의** `vmlinux`를 지정해야 심볼이 들어맞는다. 부팅 이미지는 `vmlinux`를 `objcopy`로 가공해 아키텍처별 부트 헤더를 붙인 `Image`(arm64, riscv64)나 `bzImage`(x86)다. `vmlinux` 자체를 부팅 이미지로 쓰는 일은 거의 없지만, `CONFIG_PVH` 같은 별도 옵션이 갖춰지면 `-kernel`에 직접 줘서 부팅하는 것도 가능은 하다.
+크로스 컴파일이라면 커널 빌드용 툴체인(`aarch64-linux-gnu-gcc` 등)과 gdb의 대상 아키텍처가 일치해야 한다. 자주 겪는 혼동 한 가지는, 게스트에 올리는 부팅 이미지(`arch/*/boot/bzImage`, `Image`)와 gdb에 지정하는 심볼 파일(`vmlinux`)이 서로 다른 파일이라는 것이다. QEMU에는 부팅 이미지를, gdb에는 **같은 빌드의** `vmlinux`를 지정해야 심볼이 들어맞는다. 부팅 이미지는 `vmlinux`를 `objcopy`로 가공해 아키텍처별 부트 헤더를 붙인 `Image`(arm64, riscv64)나 `bzImage`(x86)다. `vmlinux` 자체를 부팅 이미지로 쓰는 일은 거의 없지만, `CONFIG_PVH` 같은 별도 옵션이 갖춰지면 `-kernel`에 직접 줘서 부팅하는 것도 가능은 하다.
 
 ```bash
 # 게스트(QEMU)에는 부팅 이미지를, 호스트(gdb)에는 같은 빌드의 vmlinux를 준다
@@ -77,7 +77,7 @@ gdb ./vmlinux                                                # 심볼, 타입, �
 
 pwndbg와 커널의 `lx-*` 스크립트는 둘 다 **호스트**에서 동작한다. 게스트(QEMU 안의 커널)는 gdbstub만 열어 둘 뿐이고, 게스트 안에 gdb를 설치할 일은 없다. 디버깅하는 gdb는 전부 호스트 쪽이다.
 
-**pwndbg**는 gdb에 source로 등록하는 파이썬 확장이다. 클론하면 `setup.sh`가 전용 venv를 만들고 `~/.gdbinit`에 로드 라인을 추가한다.
+**pwndbg**는 gdb에 source로 등록하는 파이썬 확장이다. 클론한 뒤 실행하는 `setup.sh`가 전용 venv를 만들고 `~/.gdbinit`에 로드 라인을 추가한다.
 
 ```bash
 git clone https://github.com/pwndbg/pwndbg
@@ -91,7 +91,7 @@ cd pwndbg && ./setup.sh        # .venv 생성 + ~/.gdbinit에 source 라인 추�
 source ~/pwndbg/gdbinit.py
 ```
 
-**lx-***는 따로 설치할 게 없다. `CONFIG_GDB_SCRIPTS=y`로 빌드하면 커널 빌드 디렉토리에 `vmlinux-gdb.py` 심볼릭 링크가 생기고, **호스트 gdb가 그 `vmlinux`를 로드할 때** 자동으로 딸려 온다. 단 빌드 디렉토리가 gdb의 auto-load 안전 경로 안에 있어야 한다. pwndbg를 로드하면 pwndbg가 `set auto-load safe-path /`로 이 제한을 풀어 줘서 `gdb vmlinux`만으로 lx-*가 딸려 오고, 안전 경로를 건드리지 않은 순정 gdb에서는, 안전 경로를 직접 허용하거나(방법 1) 그냥 연 뒤 gdb 콘솔에서 `vmlinux-gdb.py`를 직접 `source`하면 된다(방법 2).
+**lx-\*는** 따로 설치할 게 없다. `CONFIG_GDB_SCRIPTS=y`로 빌드하면 커널 빌드 디렉토리에 `vmlinux-gdb.py` 심볼릭 링크가 생기고, **호스트 gdb가 그 `vmlinux`를 로드할 때** 자동으로 딸려 온다. 단 빌드 디렉토리가 gdb의 auto-load 안전 경로 안에 있어야 한다. pwndbg를 로드하면 pwndbg가 `set auto-load safe-path /`로 이 제한을 풀어 줘서 `gdb vmlinux`만으로 lx-*가 딸려 오고, 안전 경로를 건드리지 않은 순정 gdb에서는, 안전 경로를 직접 허용하거나(방법 1) 그냥 연 뒤 gdb 콘솔에서 `vmlinux-gdb.py`를 직접 `source`하면 된다(방법 2).
 
 ```text
 # 방법 1: 안전 경로를 미리 허용하면 vmlinux 로드 시 lx-*가 자동으로 딸려 온다 (pwndbg면 불필요)
@@ -147,8 +147,8 @@ $1 = "swapper/0\000\000\000\000\000\000"
 - **초기에는 idle 상태에 디버거가 멈춤**: 초기에 디버거가 멈추면 보통 `current`가 `swapper`이다. 따라서, 유의미한 지점에 중단점과 게스트 트리거를 설정해야 정보를 얻을 수 있다.
 - **`continue` 중에는 콘솔이 멈춤**: 디버깅 대상이 실행 중이면 gdb는 다음 정지(중단점, 워치포인트 적중)까지 입력을 받지 않는다. 중단점이 안 잡히는데 다시 명령을 내려야 하면 `Ctrl-C`로 실행 중인 커널을 인터럽트한다. 그러면 처음 붙을 때처럼 그 순간의 위치(보통 idle)에서 멈추고 프롬프트가 돌아온다. gdb를 스크립트나 백그라운드로 돌려 그 콘솔에 직접 `Ctrl-C`를 칠 수 없는 경우에는, 다른 터미널에서 `kill -INT <gdb의 PID>`(또는 `pkill -INT gdb`)로 그 gdb 프로세스에 `SIGINT`를 보내면 된다.
 - **자주 사용되는 함수에 중단점을 걸면 폭주**: `__schedule`처럼 자주 불리는 함수에 중단점을 걸면 끊임없이 적중한다. 조건부 중단점(`if`)이나 멈추지 않는 디버깅 방식(파이썬 `stop()`)을 활용해야 한다.
-- **detach하면 즉시 재개**: gdb를 끊으면 커널은 멈췄던 자리에서 곧바로 다시 실행한다.
-- **단일 스텝 중 인터럽트 유입**: 한 줄씩 밟는 동안 타이머 같은 인터럽트가 끼어들면 스텝이 인터럽트 핸들러로 빨려 들어갈 수 있다. 한편 오래 멈췄을 때 타이머, RCU, NMI watchdog가 stall이나 lockup을 내는 것은 시간 도약 문제라 KVM에서 나타난다.
+- **detach하면 즉시 재개**: gdb를 끊으면 커널은 멈췄던 자리에서 곧바로 다시 실행된다.
+- **단일 스텝 중 인터럽트 유입**: 한 줄씩 밟는 동안 타이머 같은 인터럽트가 끼어들면 스텝이 인터럽트 핸들러로 빨려 들어갈 수 있다. 한편 오래 멈췄을 때 타이머, RCU, NMI watchdog이 stall이나 lockup을 내는 것은 시간 도약 문제라 KVM에서 나타난다.
 - **멀티코어 디버깅**: 코어가 여럿이면 `current`와 per-cpu 상태가 선택한 코어마다 다르고, 코어들이 병렬로 도는 동안 실행 흐름이 매 실행 달라진다(arm64 TCG의 MTTCG에서도 마찬가지다). 같은 흐름을 반복 재현하려면 `-smp 1`로 코어 간 비결정성을 줄이고, 더 엄격하게는 `-icount`까지 쓴다.
 - **모듈 심볼 Lazy 로딩**: `lx-symbols`를 한 번 실행해 두면 `do_init_module`에 내부 중단점을 심어 두므로, 이후 `insmod`되는 모듈의 심볼은 자동으로 로드된다.
 
@@ -222,7 +222,7 @@ usage: bp [-h] where
 
 이 글의 환경에서는 아키텍처마다 커널 부팅 극초기에 서로 다른 현상을 보인다.
 
-x86_64에서는 QEMU가 `-S`로 vCPU를 레거시 리셋 벡터(real mode)에 세워 둔 채 멈춘다. 이 글의 x86_64 세션은 KVM 가속(`-enable-kvm`)인데, KVM에서 소프트웨어 중단점은 게스트 메모리에 `int3`를 써넣는 것이다. 이 시점에는 커널의 상위 가상 주소가 전혀 매핑되어 있지 않아 그 주소에 쓸 수 없으므로, `start_kernel`에 소프트웨어 중단점(`break`)을 걸고 `continue`하면 gdb가 그 주소에 브레이크를 거는데 실패한다.
+x86_64에서는 QEMU가 `-S`로 vCPU를 레거시 리셋 벡터(real mode)에 세워 둔 채 멈춘다. 이 글의 x86_64 세션은 KVM 가속(`-enable-kvm`)인데, KVM에서 소프트웨어 중단점은 게스트 메모리에 `int3`를 써넣는 것이다. 이 시점에는 커널의 상위 가상 주소가 전혀 매핑되어 있지 않아 그 주소에 쓸 수 없으므로, `start_kernel`에 소프트웨어 중단점(`break`)을 걸고 `continue`하면 gdb가 그 주소에 브레이크를 거는 데 실패한다.
 
 ```text
 # x86_64 (KVM): 리셋 벡터(real mode), 소프트웨어 중단점 삽입 실패
@@ -254,7 +254,7 @@ Breakpoint 1 at 0xffffffff80c00882 (2 locations)
 Breakpoint 1.1, 0xffffffff80c00882 in start_kernel () # [!hl]
 ```
 
-정리하면, 리셋 직후 소프트웨어 중단점이 실패하는 것은 아키텍처가 아니라 가속기의 차이다. KVM에서 `break`는 게스트 메모리에 `int3`를 써넣어야 하므로 페이지 테이블이 서기 전에는 실패한다. 반면 TCG에서는 QEMU가 소프트웨어 중단점(`Z0`)과 하드웨어 중단점(`Z1`)을 모두 내부의 PC 비교 중단점으로 구현해 메모리를 쓰지 않으므로, x86_64도 TCG로 띄우면 `break start_kernel`이 그대로 걸린다. 하드웨어 중단점(`hbreak`)은 메모리를 건드리지 않으므로 가속기와 아키텍처를 가리지 않고 이 시점에 안전하게 동작한다. 앞서 보인 표준 세션이 `hbreak`를 쓴 이유다. 부팅 극초기를 확실히 잡으려면 `hbreak`가 무난하고, 페이징이 선 뒤의 일반 함수에는 소프트웨어 `break`(`b`)가 잘 듣는다.
+정리하면, 리셋 직후 소프트웨어 중단점이 실패하는 것은 아키텍처가 아니라 가속기 차이 때문이다. KVM에서 `break`는 게스트 메모리에 `int3`를 써넣어야 하므로 페이지 테이블이 서기 전에는 실패한다. 반면 TCG에서는 QEMU가 소프트웨어 중단점(`Z0`)과 하드웨어 중단점(`Z1`)을 모두 내부의 PC 비교 중단점으로 구현해 메모리를 쓰지 않으므로, x86_64도 TCG로 띄우면 `break start_kernel`이 그대로 걸린다. 하드웨어 중단점(`hbreak`)은 메모리를 건드리지 않으므로 가속기와 아키텍처를 가리지 않고 이 시점에 안전하게 동작한다. 앞서 보인 표준 세션이 `hbreak`를 쓴 이유다. 부팅 극초기를 확실히 잡으려면 `hbreak`가 무난하고, 페이징이 선 뒤의 일반 함수에는 소프트웨어 `break`(`b`)가 잘 듣는다.
 
 ### watch는 왜 하드웨어 백업이 필요한가
 
@@ -472,7 +472,7 @@ type = struct files_struct *
 
 ### disassemble로 어셈블리 번역
 
-함수의 기계어를 보려면 `disassemble`(축약 `disas`)다. 인자 없으면 현재 함수를, 이름이나 주소를 주면 그 함수를, `시작,끝`이나 `시작,+길이`로 구간을 덤프한다.
+함수의 기계어를 보려면 `disassemble`(축약 `disas`)이다. 인자 없으면 현재 함수를, 이름이나 주소를 주면 그 함수를, `시작,끝`이나 `시작,+길이`로 구간을 덤프한다.
 
 ```text
 (gdb) disassemble try_to_wake_up
@@ -496,7 +496,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>    mov x9, x30    X9 => 0xffff8000800fd
 
 ### x로 메모리 검사하기
 
-메모리를 직접 들여다보는 것은 `x` 이다. 이름은 "examine memory"의 머리글자에서 왔지만, gdb에 `examine`이라고 풀어 입력하면 `Undefined command`로 거부된다. 즉 입력할 수 있는 명령 이름은 `x` 하나뿐이고, `examine`은 그 원뜻을 가리키는 이름일 뿐 둘은 축약(별칭) 관계가 아니다(`ex`나 `e`도 `examine`의 약자가 아니라 다른 명령들과 겹쳐 모호하다고 거부된다). `x/<개수><포맷><크기> 주소` 형태로 같은 메모리를 명령어, 바이트, 워드 등 원하는 모양으로 본다. 포맷 글자는 `print`의 것에 `i`(명령어)가 더해지고(`x` 16진, `d` 10진, `c` 문자, `s` 문자열), 크기는 `b`(1), `h`(2), `w`(4), `g`(8)다.
+메모리를 직접 들여다보는 것은 `x`이다. 이름은 "examine memory"의 머리글자에서 왔지만, gdb에 `examine`이라고 풀어 입력하면 `Undefined command`로 거부된다. 즉 입력할 수 있는 명령 이름은 `x` 하나뿐이고, `examine`은 그 원뜻을 가리키는 이름일 뿐 둘은 축약(별칭) 관계가 아니다(`ex`나 `e`도 `examine`의 약자가 아니라 다른 명령들과 겹쳐 모호하다고 거부된다). `x/<개수><포맷><크기> 주소` 형태로 같은 메모리를 명령어, 바이트, 워드 등 원하는 모양으로 본다. 포맷 글자는 `print`의 것에 `i`(명령어)가 더해지고(`x` 16진, `d` 10진, `c` 문자, `s` 문자열), 크기는 `b`(1), `h`(2), `w`(4), `g`(8)다.
 
 ```text
 (gdb) x/5i $pc            # i: 명령어 5개
@@ -567,14 +567,14 @@ preempt_count_add (val=val@entry=1) at kernel/sched/core.c:5803     # bl 안으�
 
 ### set var로 값 강제 변경
 
-디버깅 중에 변수 값을 강제로 바꿀 수도 있다. `set var <식> = <값>`(또는 `p <식> = <값>`)이다. 일상적으로 권장되는 동작은 아니지만, 에러 경로를 강제로 타게 하거나 특정 조건을 흉내내어 테스트할 때 쓴다. `try_to_wake_up`의 인자 `state`(`int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)`의 두 번째 인자)를 바꿔 보면 다음과 같다.
+디버깅 중에 변수 값을 강제로 바꿀 수도 있다. `set var <식> = <값>`(또는 `p <식> = <값>`)이다. 일상적으로 권장되는 동작은 아니지만, 에러 경로를 강제로 타게 하거나 특정 조건을 흉내 내어 테스트할 때 쓴다. `try_to_wake_up`의 인자 `state`(`int try_to_wake_up(struct task_struct *p, unsigned int state, int wake_flags)`의 두 번째 인자)를 바꿔 보면 다음과 같다.
 
 ```text
 (gdb) p state
 $1 = 3                   # TASK_NORMAL
 (gdb) set var state = 1
 (gdb) p state
-$2 = 1                   # TASK_INTERRUPTIBLE 로 바뀜
+$2 = 1                   # TASK_INTERRUPTIBLE로 바뀜
 ```
 
 커널 메모리에 그대로 써지므로, 이대로 `continue`하면 커널이 바뀐 값으로 진행한다. 그만큼 위험하니 무엇을 바꾸는지 알고 써야 한다.
@@ -648,12 +648,12 @@ The symbol `__GFP_ZERO' has no definition as a C/C++ preprocessor macro
 at <user-defined>:-1
 ```
 
-커널은 워낙 방대해서 이름이 부분적으로 겹치는 심볼이 수없이 많다. 셸에서 `ls -al | grep  vmlinux`로 이름을 찾는 방법처럼 gdb에서도 할 수 있다. 하나는 `info ... <정규식>`이고, 다른 하나는 gdb의 `pipe`(`|`) 명령으로 출력을 셸 명령에 그대로 파이프하는 것이다.
+커널은 워낙 방대해서 이름이 부분적으로 겹치는 심볼이 수없이 많다. 셸에서 `ls -al | grep vmlinux`로 이름을 찾는 방법처럼 gdb에서도 할 수 있다. 하나는 `info ... <정규식>`이고, 다른 하나는 gdb의 `pipe`(`|`) 명령으로 출력을 셸 명령에 그대로 파이프하는 것이다.
 
 ```text
 (gdb) info variables jiffies          # 이름에 jiffies가 든 것 전부 (수십 개)
 ...
-(gdb) pipe info variables jiffies | grep jiffies_64   # 셸로 파이프 (ls | grep 처럼)
+(gdb) pipe info variables jiffies | grep jiffies_64   # 셸로 파이프 (ls | grep처럼)
 61:	u64 jiffies_64;
 (gdb) info address jiffies_64          # 정확한 주소 찾기
 Symbol "jiffies_64" is static storage at address 0xffff8000838579c0.
@@ -680,14 +680,14 @@ break-range -- Set a breakpoint for an address range.
 
 커널은 유저 프로그램과 다른 점이 여럿 있다. 실제로 마주치는 증상 위주로 정리한다.
 
-- **detach가 곧 실행 재개**: `-S`로 정지시킨 커널을 한 번 붙었다가 끊으면, 다음에 붙을 때는 이미 부팅이 끝나 있다. `start_kernel` 같은 일회성 지점은 매번 새로 부팅해서 잡아야 한다.
+- **detach가 곧 실행 재개**: `-S`로 정지시킨 커널에 한 번 붙었다가 끊으면, 다음에 붙을 때는 이미 부팅이 끝나 있다. `start_kernel` 같은 일회성 지점은 매번 새로 부팅해서 잡아야 한다.
 - **심볼/버전 불일치**: 구조체 레이아웃마저 커널 버전 사이에서 바뀐다. 예컨대 `struct file`의 첫 멤버는 6.12에서 `atomic_long_t f_count`이지만 7.1에서는 `spinlock_t f_lock`으로 재배치되었다.
 
 ### gdb가 멈춘 시간을 게스트 VM 타이머에서 제외하기
 
 부팅이 끝난 커널은 쉴 새 없이 스케줄링하고 타이머 틱을 센다. 그런데 중단점에 멈춰 gdb로 디버깅하는 동안 흘러간 "그 시간"을 게스트가 어떻게 처리하는지는 QEMU 가속 방식에 따라 갈린다.
 
-**KVM 가속(`-enable-kvm`)**에서는 게스트 시계가 호스트 실시간을 따라간다(`kvm-clock`, TSC). gdb가 vCPU를 멈춰도 호스트 시간은 계속 흐르므로, 재개하는 순간 게스트는 멈춰 있던 시간이 한꺼번에 지나간 것으로 본다. 실제로 KVM 게스트를 45초 멈췄다 재개하면 콘솔에 다음이 찍힌다.
+**KVM 가속**(`-enable-kvm`)에서는 게스트 시계가 호스트 실시간을 따라간다(`kvm-clock`, TSC). gdb가 vCPU를 멈춰도 호스트 시간은 계속 흐르므로, 재개하는 순간 게스트는 멈춰 있던 시간이 한꺼번에 지나간 것으로 본다. 실제로 KVM 게스트를 45초 멈췄다 재개하면 콘솔에 다음이 찍힌다.
 
 ```text
 clocksource: Long readout interval, skipping watchdog check: cs_nsec: 45775429558 wd_nsec: 504061131
@@ -733,9 +733,9 @@ $1 = 4294892484
 $2 = 4294892484           # delta 0: 정지한 45초가 게스트 시간에서 통째로 빠졌다
 ```
 
-KVM이었다면 같은 자리에서 `jiffies_64`가 45초 × `HZ`만큼 도약했을 값이다. 즉 `continue` 이후 다음 적중 전까지는 vCPU들이 (icount에서는 직렬로) 진행하고, 적중하는 순간 전부 멈추며, 그 멈춰 있던 시간만 게스트 시계에서 빠진다.
+KVM이었다면 같은 자리에서 `jiffies_64`가 45초 × `HZ`만큼 도약했을 것이다. 즉 `continue` 이후 다음 적중 전까지는 vCPU들이 (icount에서는 직렬로) 진행하고, 적중하는 순간 전부 멈추며, 그 멈춰 있던 시간만 게스트 시계에서 빠진다.
 
-여기서 멈출 수 있는 것은 VM "안"의 시간뿐이다. TCG(필요하면 `-icount`까지)는 게스트의 클럭소스, 타이머 틱, hrtimer, 스케줄러 deadline, RCU, 워치독, 그리고 게스트 시계를 기준으로 재는 소켓 재전송, 블록 I/O 타임아웃까지 함께 정지시킨다. 그래서 이들 *내부* 타임아웃은 디버거 정지로 터지지 않는다. 이는 평범한 TCG면 이미 성립하므로 RCU, 스케줄링 stall을 막는 데 `-icount`가 따로 필요하지는 않다. 그러나 VM "밖"은 어떤 옵션으로도 멈추지 못한다. 상대방 TCP 클라이언트, 서버, 실시간 하드웨어는 벽시계대로 계속 흐르므로, gdb로 오래 붙잡고 있으면 그쪽에서 연결을 끊거나 타임아웃을 낸다. 따라서 디버깅 중에는 살아 있는 네트워크 피어 같은 외부 실시간 의존을 피하고, 게스트 로컬 I/O, 루프백, 스냅샷으로 재현하는 편이 안전하다.
+여기서 멈출 수 있는 것은 VM "안"의 시간뿐이다. TCG(필요하면 `-icount`까지)는 게스트의 클럭소스, 타이머 틱, hrtimer, 스케줄러 deadline, RCU, 워치독, 그리고 게스트 시계를 기준으로 재는 소켓 재전송, 블록 I/O 타임아웃까지 함께 정지시킨다. 그래서 이들 *내부* 타임아웃은 디버거 정지로 터지지 않는다. 이는 평범한 TCG면 이미 성립하므로 RCU, 스케줄링 stall을 막는 데 `-icount`가 따로 필요하지는 않다. 그러나 VM "밖"은 어떤 옵션으로도 멈추지 못한다. 상대방 TCP 클라이언트, 서버, 실시간 하드웨어는 벽시계대로 계속 돌아가므로, gdb로 오래 붙잡고 있으면 그쪽에서 연결을 끊거나 타임아웃을 낸다. 따라서 디버깅 중에는 살아 있는 네트워크 피어 같은 외부 실시간 의존을 피하고, 게스트 로컬 I/O, 루프백, 스냅샷으로 재현하는 편이 안전하다.
 
 성능 비용은 분명하다. TCG는 소프트웨어 에뮬레이션이라 KVM보다 보통 한 자릿수에서 수십 배 느리다. `-icount`는 거기에 단일 스레드 실행까지 강제하므로, `-smp`로 vCPU를 여럿 줘도 진짜 병렬이 아니라 한 스트림 위에서 결정론적으로 번갈아 돈다.
 
@@ -1254,7 +1254,7 @@ Dumped fdt blob to fdtdump.dtb
 
 ## 5. gdb 파이썬 API로 자동화
 
-커널 디버깅 자동화는 gdb에 내장된 파이썬 API다. `gdb.parse_and_eval`로 표현식을 평가하고, `gdb.Value`로 구조체를 따라가며, `gdb.Breakpoint`로 멈춤을 제어한다.
+커널 디버깅 자동화에는 gdb에 내장된 파이썬 API를 쓴다. `gdb.parse_and_eval`로 표현식을 평가하고, `gdb.Value`로 구조체를 따라가며, `gdb.Breakpoint`로 멈춤을 제어한다.
 
 파이썬 스크립트를 로드/실행하는 방법은 다양하다. 한 줄짜리는 `python <코드>`(별칭 `py`)로, 여러 줄은 `python ... end` 블록으로, 파일은 `source 파일.py`로 불러온다. 명령행에서는 `gdb -x 스크립트.py` 또는 `-ex 'py ...'`로 넘기고, `<바이너리>-gdb.py` 이름의 스크립트는 그 바이너리를 로드할 때 자동으로 읽힌다. 커널의 `lx-*`가 바로 이 자동 로드(`vmlinux-gdb.py`) 방식이다.
 
@@ -1338,7 +1338,7 @@ pid=1 comm=init
 
 ## 명령어 레퍼런스
 
-본문에 등장한 모든 명령을 출처별로 모아, 각각 무엇을 하고 어떻게 쓰는지를 한 곳에 정리한다.
+본문에 등장한 모든 명령을 출처별로 모아, 각각 무엇을 하고 어떻게 쓰는지를 한곳에 정리한다.
 
 **gdb 빌트인**
 
@@ -1366,7 +1366,7 @@ pid=1 comm=init
 | `info args` / `info locals` | 현재 프레임의 인자 / 지역변수 | `info args` |
 | `info threads` | vCPU(스레드) 목록과 상태 | `info threads` |
 | `print` (`p`) | 표현식을 C처럼 평가해 출력 | `p init_task.comm` |
-| `p/포맷` | 진법, 형태 지정(`x`16진 `d`10진 `t`2진 `c`문자 `a`주소) | `p/x init_task.flags` |
+| `p/포맷` | 진법, 형태 지정(`x` 16진 `d` 10진 `t` 2진 `c` 문자 `a` 주소) | `p/x init_task.flags` |
 | `x` (examine) | 메모리를 직접 검사 | `x/8xb &init_task` |
 | `disassemble` (`disas`) | 함수, 구간 기계어 덤프 | `disassemble try_to_wake_up` |
 | `list` (`l`) | 현재, 지정 위치의 C 소스 줄 표시 | `list .` |
@@ -1378,7 +1378,7 @@ pid=1 comm=init
 | `info scope` | 그 위치의 지역변수와 저장 위치 | `info scope try_to_wake_up` |
 | `info macro` | 매크로 정의(매크로 디버그 정보 빌드 필요) | `info macro __GFP_ZERO` |
 | `pipe` (`\|`) | gdb 출력을 셸 명령으로 파이프 | `pipe info variables x \| grep y` |
-| `python` (`py`) / `python-interactive` (`pi`) / `source` | 파이썬 한 줄 / 대화형 평가 / 파일 실행 | `py print(1)` ,  `pi 1+1` ,  `source x.py` |
+| `python` (`py`) / `python-interactive` (`pi`) / `source` | 파이썬 한 줄 / 대화형 평가 / 파일 실행 | `py print(1)`, `pi 1+1`, `source x.py` |
 | `apropos` | 명령 이름, 설명 검색 | `apropos ^lx` |
 | `help` | 명령 도움말 | `help break` |
 
@@ -1410,7 +1410,7 @@ pid=1 comm=init
 | `kconfig` / `kchecksec` | `.config` 블롭 조회(`CONFIG_IKCONFIG=y` 필요) | x86_64, arm64, riscv64 |
 | `kversion` / `kcmdline` | 커널 버전 / 부팅 커맨드라인 | x86_64, arm64, riscv64 |
 
-**커널 lx-* (커널 `scripts/gdb`)**
+**커널 `lx-*` (커널 `scripts/gdb`)**
 
 | 명령 | 하는 일 | 예시 |
 |---|---|---|
