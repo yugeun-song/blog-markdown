@@ -422,7 +422,7 @@ cat /sys/kernel/tracing/trace
 
 세 조합 모두 유효한 사용 패턴이며, 시나리오에 맞춰 골라 쓰는 도구일 뿐 우열 관계가 아니다.
 
-`current_tracer`를 `function` 또는 `function_graph`로 두면서도 함수는 하나도 추적하지 않고 이벤트만 잡는 것은 기술적으로는 가능하다. `set_ftrace_filter`에 어떤 함수도 매칭되지 않는 패턴(예: `echo 'zzz_no_such_function' > set_ftrace_filter`)을 쓰면 function tracer 인프라는 활성화되어 있지만 매칭이 0건이라 호출 라인이 나오지 않고, tracepoint 이벤트만 buffer에 쌓인다. 그러나 이는 **권장되지 않는다.** function tracer가 활성화된 상태는 ftrace_caller 분기·필터 매칭 점검 같은 오버헤드를 매 함수 호출마다 동반하는데, 매칭이 0건이라 결과적으로 그 비용만 치르고 아무 함수 호출도 잡지 않는다. 이벤트만 잡을 때의 표준은 `current_tracer = nop`이며, 앞서 서술한 이벤트만 추적 대상으로 설정하는 케이스가 바로 그것이다.
+`current_tracer`를 `function` 또는 `function_graph`로 두면서 함수는 하나도 추적하지 않고 이벤트만 잡으려고, `set_ftrace_filter`에 어떤 함수도 매칭되지 않는 패턴(예: `echo 'zzz_no_such_function' > set_ftrace_filter`)을 쓰는 방법을 떠올릴 수 있다. 그러나 이 방법은 **통하지 않는다.** 커널은 매칭이 0건인 패턴의 쓰기를 `Invalid argument`로 거부한다. 그런데 `>`는 기존 필터를 버리고 빈 필터에서 시작하므로, 쓰기가 실패한 채 파일이 닫히면 빈 필터가 그대로 적용된다. 결과는 의도와 정반대로 모든 함수를 추적하는 상태이다. 이벤트만 잡을 때의 표준은 `current_tracer = nop`이며, 앞서 서술한 이벤트만 추적 대상으로 설정하는 케이스가 바로 그것이다.
 
 문제는 이 세 가지 어디에도 속하지 않는 경우이다.
 
@@ -468,8 +468,8 @@ echo 'ksys_*'       >> /sys/kernel/tracing/set_ftrace_filter
 그럼에도 의도적으로 "모든 함수 추적"을 해야 하는 상황(특정 패닉 직전의 호출 흐름 전체를 재구성하거나, 커널 부팅부터 끝까지의 전수 프로파일을 받는 경우 등)은 존재할 수 있다. 그때는 다음 세 가지를 함께 설정한다.
 
 - **buffer 크기 확장**: `echo 102400 > /sys/kernel/tracing/buffer_size_kb`처럼 CPU당 buffer 크기를 KB 단위로 키운다 (기본값은 보통 1408 KB 수준). 위 값은 CPU당 100 MB로 잡는 예시이며, 멀티코어 시스템에서는 `nproc` 배수로 메모리가 소비된다는 점을 고려해야 한다.
-- **`set_ftrace_notrace`로 노이즈 차단**: 모든 함수를 보더라도 `do_idle`, `cpu_idle_loop`, ftrace 자체 내부 함수 등은 굳이 잡을 필요가 없는 경우가 많다. `echo 'do_idle*' > /sys/kernel/tracing/set_ftrace_notrace`식으로 blacklist를 함께 운용하면 buffer 사용을 크게 줄일 수 있다.
-- **실시간 스트리밍**: `cat /sys/kernel/tracing/trace` 대신 `cat /sys/kernel/tracing/trace_pipe`를 사용하면 buffer가 가득 차기를 기다리지 않고 호출이 발생하는 순간순간 표준출력으로 흘려보낼 수 있다. 보통 별도 셸에서 `cat trace_pipe > /tmp/full_trace.txt`처럼 파일로 리다이렉트해 둔 채 측정을 진행한다. 단 이 방식도 buffer가 폭증할 때 일부 엔트리가 lost되는 한계는 있으며, 그 경우 `trace_pipe` 출력에 `CPU:N [LOST EVENTS: M]` 같은 라인이 섞인다.
+- **`set_ftrace_notrace`로 노이즈 차단**: 모든 함수를 보더라도 `do_idle`, ftrace 자체 내부 함수 등은 굳이 잡을 필요가 없는 경우가 많다. `echo 'do_idle*' > /sys/kernel/tracing/set_ftrace_notrace`식으로 blacklist를 함께 운용하면 buffer 사용을 크게 줄일 수 있다.
+- **실시간 스트리밍**: `cat /sys/kernel/tracing/trace` 대신 `cat /sys/kernel/tracing/trace_pipe`를 사용하면 buffer가 가득 차기를 기다리지 않고 호출이 발생하는 순간순간 표준출력으로 흘려보낼 수 있다. 보통 별도 셸에서 `cat trace_pipe > /tmp/full_trace.txt`처럼 파일로 리다이렉트해 둔 채 측정을 진행한다. 단 이 방식도 buffer가 폭증할 때 일부 엔트리가 lost되는 한계는 있으며, 그 경우 `trace_pipe` 출력에 `CPU:N [LOST M EVENTS]` 같은 라인이 섞인다.
 
 요약하면 "모든 함수 추적"은 기술적으로 가능하지만, 사후 분석 가능한 결과로 이어지려면 buffer 확장 + 명시적 notrace + `trace_pipe` 스트리밍의 조합이 필요하다. 일반적인 워크플로에서는 `set_ftrace_filter`로 관심 영역을 좁히는 쪽이 훨씬 효율적이다.
 
