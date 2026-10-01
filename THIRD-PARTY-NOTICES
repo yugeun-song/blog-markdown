@@ -1,0 +1,5 @@
+Third-party notices
+
+Source code quoted from other projects, such as the Linux kernel source in
+source-snippets.json files and in code blocks of the posts, is not covered by
+LICENSE. Each quotation stays under the license of the file it was quoted from.
