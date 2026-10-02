@@ -1166,7 +1166,7 @@ $1 = "init", '\000' <repeats 11 times>
 
 `lx-ps`, `lx-dmesg`, `lx-lsmod`, `lx-version` 같은 명령어들과 `$lx_current()`, `$lx_per_cpu()` 같은 함수들이 있다.
 
-`$lx_current()`, `$lx_per_cpu()` 같은 함수들은 독립된 명령어가 아니라, gdb 표현식에서 사용하는 함수다. `$lx_current()`는 현재 CPU의 실행 태스크(`struct task_struct`)를 돌려주고, `$lx_per_cpu(<per-cpu 변수>, <cpu>)`는 그 per-cpu 변수의 지정한 CPU 인스턴스를 돌려준다(cpu를 생략하면 현재 CPU). 그래서 `p`나 `bt` 같은 표현식 자리에 그대로 인자로 붙여서 쓴다.
+`$lx_current()`, `$lx_per_cpu()` 같은 함수들은 독립된 명령어가 아니라, gdb 표현식에서 사용하는 함수다. `$lx_current()`는 현재 CPU의 실행 태스크(`task_struct`)를 돌려주고, `$lx_per_cpu(<per-cpu 변수>, <cpu>)`는 그 per-cpu 변수의 지정한 CPU 인스턴스를 돌려준다(cpu를 생략하면 현재 CPU). 그래서 `p`나 `bt` 같은 표현식 자리에 그대로 인자로 붙여서 쓴다.
 
 ```text
 (gdb) p $lx_current()->pid

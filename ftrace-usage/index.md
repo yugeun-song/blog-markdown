@@ -223,6 +223,7 @@ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=../build LLVM=1 V=
 
 - **최상위 Makefile**: `<kernel-source>/Makefile`. 커널 버전(`VERSION`, `PATCHLEVEL`, `SUBLEVEL`, `EXTRAVERSION`), 빌드 phony 타깃(`all`, `modules`, `menuconfig`, `clean`, ...), 빌드 인프라 전반을 정의한다. 첫 줄의 헤더는 다음과 같다.
 
+    <!-- caption kind="citation" -->
     ```makefile
     # SPDX-License-Identifier: GPL-2.0
     VERSION = 6
