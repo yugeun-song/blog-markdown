@@ -8,25 +8,31 @@
       "default": "6.12",
       "versions": {
         "6.12": {
-          "ref": "v6.12.79",
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
           "segments": [
             {
-              "startLine": 6605,
+              "startLine": 6613,
               "code": "static void __sched notrace __schedule(int sched_mode) /* [!hl] */\n{\n\tstruct task_struct *prev, *next;\n\t/*\n\t * On PREEMPT_RT kernel, SM_RTLOCK_WAIT is noted\n\t * as a preemption by schedule_debug() and RCU.\n\t */\n\tbool preempt = sched_mode > SM_NONE;\n\tunsigned long *switch_count;\n\tunsigned long prev_state;\n\tstruct rq_flags rf;\n\tstruct rq *rq;\n\tint cpu;\n\n\tcpu = smp_processor_id();\n\trq = cpu_rq(cpu);\n\tprev = rq->curr;\n\n\tschedule_debug(prev, preempt);\n\n\tif (sched_feat(HRTICK) || sched_feat(HRTICK_DL))\n\t\thrtick_clear(rq);\n\n\tlocal_irq_disable();\n\trcu_note_context_switch(preempt);\n\n\t/*\n\t * Make sure that signal_pending_state()->signal_pending() below\n\t * can't be reordered with __set_current_state(TASK_INTERRUPTIBLE)\n\t * done by the caller to avoid the race with signal_wake_up():\n\t *\n\t * __set_current_state(@state)\t\tsignal_wake_up()\n\t * schedule()\t\t\t\t  set_tsk_thread_flag(p, TIF_SIGPENDING)\n\t *\t\t\t\t\t  wake_up_state(p, state)\n\t *   LOCK rq->lock\t\t\t    LOCK p->pi_state\n\t *   smp_mb__after_spinlock()\t\t    smp_mb__after_spinlock()\n\t *     if (signal_pending_state())\t    if (p->state & @state)\n\t *\n\t * Also, the membarrier system call requires a full memory barrier\n\t * after coming from user-space, before storing to rq->curr; this\n\t * barrier matches a full barrier in the proximity of the membarrier\n\t * system call exit.\n\t */\n\trq_lock(rq, &rf);\n\tsmp_mb__after_spinlock();\n\n\t/* Promote REQ to ACT */\n\trq->clock_update_flags <<= 1;\n\tupdate_rq_clock(rq);\n\trq->clock_update_flags = RQCF_UPDATED;\n\n\tswitch_count = &prev->nivcsw;\n\n\t/* Task state changes only considers SM_PREEMPT as preemption */\n\tpreempt = sched_mode == SM_PREEMPT;\n\n\t/*\n\t * We must load prev->state once (task_struct::state is volatile), such\n\t * that we form a control dependency vs deactivate_task() below.\n\t */\n\tprev_state = READ_ONCE(prev->__state);\n\tif (sched_mode == SM_IDLE) {\n\t\t/* SCX must consult the BPF scheduler to tell if rq is empty */\n\t\tif (!rq->nr_running && !scx_enabled()) {\n\t\t\tnext = prev;\n\t\t\tgoto picked;\n\t\t}\n\t} else if (!preempt && prev_state) {\n\t\ttry_to_block_task(rq, prev, &prev_state);\n\t\tswitch_count = &prev->nvcsw;\n\t}\n\n\tnext = pick_next_task(rq, prev, &rf);\npicked:\n\tclear_tsk_need_resched(prev);\n\tclear_preempt_need_resched();\n#ifdef CONFIG_SCHED_DEBUG\n\trq->last_seen_need_resched_ns = 0;\n#endif\n\n\tif (likely(prev != next)) {\n\t\trq->nr_switches++;\n\t\t/*\n\t\t * RCU users of rcu_dereference(rq->curr) may not see\n\t\t * changes to task_struct made by pick_next_task().\n\t\t */\n\t\tRCU_INIT_POINTER(rq->curr, next);\n\t\t/*\n\t\t * The membarrier system call requires each architecture\n\t\t * to have a full memory barrier after updating\n\t\t * rq->curr, before returning to user-space.\n\t\t *\n\t\t * Here are the schemes providing that barrier on the\n\t\t * various architectures:\n\t\t * - mm ? switch_mm() : mmdrop() for x86, s390, sparc, PowerPC,\n\t\t *   RISC-V.  switch_mm() relies on membarrier_arch_switch_mm()\n\t\t *   on PowerPC and on RISC-V.\n\t\t * - finish_lock_switch() for weakly-ordered\n\t\t *   architectures where spin_unlock is a full barrier,\n\t\t * - switch_to() for arm64 (weakly-ordered, spin_unlock\n\t\t *   is a RELEASE barrier),\n\t\t *\n\t\t * The barrier matches a full barrier in the proximity of\n\t\t * the membarrier system call entry.\n\t\t *\n\t\t * On RISC-V, this barrier pairing is also needed for the\n\t\t * SYNC_CORE command when switching between processes, cf.\n\t\t * the inline comments in membarrier_arch_switch_mm().\n\t\t */\n\t\t++*switch_count;\n\n\t\tmigrate_disable_switch(rq, prev);\n\t\tpsi_account_irqtime(rq, prev, next);\n\t\tpsi_sched_switch(prev, next, !task_on_rq_queued(prev) ||\n\t\t\t\t\t     prev->se.sched_delayed);\n\n\t\ttrace_sched_switch(preempt, prev, next, prev_state); /* [!hl] */\n\n\t\t/* Also unlocks the rq: */\n\t\trq = context_switch(rq, prev, next, &rf);\n\t} else {\n\t\trq_unpin_lock(rq, &rf);\n\t\t__balance_callbacks(rq);\n\t\traw_spin_rq_unlock_irq(rq);\n\t}\n}"
             }
           ]
         },
         "6.6": {
-          "ref": "v6.6.141",
+          "ref": "v6.6.157",
+          "commit": "79643295eba17affbd16ca97f3ef04c90266b28c",
+          "tree": "stable",
           "segments": [
             {
-              "startLine": 6578,
+              "startLine": 6579,
               "code": "static void __sched notrace __schedule(unsigned int sched_mode) /* [!hl] */\n{\n\tstruct task_struct *prev, *next;\n\tunsigned long *switch_count;\n\tunsigned long prev_state;\n\tstruct rq_flags rf;\n\tstruct rq *rq;\n\tint cpu;\n\n\tcpu = smp_processor_id();\n\trq = cpu_rq(cpu);\n\tprev = rq->curr;\n\n\tschedule_debug(prev, !!sched_mode);\n\n\tif (sched_feat(HRTICK) || sched_feat(HRTICK_DL))\n\t\thrtick_clear(rq);\n\n\tlocal_irq_disable();\n\trcu_note_context_switch(!!sched_mode);\n\n\t/*\n\t * Make sure that signal_pending_state()->signal_pending() below\n\t * can't be reordered with __set_current_state(TASK_INTERRUPTIBLE)\n\t * done by the caller to avoid the race with signal_wake_up():\n\t *\n\t * __set_current_state(@state)\t\tsignal_wake_up()\n\t * schedule()\t\t\t\t  set_tsk_thread_flag(p, TIF_SIGPENDING)\n\t *\t\t\t\t\t  wake_up_state(p, state)\n\t *   LOCK rq->lock\t\t\t    LOCK p->pi_state\n\t *   smp_mb__after_spinlock()\t\t    smp_mb__after_spinlock()\n\t *     if (signal_pending_state())\t    if (p->state & @state)\n\t *\n\t * Also, the membarrier system call requires a full memory barrier\n\t * after coming from user-space, before storing to rq->curr.\n\t */\n\trq_lock(rq, &rf);\n\tsmp_mb__after_spinlock();\n\n\t/* Promote REQ to ACT */\n\trq->clock_update_flags <<= 1;\n\tupdate_rq_clock(rq);\n\trq->clock_update_flags = RQCF_UPDATED;\n\n\tswitch_count = &prev->nivcsw;\n\n\t/*\n\t * We must load prev->state once (task_struct::state is volatile), such\n\t * that we form a control dependency vs deactivate_task() below.\n\t */\n\tprev_state = READ_ONCE(prev->__state);\n\tif (!(sched_mode & SM_MASK_PREEMPT) && prev_state) {\n\t\tif (signal_pending_state(prev_state, prev)) {\n\t\t\tWRITE_ONCE(prev->__state, TASK_RUNNING);\n\t\t} else {\n\t\t\tprev->sched_contributes_to_load =\n\t\t\t\t(prev_state & TASK_UNINTERRUPTIBLE) &&\n\t\t\t\t!(prev_state & TASK_NOLOAD) &&\n\t\t\t\t!(prev_state & TASK_FROZEN);\n\n\t\t\tif (prev->sched_contributes_to_load)\n\t\t\t\trq->nr_uninterruptible++;\n\n\t\t\t/*\n\t\t\t * __schedule()\t\t\tttwu()\n\t\t\t *   prev_state = prev->state;    if (p->on_rq && ...)\n\t\t\t *   if (prev_state)\t\t    goto out;\n\t\t\t *     p->on_rq = 0;\t\t  smp_acquire__after_ctrl_dep();\n\t\t\t *\t\t\t\t  p->state = TASK_WAKING\n\t\t\t *\n\t\t\t * Where __schedule() and ttwu() have matching control dependencies.\n\t\t\t *\n\t\t\t * After this, schedule() must not care about p->state any more.\n\t\t\t */\n\t\t\tdeactivate_task(rq, prev, DEQUEUE_SLEEP | DEQUEUE_NOCLOCK);\n\n\t\t\tif (prev->in_iowait) {\n\t\t\t\tatomic_inc(&rq->nr_iowait);\n\t\t\t\tdelayacct_blkio_start();\n\t\t\t}\n\t\t}\n\t\tswitch_count = &prev->nvcsw;\n\t}\n\n\tnext = pick_next_task(rq, prev, &rf);\n\tclear_tsk_need_resched(prev);\n\tclear_preempt_need_resched();\n#ifdef CONFIG_SCHED_DEBUG\n\trq->last_seen_need_resched_ns = 0;\n#endif\n\n\tif (likely(prev != next)) {\n\t\trq->nr_switches++;\n\t\t/*\n\t\t * RCU users of rcu_dereference(rq->curr) may not see\n\t\t * changes to task_struct made by pick_next_task().\n\t\t */\n\t\tRCU_INIT_POINTER(rq->curr, next);\n\t\t/*\n\t\t * The membarrier system call requires each architecture\n\t\t * to have a full memory barrier after updating\n\t\t * rq->curr, before returning to user-space.\n\t\t *\n\t\t * Here are the schemes providing that barrier on the\n\t\t * various architectures:\n\t\t * - mm ? switch_mm() : mmdrop() for x86, s390, sparc, PowerPC,\n\t\t *   RISC-V.  switch_mm() relies on membarrier_arch_switch_mm()\n\t\t *   on PowerPC and on RISC-V.\n\t\t * - finish_lock_switch() for weakly-ordered\n\t\t *   architectures where spin_unlock is a full barrier,\n\t\t * - switch_to() for arm64 (weakly-ordered, spin_unlock\n\t\t *   is a RELEASE barrier),\n\t\t */\n\t\t++*switch_count;\n\n\t\tmigrate_disable_switch(rq, prev);\n\t\tpsi_account_irqtime(rq, prev, next);\n\t\tpsi_sched_switch(prev, next, !task_on_rq_queued(prev));\n\n\t\ttrace_sched_switch(sched_mode & SM_MASK_PREEMPT, prev, next, prev_state); /* [!hl] */\n\n\t\t/* Also unlocks the rq: */\n\t\trq = context_switch(rq, prev, next, &rf);\n\t} else {\n\t\trq_unpin_lock(rq, &rf);\n\t\t__balance_callbacks(rq);\n\t\traw_spin_rq_unlock_irq(rq);\n\t}\n}"
             }
           ]
         },
         "5.15": {
-          "ref": "v5.15.208",
+          "ref": "v5.15.221",
+          "commit": "0248c33e835ecbec3a591f93fdaae53f7b90a4d6",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 6273,
@@ -43,7 +49,9 @@
       "default": "6.12",
       "versions": {
         "6.12": {
-          "ref": "v6.12.79",
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 222,
@@ -52,7 +60,9 @@
           ]
         },
         "6.6": {
-          "ref": "v6.6.141",
+          "ref": "v6.6.157",
+          "commit": "79643295eba17affbd16ca97f3ef04c90266b28c",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 222,
@@ -61,7 +71,9 @@
           ]
         },
         "5.15": {
-          "ref": "v5.15.208",
+          "ref": "v5.15.221",
+          "commit": "0248c33e835ecbec3a591f93fdaae53f7b90a4d6",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 220,
@@ -78,7 +90,9 @@
       "default": "6.12",
       "versions": {
         "6.12": {
-          "ref": "v6.12.79",
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 148,
@@ -87,7 +101,9 @@
           ]
         },
         "6.6": {
-          "ref": "v6.6.141",
+          "ref": "v6.6.157",
+          "commit": "79643295eba17affbd16ca97f3ef04c90266b28c",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 148,
@@ -96,7 +112,9 @@
           ]
         },
         "5.15": {
-          "ref": "v5.15.208",
+          "ref": "v5.15.221",
+          "commit": "0248c33e835ecbec3a591f93fdaae53f7b90a4d6",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 134,
@@ -113,7 +131,9 @@
       "default": "6.12",
       "versions": {
         "6.12": {
-          "ref": "v6.12.79",
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 17,
@@ -122,7 +142,9 @@
           ]
         },
         "6.6": {
-          "ref": "v6.6.141",
+          "ref": "v6.6.157",
+          "commit": "79643295eba17affbd16ca97f3ef04c90266b28c",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 17,
@@ -131,7 +153,9 @@
           ]
         },
         "5.15": {
-          "ref": "v5.15.208",
+          "ref": "v5.15.221",
+          "commit": "0248c33e835ecbec3a591f93fdaae53f7b90a4d6",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 16,
@@ -152,7 +176,9 @@
       "default": "6.12",
       "versions": {
         "6.12": {
-          "ref": "v6.12.79",
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 54,
@@ -173,7 +199,9 @@
           ]
         },
         "6.6": {
-          "ref": "v6.6.141",
+          "ref": "v6.6.157",
+          "commit": "79643295eba17affbd16ca97f3ef04c90266b28c",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 65,
@@ -194,7 +222,9 @@
           ]
         },
         "5.15": {
-          "ref": "v5.15.208",
+          "ref": "v5.15.221",
+          "commit": "0248c33e835ecbec3a591f93fdaae53f7b90a4d6",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 39,
@@ -223,16 +253,20 @@
       "default": "6.12",
       "versions": {
         "6.12": {
-          "ref": "v6.12.79",
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
           "segments": [
             {
-              "startLine": 45,
+              "startLine": 46,
               "code": "obj-$(CONFIG_FUNCTION_TRACER) += libftrace.o\nobj-$(CONFIG_RING_BUFFER) += ring_buffer.o\nobj-$(CONFIG_RING_BUFFER_BENCHMARK) += ring_buffer_benchmark.o\n\nobj-$(CONFIG_TRACING) += trace.o\nobj-$(CONFIG_TRACING) += trace_output.o\nobj-$(CONFIG_TRACING) += trace_seq.o\nobj-$(CONFIG_TRACING) += trace_stat.o\nobj-$(CONFIG_TRACING) += trace_printk.o\nobj-$(CONFIG_TRACING) += \tpid_list.o\nobj-$(CONFIG_TRACING_MAP) += tracing_map.o\nobj-$(CONFIG_PREEMPTIRQ_DELAY_TEST) += preemptirq_delay_test.o\nobj-$(CONFIG_SYNTH_EVENT_GEN_TEST) += synth_event_gen_test.o\nobj-$(CONFIG_KPROBE_EVENT_GEN_TEST) += kprobe_event_gen_test.o\nobj-$(CONFIG_CONTEXT_SWITCH_TRACER) += trace_sched_switch.o\nobj-$(CONFIG_FUNCTION_TRACER) += trace_functions.o\nobj-$(CONFIG_PREEMPTIRQ_TRACEPOINTS) += trace_preemptirq.o\nobj-$(CONFIG_IRQSOFF_TRACER) += trace_irqsoff.o\nobj-$(CONFIG_PREEMPT_TRACER) += trace_irqsoff.o\nobj-$(CONFIG_SCHED_TRACER) += trace_sched_wakeup.o\nobj-$(CONFIG_HWLAT_TRACER) += trace_hwlat.o\nobj-$(CONFIG_OSNOISE_TRACER) += trace_osnoise.o\nobj-$(CONFIG_NOP_TRACER) += trace_nop.o\nobj-$(CONFIG_STACK_TRACER) += trace_stack.o\nobj-$(CONFIG_MMIOTRACE) += trace_mmiotrace.o\nobj-$(CONFIG_FUNCTION_GRAPH_TRACER) += trace_functions_graph.o\nobj-$(CONFIG_TRACE_BRANCH_PROFILING) += trace_branch.o\nobj-$(CONFIG_BLK_DEV_IO_TRACE) += blktrace.o\nobj-$(CONFIG_FUNCTION_GRAPH_TRACER) += fgraph.o\nifeq ($(CONFIG_BLOCK),y)\nobj-$(CONFIG_EVENT_TRACING) += blktrace.o\nendif\nobj-$(CONFIG_EVENT_TRACING) += trace_events.o\nobj-$(CONFIG_EVENT_TRACING) += trace_export.o\nobj-$(CONFIG_FTRACE_SYSCALLS) += trace_syscalls.o\nifeq ($(CONFIG_PERF_EVENTS),y)\nobj-$(CONFIG_EVENT_TRACING) += trace_event_perf.o\nendif\nobj-$(CONFIG_EVENT_TRACING) += trace_events_filter.o\nobj-$(CONFIG_EVENT_TRACING) += trace_events_trigger.o\nobj-$(CONFIG_PROBE_EVENTS) += trace_eprobe.o\nobj-$(CONFIG_TRACE_EVENT_INJECT) += trace_events_inject.o\nobj-$(CONFIG_SYNTH_EVENTS) += trace_events_synth.o\nobj-$(CONFIG_HIST_TRIGGERS) += trace_events_hist.o\nobj-$(CONFIG_USER_EVENTS) += trace_events_user.o\nobj-$(CONFIG_BPF_EVENTS) += bpf_trace.o\nobj-$(CONFIG_KPROBE_EVENTS) += trace_kprobe.o\nobj-$(CONFIG_TRACEPOINTS) += error_report-traces.o\nobj-$(CONFIG_TRACEPOINTS) += power-traces.o\nifeq ($(CONFIG_PM),y)\nobj-$(CONFIG_TRACEPOINTS) += rpm-traces.o\nendif\nifeq ($(CONFIG_TRACING),y)\nobj-$(CONFIG_KGDB_KDB) += trace_kdb.o\nendif\nobj-$(CONFIG_DYNAMIC_EVENTS) += trace_dynevent.o\nobj-$(CONFIG_PROBE_EVENTS) += trace_probe.o\nobj-$(CONFIG_PROBE_EVENTS_BTF_ARGS) += trace_btf.o\nobj-$(CONFIG_UPROBE_EVENTS) += trace_uprobe.o\nobj-$(CONFIG_BOOTTIME_TRACING) += trace_boot.o\nobj-$(CONFIG_FTRACE_RECORD_RECURSION) += trace_recursion_record.o\nobj-$(CONFIG_FPROBE) += fprobe.o\nobj-$(CONFIG_RETHOOK) += rethook.o\nobj-$(CONFIG_FPROBE_EVENTS) += trace_fprobe.o\n\nobj-$(CONFIG_TRACEPOINT_BENCHMARK) += trace_benchmark.o\nobj-$(CONFIG_RV) += rv/\n\nlibftrace-y := ftrace.o"
             }
           ]
         },
         "6.6": {
-          "ref": "v6.6.141",
+          "ref": "v6.6.157",
+          "commit": "79643295eba17affbd16ca97f3ef04c90266b28c",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 45,
@@ -241,7 +275,9 @@
           ]
         },
         "5.15": {
-          "ref": "v5.15.208",
+          "ref": "v5.15.221",
+          "commit": "0248c33e835ecbec3a591f93fdaae53f7b90a4d6",
+          "tree": "stable",
           "segments": [
             {
               "startLine": 41,
