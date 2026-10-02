@@ -216,7 +216,7 @@ MODULE_DESCRIPTION("container_of over a list_head list");
 
 `list_head`를 쓰는 구조체는 `user_info`만이 아니다. `struct task_struct`는 `tasks` 멤버로 모든 프로세스를, `struct module`은 `list` 멤버로 적재된 모듈을, `struct net_device`는 `dev_list` 멤버로 같은 네트워크 네임스페이스의 장치를 잇는다. 세 멤버 `tasks`, `list`, `dev_list`의 타입은 모두 `list_head`이다. 리스트를 잇고, 끊고, 순회하는 연산(`list_add_tail`, `list_del`, `list_for_each`)은 `list_head`만 다룬다. 원소의 데이터가 필요할 때만 `container_of`로 바깥 구조체를 구한다. 그래서 구조체마다 `next()` 같은 순회 함수나 getter 같은 접근 함수를 따로 만들 필요가 없다. 어떤 구조체든 `list_head`를 멤버로 품기만 하면 같은 인터페이스를 그대로 쓴다. **따라서 구조체는 자기 정보를 온전하게 담는 데에만 집중하고, 탐색과 값 추출은 이미 있는 인터페이스에 맡기면 된다.**
 
-[다이어그램 2](#diagram-2)는 예제 모듈의 리스트를 이 관점에서 그린 것이다. `list_for_each`는 `next`를 따라 `list_head`만 옮겨 다니고, 각 원소의 바깥 구조체는 `container_of`가 `offsetof`만큼 거슬러 올라가 구한다.
+다이어그램 2는 예제 모듈의 리스트를 이 관점에서 그린 것이다. `list_for_each`는 `next`를 따라 `list_head`만 옮겨 다니고, 각 원소의 바깥 구조체는 `container_of`가 `offsetof`만큼 거슬러 올라가 구한다.
 
 ```struct-chain
 {
