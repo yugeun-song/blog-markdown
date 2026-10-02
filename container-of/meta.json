@@ -1,0 +1,8 @@
+{
+  "title": "container_of 의 정의와 용법",
+  "date": "2026-10-01",
+  "tags": ["linux", "kernel", "c"],
+  "series": "linux-kernel/data-structure",
+  "seriesOrder": 1,
+  "excerpt": "멤버 포인터에서 바깥 구조체 포인터를 구하는 container_of 매크로"
+}
