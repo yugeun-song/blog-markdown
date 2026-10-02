@@ -17,7 +17,11 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
   1. Linux kernel code, quoted or illustrative: kernel coding style exactly (tabs, K&R braces, function brace on its own line, `goto` cleanup). Never reformat it.
   2. Code the user supplied (their module or driver, or a cited third party): keep it exactly as given.
   3. Examples Claude writes, kernel-module-like ones included: 4-space indent and no tabs, braces on every control body, K&R braces for control flow, function brace on its own line.
-- Kernel source in several versions comes from the engine's `resolve_kernel.py` into `source-snippets.json`, not by hand.
+- Kernel source in several versions comes from the engine's `resolve_kernel.py` into `source-snippets.json`, not by hand. Cite each version at `latest`, its newest stable tag. The tool stores the full commit hash, and the page shows the version as `v6.12` and the first 6 characters of the hash, linked to git.kernel.org.
+
+## Captions
+
+The build puts a numbered caption under each object, counted per kind in document order: 인용 for `source-ref` excerpts, 예제 for code fences, 사진 for an image alone in its paragraph, 표 for tables, 다이어그램 for Mermaid, memory and struct-chain diagrams and raw `<svg>`. Shell, log and `text` fences get no number. To change a kind, put `<!-- caption kind="graph" -->` on the line right before the object; the kinds are `citation`, `example`, `photo`, `graph`, `table`, `diagram` and `none`. A number written into the prose by hand ("표 2") goes stale when an object is added above it.
 
 ## Math
 
@@ -47,3 +51,7 @@ For struct layouts, packet headers and register bitfields, write a ` ```memory-t
 ### Memory layouts
 
 For address spaces, stack frames, pointer chains and region layouts, write a ` ```memory-layout ` fence with one JSON object: `label` (the aria-label) and `regions` from the highest address to the lowest. A region has one of `value`, `word` or `"gap": true`, and optionally `sub`, `start` (its lowest address), `marker`, `id`, `to` (the region its value points into) and `h`. The build draws the column, addresses, arrows and `*(value)` labels, and stops on an invalid spec. The two fences in `gdb-kernel-debugging/index.md` are the reference. Check phone width and every theme.
+
+### Struct chains
+
+For intrusive lists, where structures link through an embedded member such as `struct list_head` and `container_of` steps back to the structure, write a ` ```struct-chain ` fence with one JSON object: `label`, `fields` (the members from the lowest offset, as in a memory table), `link` (`field`, the embedded member, and `cells`, its pointers with the forward one first), `nodes` (`name` and optional `values`), and optionally `head`, `tones` and `code`. A head makes the chain a ring. The build computes the offsets, the `offsetof` dimension on each node and the arrows. A head and three nodes fit the width.
