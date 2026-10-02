@@ -21,7 +21,7 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
 
 ## Captions
 
-The build puts a numbered caption under each object, counted per kind in document order: 인용 for `source-ref` excerpts, 예제 for code fences, 사진 for an image alone in its paragraph, 표 for tables, 다이어그램 for Mermaid, memory and struct-chain diagrams and raw `<svg>`. Shell, log and `text` fences get no number. To change a kind, put `<!-- caption kind="graph" -->` on the line right before the object; the kinds are `citation`, `example`, `photo`, `graph`, `table`, `diagram` and `none`. A number written into the prose by hand ("표 2") goes stale when an object is added above it.
+The build puts a numbered caption under each object, counted per kind in document order: 인용 for `source-ref` excerpts, 예제 for code fences, 사진 for an image alone in its paragraph, 표 for tables, 다이어그램 for Mermaid, memory and struct-chain diagrams and raw `<svg>`. Shell, log and `text` fences get no number. To change a kind, put `<!-- caption kind="graph" -->` on the line right before the object; the kinds are `citation`, `example`, `photo`, `graph`, `table`, `diagram` and `none`. To refer to an object, link its caption to the id `<kind>-<n>`: `[표 2](#table-2)`. The build fails when the target is missing or the link text is not its caption. It cannot tell when an object added above shifts the numbers, so recheck every such link after inserting one.
 
 ## Math
 
