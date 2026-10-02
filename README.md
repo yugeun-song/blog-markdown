@@ -25,3 +25,7 @@ One directory per post. Its kebab-case ASCII name is the URL slug: `ftrace-usage
 Tags and series are separate namespaces. Writing rules: [CLAUDE.md](CLAUDE.md).
 
 Single branch `main`; roll back with `git revert`.
+
+## License
+
+Posts and their example code are under [0BSD](LICENSE). Source quoted from other projects stays under the license of the file it comes from, as [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) states. That covers `source-snippets.json` and every quoted code block, such as a fence after a `source-ref` marker.
