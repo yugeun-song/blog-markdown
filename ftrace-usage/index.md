@@ -354,7 +354,9 @@ echo 'do_sys_open*' >> /sys/kernel/tracing/set_ftrace_filter
 #    같은 ring buffer에 쌓이므로, 함수 호출 흐름과 함께 분석할 수 있다. (이 부분은 선택 사항이다)
 echo 1 > /sys/kernel/tracing/events/sched/sched_switch/enable
 echo 1 > /sys/kernel/tracing/events/syscalls/sys_enter_openat/enable
-#    한 줄로 묶어 지정해도 같은 효과 (subsystem:event 형식).
+#    한 줄로 묶어 지정할 수도 있다 (subsystem:event 형식).
+#    다른 이벤트가 꺼져 있다면 결과는 위 두 줄과 같다. 다만 set_event에 >로 쓰면
+#    이미 켜진 이벤트를 모두 끈 뒤 이 둘만 켜므로, 다른 이벤트를 유지하려면 >>를 쓴다.
 # echo 'sched:sched_switch syscalls:sys_enter_openat' > /sys/kernel/tracing/set_event
 
 # 7) 측정 구간 시작. 이 줄 직후부터의 커널 이벤트가 ring buffer에 들어간다.
@@ -444,7 +446,7 @@ cat /sys/kernel/tracing/trace
 - `*_read`: `_read`로 끝나는 모든 함수.
 - `*open*`: 이름 어디에든 `open`이 포함된 모든 함수.
 
-`vfs_` prefix가 의미하는 것은 추적하고 싶은 호출 계층의 위치다. 리눅스의 파일 I/O 경로는 대략 `사용자 코드 → syscall (sys_read 등) → VFS (vfs_read 등) → 파일시스템별 구현 (ext4_file_read_iter, btrfs_file_read_iter 등) → 블록 계층`의 순서를 거치는데, 이 중 VFS 계층은 모든 파일시스템이 공유하는 추상 진입점이며 함수 이름이 일관되게 `vfs_`로 시작한다. 따라서 `vfs_*` 한 패턴이면 "파일시스템 종류와 무관하게, 사용자가 일으킨 파일 I/O 동작 전반"을 단일 시야에서 볼 수 있다. ext4만 보고 싶다면 `ext4_*`, 네트워크 송신 경로를 보고 싶다면 `__dev_queue_xmit*`처럼 prefix만 바꾸면 그 계층으로 옮겨갈 수 있다.
+`vfs_` prefix가 의미하는 것은 추적하고 싶은 호출 계층의 위치다. 리눅스의 파일 I/O 경로는 대략 `사용자 코드 → syscall (sys_read 등) → VFS (vfs_read 등) → 파일시스템별 구현 (ext4_file_read_iter, btrfs_file_read_iter 등) → 블록 계층`의 순서를 거치는데, 이 중 VFS 계층은 모든 파일시스템이 공유하는 추상 진입점이고, `vfs_read`, `vfs_write`, `vfs_open` 같은 주요 진입 함수가 `vfs_`로 시작한다. 따라서 `vfs_*` 한 패턴이면 파일시스템 종류와 무관하게 이 진입 함수들을 단일 시야에서 볼 수 있다. 다만 VFS 함수가 모두 `vfs_`로 시작하지는 않으므로, 이 패턴이 파일 I/O 경로 전부를 잡지는 않는다. ext4만 보고 싶다면 `ext4_*`, 네트워크 송신 경로를 보고 싶다면 `__dev_queue_xmit*`처럼 prefix만 바꾸면 그 계층으로 옮겨갈 수 있다.
 
 따옴표(`''`)는 셸의 glob 확장을 차단하기 위한 것이다. 따옴표 없이 `echo vfs_* > set_ftrace_filter`라고 쓰면 셸이 현재 디렉토리에서 `vfs_`로 시작하는 파일을 찾으려 시도하고, 일치하는 파일이 있으면 그 파일 이름들이, 없으면 (셸의 `nullglob` 설정에 따라) 빈 문자열이나 패턴 그대로가 ftrace에 전달된다. ftrace가 자체적으로 glob 매칭을 해야 하므로 셸에는 리터럴 문자열을 그대로 넘기는 것이 안전하다.
 
@@ -469,7 +471,7 @@ echo 'ksys_*'       >> /sys/kernel/tracing/set_ftrace_filter
 그럼에도 의도적으로 "모든 함수 추적"을 해야 하는 상황(특정 패닉 직전의 호출 흐름 전체를 재구성하거나, 커널 부팅부터 끝까지의 전수 프로파일을 받는 경우 등)은 존재할 수 있다. 그때는 다음 세 가지를 함께 설정한다.
 
 - **buffer 크기 확장**: `echo 102400 > /sys/kernel/tracing/buffer_size_kb`처럼 CPU당 buffer 크기를 KB 단위로 키운다 (기본값은 보통 1408 KB 수준). 위 값은 CPU당 100 MB로 잡는 예시이며, 멀티코어 시스템에서는 `nproc` 배수로 메모리가 소비된다는 점을 고려해야 한다.
-- **`set_ftrace_notrace`로 노이즈 차단**: 모든 함수를 보더라도 `do_idle`, ftrace 자체 내부 함수 등은 굳이 잡을 필요가 없는 경우가 많다. `echo 'do_idle*' > /sys/kernel/tracing/set_ftrace_notrace`식으로 blacklist를 함께 운용하면 buffer 사용을 크게 줄일 수 있다.
+- **`set_ftrace_notrace`로 노이즈 차단**: 모든 함수를 보더라도 lock, preempt 계열처럼 호출 빈도가 높은 함수는 굳이 잡을 필요가 없는 경우가 많다. `echo '*preempt*' '*lock*' > /sys/kernel/tracing/set_ftrace_notrace`식으로 blacklist를 함께 운용하면 buffer 사용을 크게 줄일 수 있다. 이 파일은 매칭된 함수 자신만 제외하고, 그 함수가 부르는 함수는 계속 기록한다.
 - **실시간 스트리밍**: `cat /sys/kernel/tracing/trace` 대신 `cat /sys/kernel/tracing/trace_pipe`를 사용하면 buffer가 가득 차기를 기다리지 않고 호출이 발생하는 순간순간 표준출력으로 흘려보낼 수 있다. 보통 별도 셸에서 `cat trace_pipe > /tmp/full_trace.txt`처럼 파일로 리다이렉트해 둔 채 측정을 진행한다. 단 이 방식도 buffer가 폭증할 때 일부 엔트리가 lost되는 한계는 있으며, 그 경우 `trace_pipe` 출력에 `CPU:N [LOST M EVENTS]` 같은 라인이 섞인다.
 
 요약하면 "모든 함수 추적"은 기술적으로 가능하지만, 사후 분석 가능한 결과로 이어지려면 buffer 확장 + 명시적 notrace + `trace_pipe` 스트리밍의 조합이 필요하다. 일반적인 워크플로에서는 `set_ftrace_filter`로 관심 영역을 좁히는 쪽이 훨씬 효율적이다.
@@ -684,7 +686,7 @@ SYM_INNER_LABEL(ftrace_caller_end, SYM_L_GLOBAL)
 SYM_FUNC_END(ftrace_caller);
 ```
 
-x86_64 빌드에서 컴파일러는 모든 추적 가능 함수의 첫 명령 자리에 `call __fentry__`를 emit한다. 이 명령을 심는 플래그의 출처는 빌드 시스템에서 그대로 추적할 수 있다. 최상위 `Makefile`은 `CONFIG_FUNCTION_TRACER=y`일 때 `CC_FLAGS_FTRACE := -pg`를 기본값으로 잡고, `CONFIG_HAVE_FENTRY=y`면 거기에 `-mfentry`를 덧붙인다. x86은 `arch/x86/Kconfig`의 `select HAVE_FENTRY if X86_64 || DYNAMIC_FTRACE`로 64비트 빌드에서 항상 이 경로를 탄다. `-pg` 단독으로는 profiling 호출이 함수 프롤로그 뒤에 들어가지만, `-mfentry`가 그 호출을 함수의 가장 첫 명령(프롤로그보다 앞)으로 끌어올린다. 위 코드의 진입 심볼이 `__fentry__`인 것은 이 플래그 때문이다.
+x86_64 빌드에서 컴파일러는 모든 추적 가능 함수의 진입부에 `call __fentry__`를 emit한다. 이 명령을 심는 플래그의 출처는 빌드 시스템에서 그대로 추적할 수 있다. 최상위 `Makefile`은 `CONFIG_FUNCTION_TRACER=y`일 때 `CC_FLAGS_FTRACE := -pg`를 기본값으로 잡고, `CONFIG_HAVE_FENTRY=y`면 거기에 `-mfentry`를 덧붙인다. x86은 `arch/x86/Kconfig`의 `select HAVE_FENTRY if X86_64 || DYNAMIC_FTRACE`로 64비트 빌드에서 항상 이 경로를 탄다. `-pg` 단독으로는 profiling 호출이 함수 프롤로그 뒤에 들어가지만, `-mfentry`가 그 호출을 프롤로그보다 앞으로 끌어올린다. 위 코드의 진입 심볼이 `__fentry__`인 것은 이 플래그 때문이다.
 
 이렇게 emit된 `call __fentry__` 자리(`arch/x86/include/asm/ftrace.h`의 `MCOUNT_INSN_SIZE` = 5바이트)는 부팅 과정에서 모두 NOP로 패치되어 평소에는 오버헤드가 없고, ftrace가 특정 함수에 대해 활성화될 때만 그 자리가 `call ftrace_caller`로 다시 패치되어 위 dispatch 경로로 들어간다. 이것이 앞서 다룬 `CONFIG_DYNAMIC_FTRACE=y`의 핵심, 곧 "비활성화된 함수의 진입부에는 NOP만 남아 있어 오버헤드가 0에 가깝고, 활성화될 때만 호출 분기 명령으로 살아난다"의 실제 모습이다. 한 가지 덧붙이면, 5바이트 명령 하나를 바꾸는 일조차 다른 CPU가 그 중간 바이트를 실행하고 있을 수 있어 단순 메모리 쓰기로는 안전하지 않다. 그래서 `arch/x86/kernel/ftrace.c`의 패치 경로는 breakpoint 기반의 `text_poke_bp()` / `text_poke_queue()` 인프라를 사용한다.
 
@@ -717,7 +719,7 @@ SYM_CODE_START(ftrace_caller)
 	bti	c
 ```
 
-arm64 빌드에서는 컴파일러가 모든 추적 가능 함수의 진입부에 **NOP 두 개** (`-fpatchable-function-entry=2`)를 미리 끼워 둔다. x86의 `-mfentry`가 "호출 명령을 emit해 두고 부팅 시 NOP로 바꾸는" 방식이라면, arm64는 처음부터 NOP를 emit한다. 이 NOP들은 ftrace 활성화 시점에 `ftrace_init_nop()` / `ftrace_make_call()`에 의해 `MOV X9, LR; BL ftrace_caller`로 동적 패치되어, 함수가 호출되는 매 순간 `ftrace_caller`로 분기된다. `BL`은 반환 주소를 항상 LR(x30)에 덮어쓰므로, 호출자의 원래 반환 주소를 잃지 않기 위한 `MOV X9, LR` 한 명령이 앞에 붙는다.
+arm64 빌드에서는 컴파일러가 모든 추적 가능 함수의 진입부에 **NOP 두 개** (`-fpatchable-function-entry=2`)를 미리 끼워 둔다. x86의 `-mfentry`가 "호출 명령을 emit해 두고 부팅 시 NOP로 바꾸는" 방식이라면, arm64는 처음부터 NOP를 emit한다. 이 NOP들은 `ftrace_init_nop()`과 `ftrace_make_call()`을 거쳐 `MOV X9, LR; BL ftrace_caller`로 동적 패치되어, 함수가 호출되는 매 순간 `ftrace_caller`로 분기된다. `BL`은 반환 주소를 항상 LR(x30)에 덮어쓰므로, 호출자의 원래 반환 주소를 잃지 않기 위한 `MOV X9, LR` 한 명령이 앞에 붙는다.
 
 플래그의 진실 원본은 `arch/arm64/Makefile`이다. `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y`면 `-fpatchable-function-entry=4,2`, 그 외 `CONFIG_DYNAMIC_FTRACE_WITH_ARGS=y`면 `=2`를 쓴다. `4,2`는 NOP 네 개 중 두 개를 함수 심볼 **앞**에 배치한다는 뜻으로, 그 8바이트 자리에 해당 callsite가 쓸 `ftrace_ops` 포인터 리터럴이 저장된다. 위 발췌의 주석 바로 아래에서 `ftrace_caller`가 `bic x11, x30, 0x7`로 정렬을 맞춰 이 리터럴을 읽어 들인다 (`arch/arm64/kernel/entry-ftrace.S`의 `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS` 분기). 앞서 "커널에 ftrace 활성화하기" 절의 `.config` 발췌에 있던 `CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y`가 바로 이 모드이다.
 
@@ -771,7 +773,7 @@ do {									\
 
 RISC-V의 직접 분기 명령 `jal`은 ±1 MB까지밖에 닿지 않아, 커널 텍스트 어디서든 `ftrace_caller`에 도달한다는 보장이 없다. 그래서 호출은 `auipc` (PC 기준 상위 20비트) + `jalr` (하위 12비트) 두 명령으로 32비트 상대 오프셋을 조립해야 한다. 주석의 도식이 보여주듯 비활성 상태는 NOP 두 개, 활성 상태는 `auipc t0` + `jalr t0` 쌍이며, `make_call_t0` 매크로가 호출지–목적지 오프셋으로부터 두 명령의 비트 패턴을 만든다. 이 8바이트 묶음이 패치의 최소 단위라는 점은 같은 파일의 `MCOUNT_INSN_SIZE 8` 정의("Let auipc+jalr be the basic *mcount unit*")에 명시되어 있고, `ftrace_make_nop()` (`arch/riscv/kernel/ftrace.c`)는 그 8바이트를 4바이트 NOP(`NOP4` = `0x00000013`) 두 개로 되돌린다.
 
-NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile`에 있다. `CONFIG_DYNAMIC_FTRACE=y`일 때 `CONFIG_RISCV_ISA_C=y` (압축 명령 확장) 빌드면 `-fpatchable-function-entry=4`, 아니면 `=2`를 고른다. C 확장 빌드에서는 컴파일러가 NOP를 2바이트 압축형으로 emit하므로, 같은 8바이트 영역을 확보하려면 4개가 필요하기 때문이다. 같은 분기 안의 `LDFLAGS_vmlinux += --no-relax`도 한 몸으로 움직인다. linker relaxation이 호출 시퀀스를 더 짧은 명령으로 줄여 버리면 "함수 진입부에 정확히 8바이트"라는 전제가 깨질 수 있기 때문이다.
+NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile`에 있다. `CONFIG_DYNAMIC_FTRACE=y`일 때 `CONFIG_RISCV_ISA_C=y` (압축 명령 확장) 빌드면 `-fpatchable-function-entry=4`, 아니면 `=2`를 고른다. C 확장 빌드에서는 컴파일러가 NOP를 2바이트 압축형으로 emit하므로, 같은 8바이트 영역을 확보하려면 4개가 필요하기 때문이다. 같은 분기 안의 `LDFLAGS_vmlinux += --no-relax`도 한 몸으로 움직인다. 함수 진입부의 NOP에는 relocation이 없어 linker relaxation의 대상이 아니다. ftrace에서 이 옵션이 지키는 것은 `ftrace_caller` 안의 `call ftrace_stub` 자리(`ftrace_call`)다. ftrace는 런타임에 이 자리를 8바이트 `auipc` + `jalr`로 덮어쓰므로, 링크 단계에서 이 호출이 4바이트 `jal`로 줄어 있으면 안 된다.
 
 호출 쌍이 `ra`가 아닌 `t0`를 쓰는 데에도 이유가 있다. arm64의 `BL`은 링크 레지스터가 LR로 고정이라 원래 반환 주소를 살리는 `MOV X9, LR`이 따로 필요했지만, RISC-V의 `jalr`은 반환 주소를 받을 레지스터를 명령 안에서 고를 수 있다. 패치된 쌍은 반환 주소를 `t0`에 받아 호출자의 `ra`를 건드리지 않은 채 `ftrace_caller`로 들어가고, `arch/riscv/kernel/mcount-dyn.S`의 `ftrace_caller`는 `addi a0, t0, -FENTRY_RA_OFFSET` (`FENTRY_RA_OFFSET`은 8이고, `t0`에서 패치 쌍의 크기를 빼면 곧 함수 진입 주소다)로 추적 대상 함수의 주소를, `mv a1, ra`로 그 함수를 부른 쪽(parent IP)을 callback 인자로 구성한다. 레지스터를 스택에 보존하고 공통 ftrace 코어를 부르는 골격은 x86의 `save_mcount_regs`, arm64의 `stp` 연쇄와 같다.
 
@@ -787,7 +789,7 @@ NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile`에 있다. `CONFIG
 | 반환 주소 처리 | `call`이 스택에 push | `MOV X9, LR`로 별도 보존 | `jalr`이 `t0`에 기록, `ra` 무손상 |
 | 런타임 패치 방식 | breakpoint (`text_poke_bp()`) | 단일 명령 교체 | `stop_machine()` |
 
-디테일은 모두 다르지만 골격은 하나다. 함수의 프롤로그보다 앞, 실행 가능한 첫 명령 자리에 컴파일러가 미리 마련해 둔 patchable 영역이 있고, 추적이 꺼져 있으면 NOP가, 켜지면 `ftrace_caller`로의 분기가 그 자리에 들어간다. 함수 추적기의 trigger 시점이 "함수 진입"이라고 표현되는 이유이며, 세 아키텍처의 `ftrace_caller`가 모두 "레지스터 보존 → 공통 callback 호출 → 복원"의 같은 순서로 짜여 있는 이유이다.
+디테일은 모두 다르지만 골격은 하나다. 함수 진입부, 프롤로그보다 앞에 컴파일러가 미리 마련해 둔 patchable 영역이 있고, 추적이 꺼져 있으면 NOP가, 켜지면 `ftrace_caller`로의 분기가 그 자리에 들어간다. 함수 추적기의 trigger 시점이 "함수 진입"이라고 표현되는 이유이며, 세 아키텍처의 `ftrace_caller`가 모두 "레지스터 보존 → 공통 callback 호출 → 복원"의 같은 순서로 짜여 있는 이유이다.
 
 ### tracepoint 이벤트는 어떻게 정의되고 어떻게 출력되는가
 
@@ -1023,7 +1025,7 @@ TRACE_EVENT(sched_switch,
 
 따라서 `vfs_read <-ksys_read` 한 줄은 "어떤 CPU의 어떤 task가 어떤 시각에 `ksys_read` 안에서 `vfs_read`를 호출했다"를 뜻한다. 호출 깊이나 함수별 소요 시간 정보는 담겨 있지 않고, "누가 누구를 부르는 패턴"만 보인다. 호출 그래프를 거꾸로 따라가는 분석에 가장 적합하다.
 
-여기에 tracepoint 이벤트를 함께 켜면 (예: `events/sched/sched_switch/enable=1`, `events/syscalls/sys_enter_openat/enable=1`) 함수 호출 라인과 이벤트 라인이 같은 buffer에 시간순으로 섞여 출력된다. 두 종류는 공통 헤더(`TASK-PID [CPU#] FLAGS TIMESTAMP:`)까지는 같은 모양이고, 그 뒤가 다르다. 함수는 `FUNCTION <-CALLER`, 이벤트는 `event_name: payload` 형식이다.
+여기에 tracepoint 이벤트를 함께 켜면 (예: `events/sched/sched_switch/enable=1`, `events/syscalls/sys_enter_openat/enable=1`) 함수 호출 라인과 이벤트 라인이 같은 buffer에 시간순으로 섞여 출력된다. 두 종류는 공통 헤더(`TASK-PID [CPU#] FLAGS TIMESTAMP:`)까지는 같은 모양이고, 그 뒤가 다르다. 함수는 `FUNCTION <-CALLER`, 이벤트는 `event_name: payload` 형식이고, syscall 이벤트는 앞서 본 함수 호출 형태다.
 
 ```text
           <idle>-0       [003] d..2.    16.427878: sched_switch: prev_comm=swapper/3 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=170 next_prio=120
@@ -1207,9 +1209,9 @@ TRACE_EVENT(sched_switch,
 
 들여쓰기는 그대로 호출의 깊이를 나타낸다. 어떤 함수의 `{`와 `}` 사이에 한 단계 더 들어간 줄들이 그 함수가 부른 함수이고, 그 안에서 또 들어간 줄들은 다시 그 아래에서 불린 함수다. 그래서 `}` 줄에 찍힌 DURATION은 그 함수가 혼자 쓴 시간이 아니라, 진입부터 탈출까지 그 안에서 일어난 호출을 전부 더한 시간이다.
 
-바깥 함수의 시간은 그 안에서 부른 함수들의 시간을 모두 더한 값에, 바깥 함수가 호출과 호출 사이에 직접 쓴 시간을 합한 값이다. 여기에 자식 호출마다 붙는 추적 훅의 비용이 부모 구간에만 쌓이므로, 안쪽 함수들의 시간을 다 더한 값은 바깥 함수의 시간보다 늘 적게 잡힌다.
+바깥 함수의 시간은 그 안에서 부른 함수들의 시간을 모두 더한 값에, 바깥 함수가 호출과 호출 사이에 직접 쓴 시간을 합한 값이다. 여기에 추적 훅의 비용이 더해진다. graph tracer는 진입 시각을 진입 이벤트를 ring buffer에 쓰기 전에 재고, 탈출 시각도 탈출 이벤트를 쓰기 전에 잰다. 그래서 진입 이벤트를 쓰는 비용은 그 함수 자신의 DURATION에 들어가고, 진입 시각을 재기 전의 처리와 탈출 이벤트를 쓰는 비용은 부모 구간에 쌓인다. 따라서 안쪽 함수들의 시간을 다 더한 값은 바깥 함수의 시간보다 늘 적게 잡힌다.
 
-위 트리에서 `do_sys_openat2`가 부른 `getname`(35.040), `get_unused_fd_flags`(52.464), `do_filp_open`(671.296), `fd_install`(20.992), `putname`(15.264)을 더하면 795.056µs다. `do_sys_openat2` 자신은 844.144µs다. 차이인 약 49µs에는 자식 호출마다 붙은 graph tracer의 훅 비용이 섞여 있어 그대로 self time으로 읽을 수 없다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출은 그 안에서 부른 함수가 없으니 그 줄의 시간이 곧 그 함수가 통째로 쓴 시간이다.
+위 트리에서 `do_sys_openat2`가 부른 `getname`(35.040), `get_unused_fd_flags`(52.464), `do_filp_open`(671.296), `fd_install`(20.992), `putname`(15.264)을 더하면 795.056µs다. `do_sys_openat2` 자신은 844.144µs다. 차이인 약 49µs에는 자식 호출마다 붙은 graph tracer의 훅 비용이 섞여 있어 그대로 self time으로 읽을 수 없다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출은 그 안에서 부른 함수가 없으므로 자식 몫을 뺄 필요가 없다. 다만 그 줄의 시간에도 진입 이벤트를 쓰는 훅 비용이 들어 있어, 추적하지 않을 때의 실행 시간보다 길게 잡힌다.
 
 DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라, 그 사이에 함수가 선점되거나 인터럽트를 처리하느라 멈춰 있던 시간까지 그대로 들어간다. 따라서 시간이 길다고 그 함수가 CPU를 오래 붙들고 있었다고 단정할 수는 없고, 병목으로 지목하기 전에 그 구간이 실제로 일을 한 시간인지 그냥 기다린 시간인지를 함께 봐야 한다.
 
