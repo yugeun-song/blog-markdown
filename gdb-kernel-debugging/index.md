@@ -106,7 +106,7 @@ $ gdb ./vmlinux
 
 ## 2. gdb 핵심 사용법
 
-이 장에서 다루는 것은 모두 **gdb 빌트인** 기능이다. pwndbg나 커널 스크립트 없이 순정 gdb만으로 동작한다.
+이 장은 **gdb 빌트인** 기능을 중심으로 다룬다.
 ### 게스트 VM 커널에 remote로 연결하는 법
 
 가장 기본이 되는 흐름은 "gdbstub에 붙어서, 원하는 지점에 멈추고, 그 순간의 커널 상태를 읽는 것"이다. 커널 부팅의 진입점인 `start_kernel`에 멈춰 보자.
@@ -272,7 +272,7 @@ New value = 4294892733
 tick_do_update_jiffies64 (now=<optimized out>) at kernel/time/tick-sched.c:130
 ```
 
-`Hardware watchpoint`라는 표기가 핵심이다. gdb가 아니라 대상 쪽(KVM이면 CPU의 디버그 레지스터, TCG면 QEMU 내부)이 변경을 감시하므로 거의 공짜다. 만약 하드웨어 슬롯이 부족해 gdb가 **소프트웨어** watchpoint로 떨어지면(`Watchpoint`로 표기), gdb는 매 명령마다 멈춰 값을 비교한다. 유저 프로그램이라면 느릴 뿐이지만, 커널 전체를 매 명령마다 멈춰 가며 돌리면 진행이 사실상 기어갈 정도로 느려진다. 그래서 커널에서 watch를 실용적으로 쓰려면 하드웨어 백업이 거의 필수다. 참고로 KVM에서는 x86의 하드웨어 디버그 레지스터가 4개(DR0–DR3)뿐이라 `hbreak`와 watchpoint류가 이 4개를 나눠 쓴다. TCG에서는 QEMU가 소프트웨어로 구현하므로 이런 개수 제한이 없다.
+`Hardware watchpoint`라는 표기가 핵심이다. gdb가 아니라 대상 쪽(KVM이면 CPU의 디버그 레지스터, TCG면 QEMU 내부)이 변경을 감시하므로 거의 공짜다. 만약 **소프트웨어** watchpoint(`Watchpoint`로 표기)라면 gdb는 매 명령마다 멈춰 값을 비교한다. 유저 프로그램이라면 느릴 뿐이지만, 커널 전체를 매 명령마다 멈춰 가며 돌리면 진행이 사실상 기어갈 정도로 느려진다. 그래서 커널에서 watch를 실용적으로 쓰려면 하드웨어 백업이 거의 필수다. 참고로 KVM에서는 x86의 하드웨어 디버그 레지스터가 4개(DR0–DR3)뿐이라 `hbreak`와 watchpoint류가 이 4개를 나눠 쓰고, 넘치면 재개할 때 `Could not insert hardware watchpoint` 오류가 난다. TCG에서는 QEMU가 소프트웨어로 구현하므로 이런 개수 제한이 없다.
 
 watchpoint는 한 종류가 아니라 *무엇을 잡을 것인가*에 따라 세 가지 종류가 존재한다. 쓰기(값이 바뀔 때)만 잡으려면 `watch`, 읽기만 잡으려면 `rwatch`, 읽기와 쓰기 모두 잡으려면 `awatch`다. 셋 다 하드웨어로 백업되고, `info watchpoints`가 종류를 구분해 보여 준다.
 
@@ -307,7 +307,7 @@ Num     Type           Disp Enb Address            What
 Breakpoint 3, try_to_wake_up (p=0xffff000004669300, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4143
 ```
 
-조건식은 그 자리에서 유효한 C-like 표현식이면 된다. 다만 문자열 비교는 주의해야 한다. `p->comm == "kthreadd"`처럼 쓰면 포인터끼리 비교될 뿐이므로, 문자열은 gdb 편의 함수 `$_streq`로 비교하거나, 더 강력하게는 파이썬 API로 처리한다.
+조건식은 그 자리에서 유효한 C-like 표현식이면 된다. 다만 문자열 비교는 주의해야 한다. `p->comm == "kthreadd"`처럼 `==`로는 문자열 내용을 비교할 수 없으므로, 문자열은 gdb 편의 함수 `$_streq`로 비교하거나, 더 강력하게는 파이썬 API로 처리한다.
 
 ### 중단점, 워치포인트 관리: 목록, 비활성화, 해제
 
@@ -693,13 +693,13 @@ break-range -- Set a breakpoint for an address range.
 clocksource: Long readout interval, skipping watchdog check: cs_nsec: 45775429558 wd_nsec: 504061131
 ```
 
-clocksource 워치독이 감시하는 TSC(`cs_nsec`)는 45.77초가 흘렀는데, 기준으로 삼는 `kvm-clock`(`wd_nsec`)은 0.5초만 흘러 커널이 둘의 어긋남을 감지했다. 게스트 시계는 도약하지 않았으므로 RCU stall이나 soft lockup으로 번지지는 않고, 이어서 커널이 TSC를 불안정(unstable)으로 표시하는 데서 그친다.
+clocksource 워치독이 감시하는 TSC(`cs_nsec`)는 45.77초가 흘렀는데, 기준으로 삼는 `kvm-clock`(`wd_nsec`)은 0.5초만 흘렀다. 측정 구간이 너무 길어 워치독이 이번 검사를 건너뛰었다는 경고이며, TSC가 불안정(unstable)으로 표시되지는 않는다. 게스트 시계도 도약하지 않았으므로 RCU stall이나 soft lockup으로 번지지 않는다.
 
 TSC까지 포함해 이 시간을 게스트 계산에서 완전히 제외하는 길은 두 가지다.
 
 첫째, **KVM 대신 TCG(전체 에뮬레이션)로 구동한다.** TCG에서는 QEMU의 가상 클럭(`QEMU_CLOCK_VIRTUAL`)이 vCPU가 멈추면 같이 멈춘다. gdb로 붙잡고 있는 동안 게스트 시간도 정지하므로 재개해도 시간 도약이 없다. x86 호스트 머신에서 arm64 아키텍처 기반의 v6.12 커널을 QEMU에서 가상화할 때에는 TCG가 기본값이다.
 
-둘째, **`-icount`로 게스트 시간을 실행한 명령 수에 묶어 더 엄격하게 만든다.** 평범한 TCG의 가상 클럭이 실행 중에 호스트 속도를 느슨하게 계산하고 에뮬레이션이 밀리면 시간을 건너뛰어 따라잡는 데 비해(게스트 VM에서 top 명령어를 보면 uptime 시간이 초당 2초씩 증가하는 현상도 관측된다), `-icount shift=N`은 게스트 시간을 실행한 명령(retired instruction) 수에 못 박는다. 그래서 실행 중에도 호스트 부하와 무관하게 시간이 흐른다. 게다가 실행이 결정론적이 되어(같은 입력 → 같은 명령 스트림 → 같은 타이머, 인터럽트 지점 → 같은 상태) 매번 동일하게 재현되고, 경합도 같은 자리에서 잡히며 역재생(record/replay)도 할 수 있다. 평범한 TCG에는 이 정도의 재현성이 보장되지는 않는다. 단 `-icount`는 TCG 전용이라 KVM과 함께 쓸 수 없고, 단일 스레드라 느리다.
+둘째, **`-icount`로 게스트 시간을 실행한 명령 수에 묶어 더 엄격하게 만든다.** 평범한 TCG의 가상 클럭이 실행 중에 호스트 속도를 느슨하게 계산하고 에뮬레이션이 밀리면 시간을 건너뛰어 따라잡는 데 비해(게스트 VM에서 top 명령어를 보면 uptime 시간이 초당 2초씩 증가하는 현상도 관측된다), `-icount shift=N`은 게스트 시간을 실행한 명령(retired instruction) 수에 못 박는다. 그래서 실행 중에도 호스트 부하와 무관하게 시간이 흐른다. 실행을 매번 똑같이 재현하려면 고정 `shift=N`에 `sleep=off`를 함께 준다(`shift=auto`와는 함께 쓸 수 없다). 단 `-icount`는 TCG 전용이라 KVM과 함께 쓸 수 없고, 단일 스레드라 느리다.
 
 ```bash
 # KVM 가속(x86): 빠르지만 정지 동안 TSC는 계속 흐른다 (-cpu host는 KVM 전용)
@@ -712,7 +712,7 @@ qemu-system-x86_64  -accel tcg -cpu max               ...  -gdb tcp::포트번�
 qemu-system-aarch64 -accel tcg -icount shift=auto -cpu cortex-a72  ...  -gdb tcp::포트번호 -S
 ```
 
-`-icount`는 단일 스레드 TCG를 전제하므로 `-accel tcg`의 `thread=multi`(MTTCG)와 함께 쓰지 못한다. `shift=auto`는 호스트 속도에 맞춰 자동 보정하고, 고정 `shift=N`을 주면 그만큼 확실하게 결정론적 동작을 보장한다.
+`-icount`는 단일 스레드 TCG를 전제하므로 `-accel tcg`의 `thread=multi`(MTTCG)와 함께 쓰지 못한다. `shift=auto`는 호스트 속도에 맞춰 자동 보정한다.
 
 실제로 `-accel tcg -icount shift=auto -smp 2`로 띄워 `try_to_wake_up`에 멈춘 뒤 콘솔에서 45초를 붙잡고 있다가 재개해 보면 두 가지가 드러난다. 먼저, 중단점은 `CPU#0`에서 걸렸지만 멈춘 순간 두 vCPU가 모두 정지해 있다.
 
@@ -737,7 +737,7 @@ KVM이었어도 `kvm-clock`이 함께 멈추므로 `jiffies_64`는 도약하지 
 
 여기서 멈출 수 있는 것은 VM "안"의 시간뿐이다. TCG(필요하면 `-icount`까지)는 게스트의 클럭소스, 타이머 틱, hrtimer, 스케줄러 deadline, RCU, 워치독, 그리고 게스트 시계를 기준으로 재는 소켓 재전송, 블록 I/O 타임아웃까지 함께 정지시킨다. 그래서 이들 *내부* 타임아웃은 디버거 정지로 터지지 않는다. 이는 평범한 TCG면 이미 성립하므로 RCU, 스케줄링 stall을 막는 데 `-icount`가 따로 필요하지는 않다. 그러나 VM "밖"은 어떤 옵션으로도 멈추지 못한다. 상대방 TCP 클라이언트, 서버, 실시간 하드웨어는 벽시계대로 계속 돌아가므로, gdb로 오래 붙잡고 있으면 그쪽에서 연결을 끊거나 타임아웃을 낸다. 따라서 디버깅 중에는 살아 있는 네트워크 피어 같은 외부 실시간 의존을 피하고, 게스트 로컬 I/O, 루프백, 스냅샷으로 재현하는 편이 안전하다.
 
-성능 비용은 분명하다. TCG는 소프트웨어 에뮬레이션이라 KVM보다 보통 한 자릿수에서 수십 배 느리다. `-icount`는 거기에 단일 스레드 실행까지 강제하므로, `-smp`로 vCPU를 여럿 줘도 진짜 병렬이 아니라 한 스트림 위에서 결정론적으로 번갈아 돈다.
+성능 비용은 분명하다. TCG는 소프트웨어 에뮬레이션이라 KVM보다 보통 한 자릿수에서 수십 배 느리다. `-icount`는 거기에 단일 스레드 실행까지 강제하므로, `-smp`로 vCPU를 여럿 줘도 진짜 병렬이 아니라 한 스트림 위에서 번갈아 돈다.
 
 ### KASLR로 심볼이 어긋날 때
 
@@ -760,7 +760,7 @@ corresponding physical address: 0x29000000
 slide = 0xffffffff95c00000 - 0xffffffff81000000 = 0x14c00000
 ```
 
-베이스를 찾으면 `kbase -r`가 어긋남을 한 번에 바로잡는다. 내부적으로는 방금 찾은 런타임 베이스로 `add-symbol-file vmlinux <런타임 베이스>`를 실행해, `vmlinux`의 심볼 파일을 슬라이드된 주소에 다시 로드한다. 그러면 gdb가 모든 심볼을 슬라이드 값만큼 옮겨 잡아 `?? ()`가 사라지고, 백트레이스와 심볼이 런타임 주소로 정확히 들어맞는다. 아니면 애초에 부팅 커맨드라인에 `nokaslr`를 줘서 슬라이드를 0으로 만들어도 된다. 기본적으로 `nokaslr`로 부팅하므로 정적 심볼이 그대로 들어맞고, 위 결과는 일부러 `nokaslr`를 빼고 부팅해 슬라이드를 만든 경우다.
+베이스를 찾으면 `kbase -r`로 코드 심볼의 어긋남을 바로잡는다. 내부적으로는 방금 찾은 런타임 베이스로 `add-symbol-file vmlinux <런타임 베이스>`를 실행해, `vmlinux`의 심볼 파일을 슬라이드된 주소에 다시 로드한다. 그러면 멈춘 주소가 함수 이름으로 풀려 `?? ()`가 사라지고 백트레이스가 제대로 나온다. 다만 `p jiffies_64` 같은 변수 접근은 여전히 링크 시점 주소를 읽으므로, 심볼을 그대로 쓰려면 `nokaslr`가 확실하다. 아니면 애초에 부팅 커맨드라인에 `nokaslr`를 줘서 슬라이드를 0으로 만들어도 된다. 기본적으로 `nokaslr`로 부팅하므로 정적 심볼이 그대로 들어맞고, 위 결과는 일부러 `nokaslr`를 빼고 부팅해 슬라이드를 만든 경우다.
 
 ## 3. pwndbg로 더 편리하게
 
@@ -1030,7 +1030,7 @@ pwndbg> hexdump
 
 ### 리눅스 커널 전용 pwndbg 기능
 
-pwndbg에는 리눅스 커널을, 그것도 QEMU gdbstub으로 디버깅할 때만 켜지는 명령군이 있다. 아키텍처는 x86_64, arm64 한정이다. QEMU 게스트 커널이 아닌 곳에서 부르면 다음처럼 거부된다.
+pwndbg에는 리눅스 커널을, 그것도 QEMU gdbstub으로 디버깅할 때만 켜지는 명령군이 있다. 지원 아키텍처는 명령마다 다르다. QEMU 게스트 커널이 아닌 곳에서 부르면 다음처럼 거부된다.
 
 ```text
 (gdb) slab list
@@ -1086,7 +1086,7 @@ Address    Name    Size    Used by
 ---------  ------  ------  ---------
 ```
 
-모듈 표가 비어 있는 것은 이 부팅에 적재된 모듈이 없어서다. `msr`(x86 MSR)과 `ksyscalls`(x86 `sys_call_table` 의존)는 x86 전용이라 arm64에서는 막힌다. 이들은 pwndbg가 자체 페이지테이블 워커와 kallsyms 파서로 구현한 것이라, 커널의 `scripts/gdb`에 의존하지 않는다(그래서 커널 버전이 바뀌면 깨지기 쉽다).
+모듈 표가 비어 있는 것은 이 부팅에 적재된 모듈이 없어서다. `msr`(x86 MSR)은 x86 전용이라 arm64에서는 막힌다. 위 커널 명령들은 pwndbg가 자체 페이지테이블 워커와 kallsyms 파서로 구현한 것이라, 커널의 `scripts/gdb`에 의존하지 않는다(그래서 커널 버전이 바뀌면 깨지기 쉽다).
 
 **.config가 박혀 있어야 동작하는 명령**
 
@@ -1175,10 +1175,10 @@ $1 = 1
 $2 = "init", '\000' <repeats 11 times>
 ```
 
-`$lx_per_cpu(runqueues, 0)`처럼 per-cpu 변수와 CPU 번호를 주면 그 CPU의 인스턴스를 읽는다. 주의할 점은, 이 함수들이 `No symbol "lx_current" in current context`처럼 인식되지 않는 경우다. 많은 경우 커널의 `scripts/gdb` 스크립트가 auto-load되지 않은 것이다. `$lx_*`와 `lx-*`는 `vmlinux-gdb.py`가 로드될 때 비로소 등록되는데, 그 경로가 auto-load 안전 경로에 없으면 gdb가 `auto-loading has been declined ...` 경고와 함께 로딩을 거부한다. `apropos lx`에 아무것도 안 뜨면 스크립트가 안 올라온 것이니, `vmlinux`를 로드하기 전에 `add-auto-load-safe-path <커널 빌드 디렉토리>`로 경로를 등록하거나, 로드 후 `source <커널>/vmlinux-gdb.py`로 직접 읽으면 된다.
+`$lx_per_cpu(runqueues, 0)`처럼 per-cpu 변수와 CPU 번호를 주면 그 CPU의 인스턴스를 읽는다. 주의할 점은, 이 함수들이 인식되지 않는 경우다. 많은 경우 커널의 `scripts/gdb` 스크립트가 auto-load되지 않은 것이다. `$lx_*`와 `lx-*`는 `vmlinux-gdb.py`가 로드될 때 비로소 등록되는데, 그 경로가 auto-load 안전 경로에 없으면 gdb가 `auto-loading has been declined ...` 경고와 함께 로딩을 거부한다. `apropos lx`에 아무것도 안 뜨면 스크립트가 안 올라온 것이니, `vmlinux`를 로드하기 전에 `add-auto-load-safe-path <커널 빌드 디렉토리>`로 경로를 등록하거나, 로드 후 `source <커널>/vmlinux-gdb.py`로 직접 읽으면 된다.
 
 ```text
-# riscv64: 디바이스 트리를 lx-fdtdump로 추출 (pwndbg 커널 명령은 riscv 미지원)
+# riscv64: 디바이스 트리를 lx-fdtdump로 추출 (pwndbg의 아키텍처별 커널 명령은 riscv 미지원)
 (gdb) lx-fdtdump
 fdt_magic:         0xD00DFEED # [!hl]
 fdt_totalsize:     0x17F9
@@ -1338,7 +1338,8 @@ pid=1 comm=init
 | `pagewalk` | 가상→물리 페이지 테이블 워크 | x86_64, arm64 |
 | `kcurrent` | 현재 실행 중 태스크 | x86_64, arm64 |
 | `kmod` | 적재된 커널 모듈 | x86_64, arm64 |
-| `msr` / `ksyscalls` | x86 MSR / syscall 테이블 | x86_64 전용 |
+| `msr` | x86 MSR | x86_64 전용 |
+| `ksyscalls` | syscall 테이블 | x86_64, arm64, riscv64 |
 | `ktask` | 전체 태스크 목록 | x86_64, arm64 |
 | `kdmesg` | 커널 로그 링 버퍼 | x86_64, arm64, riscv64 |
 | `kconfig` / `kchecksec` | `.config` 블롭 조회(`CONFIG_IKCONFIG=y` 필요) | x86_64, arm64, riscv64 |
