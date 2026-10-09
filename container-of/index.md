@@ -4,27 +4,19 @@
 
 ## `container_of`의 인자와 결과
 
-`container_of(ptr, type, member)`의 목적은 `member`를 품은 `type` 객체의 시작 주소를 구하는 것이다. 다만 실제로 하는 일은 `ptr`의 값에서 `offsetof(type, member)`를 빼고, 그 결과를 `type *`로 바꾸는 것뿐이다. `offsetof(type, member)`는 `type`의 시작에서 `member`까지의 바이트 수이다.
-
-세 인자는 다음과 같다.
+`container_of(ptr, type, member)`의 목적은 `member`를 품은 `type` 객체의 시작 주소를 구하는 것이다. 다만 실제로 하는 일은 `ptr`의 값에서 `offsetof(type, member)`를 빼고, 그 결과를 `type *`로 바꾸는 것뿐이다. `offsetof(type, member)`는 `type`의 시작에서 `member`까지의 바이트 수이다. 세 인자는 다음과 같다.
 
 - `ptr`: `type` 객체 안의 `member`를 가리켜야 하는 포인터.
 - `type`: `member`를 품은 구조체의 타입. `offsetof`의 첫 인자이자 결과 포인터의 타입이다.
 - `member`: `type` 안에서 그 멤버의 이름. 값이 아니라 이름이고, `offsetof`의 두 번째 인자이다.
 
-**결과를 `type` 객체의 포인터로 쓰려면, `ptr`의 값이 어떤 `type` 객체 안 `member`의 주소와 정확히 같아야 한다.** 이것이 `container_of`의 전제이다. 뺄셈의 결과가 시작 주소와 같아지는 것은 이때뿐이기 때문이다.
-
-전제는 호출하는 쪽이 지켜야 한다. `container_of`는 전제가 성립하는지 확인하지 않고, 컴파일 시점에 비교하는 것도 타입뿐이기 때문이다.
-
-전제가 틀려도 매크로는 같은 뺄셈을 하고, 어떤 객체의 시작도 아닌 주소를 돌려준다. 그렇다고 반드시 크래시가 나지는 않는다. 어떤 결과로 이어지는지는 뒤에서 다룬다.
+**결과를 `type` 객체의 포인터로 쓰려면, `ptr`의 값이 어떤 `type` 객체 안 `member`의 주소와 정확히 같아야 한다.** 이것이 `container_of`의 전제이다. 뺄셈의 결과가 시작 주소와 같아지는 것은 이때뿐이기 때문이다. 전제는 호출하는 쪽이 지켜야 한다. `container_of`는 전제가 성립하는지 확인하지 않고, 컴파일 시점에 비교하는 것도 타입뿐이기 때문이다. 전제가 틀려도 매크로는 같은 뺄셈을 하고, 어떤 객체의 시작도 아닌 주소를 돌려준다. 그렇다고 반드시 크래시가 나지는 않는다. 어떤 결과로 이어지는지는 뒤에서 다룬다.
 
 또 결과에서는 `const`가 빠진다. `ptr`이 `const` 객체를 가리켜도 결과는 `type *`이다. `const`를 지키려면 같은 헤더의 `container_of_const`를 쓴다.
 
 ## `container_of`의 용법: 리스트 순회 예제
 
-리스트 순회는 `container_of`의 대표적인 용법이다. 커널의 리스트는 원소 구조체에 넣은 `struct list_head`끼리 이어지므로, 순회하면서 얻는 포인터는 `list_head`의 주소이다. 원소의 데이터를 쓰려면 이 주소에서 `container_of`로 원소 구조체의 주소를 구해야 한다.
-
-다음 모듈은 `struct list_head`를 `list` 멤버로 품은 `struct user_info` 세 개를 리스트로 잇는다. 그리고 `list_for_each`로 리스트를 순회하면서, `container_of`로 각 원소를 구한다.
+리스트 순회는 `container_of`의 대표적인 용법이다. 커널의 리스트는 원소 구조체에 넣은 `struct list_head`끼리 이어지므로, 순회하면서 얻는 포인터는 `list_head`의 주소이다. 원소의 데이터를 쓰려면 이 주소에서 `container_of`로 원소 구조체의 주소를 구해야 한다. 다음 모듈은 `struct list_head`를 `list` 멤버로 품은 `struct user_info` 세 개를 리스트로 잇는다. 그리고 `list_for_each`로 리스트를 순회하면서, `container_of`로 각 원소를 구한다.
 
 ```c
 // SPDX-License-Identifier: 0BSD
@@ -78,9 +70,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 MODULE_DESCRIPTION("container_of over a list_head list");
 ```
 
-`container_of(pos, struct user_info, list)`는 `pos`에서 `list`의 오프셋인 `offsetof(struct user_info, list)`, 즉 0x100을 빼서 `list`를 품은 `user_info`의 시작 주소를 구한다. 이 호출에서는 전제가 성립한다. `list_for_each`가 `pos`에 넣어 주는 값이 각 `user_info` 안에 든 `list` 멤버, 즉 `struct list_head`의 주소이기 때문이다.
-
-다이어그램 1은 `users[0]`에서 이 계산을 그린 것이다. `struct user_info`는 총 280바이트이고, 맨 뒤에 7바이트 패딩이 붙는다.
+`container_of(pos, struct user_info, list)`는 `pos`에서 `list`의 오프셋인 `offsetof(struct user_info, list)`, 즉 0x100을 빼서 `list`를 품은 `user_info`의 시작 주소를 구한다. 이 호출에서는 전제가 성립한다. `list_for_each`가 `pos`에 넣어 주는 값이 각 `user_info` 안에 든 `list` 멤버, 즉 `struct list_head`의 주소이기 때문이다. 다이어그램 1은 `users[0]`에서 이 계산을 그린 것이다. `struct user_info`는 총 280바이트이고, 맨 뒤에 7바이트 패딩이 붙는다.
 
 ```memory-layout
 {
@@ -113,9 +103,7 @@ $$
 \end{array}
 $$
 
-$T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소는 `ptr`의 값이다. 다이어그램 1에서는 $s$가 `users[0]`, $m$이 `list`이므로, `pos`의 값이 절대 주소이고 `user`의 값이 시작 주소이다.
-
-`user`의 값은 첫 멤버 `username`의 주소와도 같다. C 표준에서 구조체 맨 앞에는 패딩이 올 수 없기 때문이다.
+$T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소는 `ptr`의 값이다. 다이어그램 1에서는 $s$가 `users[0]`, $m$이 `list`이므로, `pos`의 값이 절대 주소이고 `user`의 값이 시작 주소이다. `user`의 값은 첫 멤버 `username`의 주소와도 같다. C 표준에서 구조체 맨 앞에는 패딩이 올 수 없기 때문이다.
 
 다이어그램 2는 예제 모듈의 리스트 전체를 그린 것이다. `list_for_each`는 `next`를 따라 `list_head`만 옮겨 다니고, 각 원소의 바깥 구조체는 `container_of`가 `offsetof`만큼 거슬러 올라가 구한다.
 
@@ -193,17 +181,11 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
 	(type *)((void *)(ptr) - offsetof(type, member)); })
 ```
 
-매크로는 `offsetof`가 돌려준 바이트 수를 그대로 뺀다. `ptr`을 먼저 `void *`로 바꾸고, GNU C에서 `void *`의 덧셈과 뺄셈은 1바이트 단위이기 때문이다.
-
-전제가 지켜지면 결과 주소는 `ptr`과 같거나 그보다 앞에 있다. `offsetof(type, member)`는 0 이상이고, `container_of`가 빼는 값은 이 오프셋 하나이기 때문이다. 결과가 `ptr`과 같아지는 것은 `member`가 구조체 맨 앞에 있어 오프셋이 0일 때이다.
-
-인용 1의 주석에 있는 `WARNING`은 앞에서 본 대로 결과에서 `const`가 빠진다는 경고이다.
+매크로는 `offsetof`가 돌려준 바이트 수를 그대로 뺀다. `ptr`을 먼저 `void *`로 바꾸고, GNU C에서 `void *`의 덧셈과 뺄셈은 1바이트 단위이기 때문이다. 전제가 지켜지면 결과 주소는 `ptr`과 같거나 그보다 앞에 있다. `offsetof(type, member)`는 0 이상이고, `container_of`가 빼는 값은 이 오프셋 하나이기 때문이다. 결과가 `ptr`과 같아지는 것은 `member`가 구조체 맨 앞에 있어 오프셋이 0일 때이다. 인용 1의 주석에 있는 `WARNING`은 앞에서 본 대로 결과에서 `const`가 빠진다는 경고이다.
 
 ### `offsetof`
 
-`offsetof(TYPE, MEMBER)`는 구조체 시작에서 그 멤버까지의 거리를 `size_t` 타입의 바이트 수로 돌려준다. 첫 번째 인자는 구조체 타입이고, 두 번째 인자는 멤버 이름이다.
-
-커널의 `offsetof`는 GCC와 Clang이 지원하는 `__builtin_offsetof`를 그대로 쓴다. 원래 `offsetof`는 C 언어 표준이 `<stddef.h>`에 정의한 기능이다. 그러나 리눅스 커널은 `-nostdinc`로 빌드되어 표준 헤더를 쓰지 않으므로, `offsetof`처럼 C 언어 표준과 같은 기능을 자체적으로 정의한다.
+`offsetof(TYPE, MEMBER)`는 구조체 시작에서 그 멤버까지의 거리를 `size_t` 타입의 바이트 수로 돌려준다. 첫 번째 인자는 구조체 타입이고, 두 번째 인자는 멤버 이름이다. 커널의 `offsetof`는 GCC와 Clang이 지원하는 `__builtin_offsetof`를 그대로 쓴다. 원래 `offsetof`는 C 언어 표준이 `<stddef.h>`에 정의한 기능이다. 그러나 리눅스 커널은 `-nostdinc`로 빌드되어 표준 헤더를 쓰지 않으므로, `offsetof`처럼 C 언어 표준과 같은 기능을 자체적으로 정의한다.
 
 <!-- source-ref id="offsetof" -->
 
@@ -211,9 +193,7 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
 #define offsetof(TYPE, MEMBER)	__builtin_offsetof(TYPE, MEMBER)
 ```
 
-`__builtin_offsetof`는 표준 `offsetof`와 인자 순서도 결과도 같다. GCC와 Clang의 `<stddef.h>`도 `offsetof`를 `__builtin_offsetof`로 정의하기 때문이다.
-
-다음 예제는 `__builtin_offsetof`로 각 멤버의 오프셋을 구하고, 실제 멤버 주소와 함께 출력한다.
+`__builtin_offsetof`는 표준 `offsetof`와 인자 순서도 결과도 같다. GCC와 Clang의 `<stddef.h>`도 `offsetof`를 `__builtin_offsetof`로 정의하기 때문이다. 다음 예제는 `__builtin_offsetof`로 각 멤버의 오프셋을 구하고, 실제 멤버 주소와 함께 출력한다.
 
 ```c
 #include <stdio.h>
@@ -264,17 +244,11 @@ offsetof(d) = 16
 &e.d = 0x7ffd329cce20
 ```
 
-출력된 주소를 보면, 각 멤버의 주소는 `&e`에 그 멤버의 오프셋을 더한 값이다. 컴파일러가 `e.b` 같은 멤버의 주소를 구하는 방식도 이와 같다. `container_of`의 뺄셈은 이 덧셈의 역연산이다.
-
-오프셋에는 **멤버 앞에 들어간 패딩도 포함된다**. 위 결과에서 `b`의 오프셋이 1이 아니라 4인 것은 `char a` 뒤에 3바이트 패딩이 들어갔기 때문이다.
-
-반면 마지막 멤버 뒤의 패딩은 어느 멤버의 오프셋에도 들어가지 않고 `sizeof`에만 드러난다. 위 결과에서는 `d`(오프셋 16, 2바이트) 뒤에 6바이트 패딩이 붙어, 구조체 크기가 18이 아니라 24이다.
+출력된 주소를 보면, 각 멤버의 주소는 `&e`에 그 멤버의 오프셋을 더한 값이다. 컴파일러가 `e.b` 같은 멤버의 주소를 구하는 방식도 이와 같다. `container_of`의 뺄셈은 이 덧셈의 역연산이다. 오프셋에는 **멤버 앞에 들어간 패딩도 포함된다**. 위 결과에서 `b`의 오프셋이 1이 아니라 4인 것은 `char a` 뒤에 3바이트 패딩이 들어갔기 때문이다. 반면 마지막 멤버 뒤의 패딩은 어느 멤버의 오프셋에도 들어가지 않고 `sizeof`에만 드러난다. 위 결과에서는 `d`(오프셋 16, 2바이트) 뒤에 6바이트 패딩이 붙어, 구조체 크기가 18이 아니라 24이다.
 
 ### `typeof`
 
-`typeof(식)`은 그 식의 타입을 나타낸다. 결과는 타입이므로 변수 선언이나 캐스트처럼 타입 이름이 들어갈 자리에 쓴다. 예를 들어 `int x`가 있으면 `typeof(x)`는 `int`이고, `typeof(&x)`는 `int *`이다.
-
-커널은 GNU 확장인 `typeof`를 쓴다. `-std=gnu11`로 빌드하기 때문이다. `typeof`는 오랫동안 GNU C의 확장이었다가 C23에서 표준이 되었다.
+`typeof(식)`은 그 식의 타입을 나타낸다. 결과는 타입이므로 변수 선언이나 캐스트처럼 타입 이름이 들어갈 자리에 쓴다. 예를 들어 `int x`가 있으면 `typeof(x)`는 `int`이고, `typeof(&x)`는 `int *`이다. 커널은 GNU 확장인 `typeof`를 쓴다. `-std=gnu11`로 빌드하기 때문이다. `typeof`는 오랫동안 GNU C의 확장이었다가 C23에서 표준이 되었다.
 
 `typeof`는 피연산자의 타입만 쓰고, 피연산자를 평가하지 않는다. 예외는 가변 길이 배열이 들어간 타입뿐이다. 다음 예제는 이 성질을 보여 준다.
 
@@ -302,21 +276,13 @@ x = 1, y = 2, *p = 1, z = 3
 
 출력에서 `x`는 1 그대로이다. `typeof(++x)`는 `int`가 되지만, `++x`는 실행되지 않기 때문이다. `++x`가 실행되었다면 `x`와 `*p`는 2로 출력되었을 것이다.
 
-인용 1의 `container_of_const`는 `typeof`를 써서, `ptr`이 `const` 객체를 가리킬 때만 결과에도 `const`를 남긴다. `const typeof(*(ptr)) *`는 `ptr`이 가리키는 타입에 `const`를 붙인 포인터 타입이다.
-
-C11의 `_Generic`은 `ptr`의 타입에 맞는 분기를 고른다. `ptr`이 이 타입이면 결과를 `const type *`로, 아니면 `type *`로 바꾼다.
+인용 1의 `container_of_const`는 `typeof`를 써서, `ptr`이 `const` 객체를 가리킬 때만 결과에도 `const`를 남긴다. `const typeof(*(ptr)) *`는 `ptr`이 가리키는 타입에 `const`를 붙인 포인터 타입이다. C11의 `_Generic`은 `ptr`의 타입에 맞는 분기를 고른다. `ptr`이 이 타입이면 결과를 `const type *`로, 아니면 `type *`로 바꾼다.
 
 ### `((type *)0)->member`가 컴파일되는 이유
 
-`((type *)0)->member`는 널 포인터를 역참조하지 않는다. 이 식은 타입을 정하는 데에만 쓰이고, **메모리를 읽는 코드가 되지 않기 때문이다**.
+`((type *)0)->member`는 널 포인터를 역참조하지 않는다. 이 식은 타입을 정하는 데에만 쓰이고, **메모리를 읽는 코드가 되지 않기 때문이다**. 인용 1에는 이 꼴의 식이 두 번 나온다. `typeof_member`의 정의와 `static_assert` 안이다. 두 곳 모두 `0`을 `type *`로 바꾼 널 포인터로 멤버에 접근하므로, 겉보기에는 `NULL` 역참조이다. 그래도 이 식은 문법과 타입 모두 올바르다. 정수 상수 `0`은 널 포인터 상수이고, `(type *)0`은 `type *` 타입의 널 포인터이다. `->`는 포인터가 가리키는 타입에서 멤버를 찾는다. 컴파일러는 `type`의 구조를 알고 있으므로, 포인터의 값과 관계없이 이 식의 타입을 `member`의 타입으로 정한다.
 
-인용 1에는 이 꼴의 식이 두 번 나온다. `typeof_member`의 정의와 `static_assert` 안이다. 두 곳 모두 `0`을 `type *`로 바꾼 널 포인터로 멤버에 접근하므로, 겉보기에는 `NULL` 역참조이다.
-
-그래도 이 식은 문법과 타입 모두 올바르다. 정수 상수 `0`은 널 포인터 상수이고, `(type *)0`은 `type *` 타입의 널 포인터이다. `->`는 포인터가 가리키는 타입에서 멤버를 찾는다. 컴파일러는 `type`의 구조를 알고 있으므로, 포인터의 값과 관계없이 이 식의 타입을 `member`의 타입으로 정한다.
-
-문제는 이 식을 평가할 때만 생긴다. 앞에서 본 것처럼 `typeof`는 피연산자를 평가하지 않고, `sizeof`도 마찬가지이다. 커널의 `typeof_member()`와 `sizeof_field()`는 이 성질로 멤버의 타입과 크기를 구한다.
-
-`static_assert`의 두 식 `*(ptr)`과 `((type *)0)->member`도 메모리를 읽는 코드가 되지 않는다. 그 안의 `__same_type(a, b)`는 `__builtin_types_compatible_p(typeof(a), typeof(b))`로 정의되어 있다. 이 builtin은 두 타입이 같은지를 컴파일 시점의 상수 1이나 0으로 바꾼다.
+문제는 이 식을 평가할 때만 생긴다. 앞에서 본 것처럼 `typeof`는 피연산자를 평가하지 않고, `sizeof`도 마찬가지이다. 커널의 `typeof_member()`와 `sizeof_field()`는 이 성질로 멤버의 타입과 크기를 구한다. `static_assert`의 두 식 `*(ptr)`과 `((type *)0)->member`도 메모리를 읽는 코드가 되지 않는다. 그 안의 `__same_type(a, b)`는 `__builtin_types_compatible_p(typeof(a), typeof(b))`로 정의되어 있다. 이 builtin은 두 타입이 같은지를 컴파일 시점의 상수 1이나 0으로 바꾼다.
 
 다음 예제는 같은 식을 네 가지로 쓰고, 결과를 각각 변수에 대입한다. 그중 메모리를 읽는 것은 식을 그대로 평가하는 `value` 하나뿐이다. `struct example`는 예제 3과 같다.
 
@@ -357,15 +323,11 @@ main:
 	ret
 ```
 
-`same`, `size`, `offset`에는 상수 1, 8, 8이 그대로 저장되고, 최적화를 끈 상태에서도 메모리를 읽는 명령은 없다. 세 값은 컴파일 시점에 정해지기 때문이다. 네 대입문은 위에서부터 같은 순서로 명령이 되고, `-28(%rsp)`, `-24(%rsp)`, `-16(%rsp)`는 `same`, `size`, `offset`의 스택 자리이다.
-
-`value`만 메모리를 읽는다. `movsd 8(%rax), %xmm0`이 주소 0 + 8에서 8바이트를 읽으므로, 이 프로그램을 실행하면 이 대입에서 segmentation fault로 끝난다. aarch64에서도 세 변수에는 상수가 저장되고, `value`만 주소 8을 읽는다.
+`same`, `size`, `offset`에는 상수 1, 8, 8이 그대로 저장되고, 최적화를 끈 상태에서도 메모리를 읽는 명령은 없다. 세 값은 컴파일 시점에 정해지기 때문이다. 네 대입문은 위에서부터 같은 순서로 명령이 되고, `-28(%rsp)`, `-24(%rsp)`, `-16(%rsp)`는 `same`, `size`, `offset`의 스택 자리이다. `value`만 메모리를 읽는다. `movsd 8(%rax), %xmm0`이 주소 0 + 8에서 8바이트를 읽으므로, 이 프로그램을 실행하면 이 대입에서 segmentation fault로 끝난다. aarch64에서도 세 변수에는 상수가 저장되고, `value`만 주소 8을 읽는다.
 
 `offset`에 대입하는 식은 평가되지만, 멤버의 값이 아니라 주소만 구한다. 주소 0에 `struct example`가 있다고 치면 `c`의 주소는 곧 `c`의 오프셋 8이다. 커널의 `include/linux/stddef.h`도 v5.18 전까지는 이 식을 `offsetof`의 대체 정의로 두었다. 지금은 이 대체 정의가 없고, 커널은 `__builtin_offsetof`만 쓴다.
 
-널 포인터 꼴에는 흠이 두 가지 있다. 널 포인터로 멤버에 접근하는 것은 C 표준에서 정의되지 않은 동작이다. 또 표준 C에서는 이 식이 정수 상수식도 아니어서, `_Static_assert`처럼 정수 상수식이 필요한 자리에 쓰면 GCC와 Clang은 `-pedantic`에서 경고를 낸다.
-
-`__builtin_offsetof`도 GCC 안에서는 같은 꼴로 구현되어 있다. GCC의 C 프런트엔드는 `*(T *)0`에 멤버 참조를 이어 붙인 식을 만들고, `fold_offsetof()`로 각 멤버의 오프셋을 더해 상수로 바꾼다. 이 계산은 컴파일러 안에서 끝나므로 앞의 두 흠이 없다. 반면 Clang은 이 꼴을 쓰지 않고, 구조체 레이아웃에 기록된 멤버 오프셋을 바로 더한다.
+널 포인터 꼴에는 흠이 두 가지 있다. 널 포인터로 멤버에 접근하는 것은 C 표준에서 정의되지 않은 동작이다. 또 표준 C에서는 이 식이 정수 상수식도 아니어서, `_Static_assert`처럼 정수 상수식이 필요한 자리에 쓰면 GCC와 Clang은 `-pedantic`에서 경고를 낸다. `__builtin_offsetof`도 GCC 안에서는 같은 꼴로 구현되어 있다. GCC의 C 프런트엔드는 `*(T *)0`에 멤버 참조를 이어 붙인 식을 만들고, `fold_offsetof()`로 각 멤버의 오프셋을 더해 상수로 바꾼다. 이 계산은 컴파일러 안에서 끝나므로 앞의 두 흠이 없다. 반면 Clang은 이 꼴을 쓰지 않고, 구조체 레이아웃에 기록된 멤버 오프셋을 바로 더한다.
 
 ## `container_of`와 타입 안전성
 
@@ -373,11 +335,7 @@ main:
 
 ### `container_of`가 검사하는 것
 
-인용 1의 `static_assert`는 `*ptr`의 타입이 `member`의 타입과 같은지, 또는 `ptr`이 `void *`인지만 컴파일 시점에 검사한다. 실행 시점의 검사는 없다. `container_of`는 메모리를 읽지 않고, 주소에서 상수를 빼고 타입을 바꿀 뿐이기 때문이다.
-
-따라서 타입이 맞는 실수는 그대로 컴파일된다. 예를 들어 `struct task_struct`의 자식 리스트에서 `member` 자리에 `sibling` 대신 `children`을 써도 컴파일은 된다. 두 멤버가 모두 `struct list_head`이기 때문이다. 이때는 엉뚱한 오프셋을 빼게 된다.
-
-이 리스트에서 `member`는 `sibling`이어야 한다. 두 멤버는 함께 자식 프로세스의 리스트를 이루고, 부모의 `children`에 이어지는 노드는 각 자식의 `sibling`이기 때문이다.
+인용 1의 `static_assert`는 `*ptr`의 타입이 `member`의 타입과 같은지, 또는 `ptr`이 `void *`인지만 컴파일 시점에 검사한다. 실행 시점의 검사는 없다. `container_of`는 메모리를 읽지 않고, 주소에서 상수를 빼고 타입을 바꿀 뿐이기 때문이다. 따라서 타입이 맞는 실수는 그대로 컴파일된다. 예를 들어 `struct task_struct`의 자식 리스트에서 `member` 자리에 `sibling` 대신 `children`을 써도 컴파일은 된다. 두 멤버가 모두 `struct list_head`이기 때문이다. 이때는 엉뚱한 오프셋을 빼게 된다. 이 리스트에서 `member`는 `sibling`이어야 한다. 두 멤버는 함께 자식 프로세스의 리스트를 이루고, 부모의 `children`에 이어지는 노드는 각 자식의 `sibling`이기 때문이다.
 
 `list_for_each_entry()`는 `list_for_each`의 순회와 `container_of`를 한 번에 하는 매크로이고, 세 번째 인자가 `member`이다. 커널은 자식 리스트를 `list_for_each_entry(p, &father->children, sibling)`처럼 순회한다. 이 매크로는 `container_of`의 `type` 자리에 `typeof(*pos)`를 넘긴다. 첫 원소를 구하는 시점의 `pos`는 아직 초기화 전일 수 있지만, `typeof`는 `*pos`를 평가하지 않으므로 문제가 없다.
 
@@ -391,9 +349,7 @@ main:
 - 결과가 접근할 수 있는 메모리를 가리키면, 크래시 없이 엉뚱한 값을 읽고 쓴다.
 - 결과를 역참조하지 않으면 메모리 접근 자체가 없다.
 
-첫 번째 경우의 흔한 예는 `ptr`이 `NULL`일 때이다. 0에서 양수를 빼면 실제 결과는 주소 공간의 끝으로 넘어가므로, 예제의 `pos`가 `NULL`이라면 결과는 `0xffffffffffffff00`이다(64비트 기준).
-
-이 값은 `NULL`이 아니므로 `NULL` 검사에도 걸리지 않는다. 그래서 마지막 노드의 `next`가 `NULL`인 `hlist`에서는 `hlist_for_each_entry()`가 `hlist_entry_safe()`로 노드를 변환한다. 이 매크로는 `ptr`이 `NULL`이면 `container_of`를 부르지 않고 `NULL`을 돌려준다.
+첫 번째 경우의 흔한 예는 `ptr`이 `NULL`일 때이다. 0에서 양수를 빼면 실제 결과는 주소 공간의 끝으로 넘어가므로, 예제의 `pos`가 `NULL`이라면 결과는 `0xffffffffffffff00`이다(64비트 기준). 이 값은 `NULL`이 아니므로 `NULL` 검사에도 걸리지 않는다. 그래서 마지막 노드의 `next`가 `NULL`인 `hlist`에서는 `hlist_for_each_entry()`가 `hlist_entry_safe()`로 노드를 변환한다. 이 매크로는 `ptr`이 `NULL`이면 `container_of`를 부르지 않고 `NULL`을 돌려준다.
 
 두 번째 경우는 크래시보다 원인을 찾기 어렵다. 값이 조용히 틀리거나 다른 객체가 망가지고, 문제는 나중에 다른 곳에서 드러나기 때문이다. 앞에서 `sibling` 자리에 `children`을 쓴 실수가 이 경우이다.
 
@@ -409,19 +365,13 @@ main:
 
 ### 앞쪽 멤버와 오프셋의 부호
 
-멤버 사이를 오갈 때는 `container_of`로 시작 주소를 구한 뒤, `->list`처럼 멤버에 접근하는 편이 안전하다. 두 오프셋의 차이를 직접 빼면 부호 문제가 생길 수 있기 때문이다.
+멤버 사이를 오갈 때는 `container_of`로 시작 주소를 구한 뒤, `->list`처럼 멤버에 접근하는 편이 안전하다. 두 오프셋의 차이를 직접 빼면 부호 문제가 생길 수 있기 때문이다. 뒤쪽 멤버의 주소로 앞쪽 멤버를 구할 때는 차이를 바로 빼도 된다. `age`를 가리키는 포인터에서 `age`와 `list`의 오프셋 차이인 0x10을 빼면 `list`가 나온다.
 
-뒤쪽 멤버의 주소로 앞쪽 멤버를 구할 때는 차이를 바로 빼도 된다. `age`를 가리키는 포인터에서 `age`와 `list`의 오프셋 차이인 0x10을 빼면 `list`가 나온다.
-
-순서를 바꾸면 문제가 된다. `list`의 오프셋 0x100에서 `age`의 오프셋 0x110을 빼면 수학적으로 -0x10이지만, `offsetof`가 돌려주는 값은 부호 없는 `size_t`이다. 그래서 C에서 이 차이는 음수가 되지 않고 $2^{64} - \texttt{0x10}$으로 넘어간다(64비트 기준).
-
-이 값을 포인터에서 빼는 것은 C 표준에서 정의되지 않은 동작이다. 실제 주소 계산에서는 0x10을 더한 결과가 나온다. 다이어그램 1에서 `age`보다 0x10바이트 뒤는 이미 `users[1]`의 영역이다.
+순서를 바꾸면 문제가 된다. `list`의 오프셋 0x100에서 `age`의 오프셋 0x110을 빼면 수학적으로 -0x10이지만, `offsetof`가 돌려주는 값은 부호 없는 `size_t`이다. 그래서 C에서 이 차이는 음수가 되지 않고 $2^{64} - \texttt{0x10}$으로 넘어간다(64비트 기준). 이 값을 포인터에서 빼는 것은 C 표준에서 정의되지 않은 동작이다. 실제 주소 계산에서는 0x10을 더한 결과가 나온다. 다이어그램 1에서 `age`보다 0x10바이트 뒤는 이미 `users[1]`의 영역이다.
 
 ### `type`과 구조체의 깊이
 
-`container_of`가 올라가는 단계는 호출하는 쪽이 `type`으로 정한다. `type`으로 지정한 구조체가 더 큰 구조체 안에 들어 있어도, 더 바깥의 구조체는 계산에 들어가지 않는다. 예제의 결과가 가장 바깥 구조체와 같았던 것은 `user_info`가 다른 구조체에 들어 있지 않기 때문이다.
-
-예를 들어 `struct platform_device`는 `dev` 멤버로 `struct device`를 품는다. `struct device *`만 받는 코드는 `to_platform_device()`로 한 단계 위의 `struct platform_device`를 구한다. 이 매크로의 정의는 `container_of((x), struct platform_device, dev)`이다.
+`container_of`가 올라가는 단계는 호출하는 쪽이 `type`으로 정한다. `type`으로 지정한 구조체가 더 큰 구조체 안에 들어 있어도, 더 바깥의 구조체는 계산에 들어가지 않는다. 예제의 결과가 가장 바깥 구조체와 같았던 것은 `user_info`가 다른 구조체에 들어 있지 않기 때문이다. 예를 들어 `struct platform_device`는 `dev` 멤버로 `struct device`를 품는다. `struct device *`만 받는 코드는 `to_platform_device()`로 한 단계 위의 `struct platform_device`를 구한다. 이 매크로의 정의는 `container_of((x), struct platform_device, dev)`이다.
 
 <!-- source-ref id="platform_device" -->
 ```c
@@ -449,9 +399,7 @@ struct platform_device {
 #define to_platform_device(x) container_of((x), struct platform_device, dev) /* [!hl] */
 ```
 
-`struct device`를 품는 구조체는 장치마다 다르다. PCI 장치에서는 `struct pci_dev`가 `dev` 멤버로 품고, `to_pci_dev()`가 `struct pci_dev`를 구한다. 두 매크로는 `member`가 모두 `dev`이고 `type`만 다르다. 어느 쪽을 쓸지는 장치의 종류를 아는 호출하는 쪽이 정한다.
-
-`struct pci_dev`는 200줄이 넘으므로, 인용 4에는 `dev` 멤버와 매크로만 남기고 나머지 줄을 생략했다.
+`struct device`를 품는 구조체는 장치마다 다르다. PCI 장치에서는 `struct pci_dev`가 `dev` 멤버로 품고, `to_pci_dev()`가 `struct pci_dev`를 구한다. 두 매크로는 `member`가 모두 `dev`이고 `type`만 다르다. 어느 쪽을 쓸지는 장치의 종류를 아는 호출하는 쪽이 정한다. `struct pci_dev`는 200줄이 넘으므로, 인용 4에는 `dev` 멤버와 매크로만 남기고 나머지 줄을 생략했다.
 
 <!-- source-ref id="pci_dev" -->
 ```c
@@ -493,8 +441,6 @@ struct pci_dev {
 
 이런 설계는 여타 객체지향 언어에서 자주 쓰이는 iterable하고 상속 가능한 것을, C 언어가 허용하는 범위 안에서 최대한 strict하고 type-safe하게 구현하고자 했던 각종 노력의 결과물이다. 그래서 앞에서 본 것처럼, `static_assert` 같은 기능을 이용하여 타입 안전성을 검사한다.
 
-리스트가 이 설계의 대표적인 예이다. 리스트에 넣을 구조체마다 `next()` 같은 순회 함수나 getter 같은 접근 함수를 따로 만들 필요가 없다. 어떤 구조체든 `list_head`를 멤버로 품기만 하면 같은 인터페이스를 그대로 쓴다.
-
-다이어그램 2의 순회처럼, 리스트를 잇고, 끊고, 순회하는 연산(`list_add_tail`, `list_del`, `list_for_each`)은 `list_head`만 다룬다. `container_of`는 원소의 데이터가 필요할 때만 쓴다.
+리스트가 이 설계의 대표적인 예이다. 리스트에 넣을 구조체마다 `next()` 같은 순회 함수나 getter 같은 접근 함수를 따로 만들 필요가 없다. 어떤 구조체든 `list_head`를 멤버로 품기만 하면 같은 인터페이스를 그대로 쓴다. 다이어그램 2의 순회처럼, 리스트를 잇고, 끊고, 순회하는 연산(`list_add_tail`, `list_del`, `list_for_each`)은 `list_head`만 다룬다. `container_of`는 원소의 데이터가 필요할 때만 쓴다.
 
 `list_head`를 쓰는 구조체는 `user_info`만이 아니다. `struct task_struct`는 `tasks` 멤버로 모든 프로세스를, `struct module`은 `list` 멤버로 적재된 모듈을, `struct net_device`는 `dev_list` 멤버로 같은 네트워크 네임스페이스의 장치를 잇는다. 세 멤버 `tasks`, `list`, `dev_list`의 타입은 모두 `list_head`이다.
