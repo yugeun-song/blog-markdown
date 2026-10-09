@@ -286,7 +286,7 @@ int main(void)
     int x = 1;
     typeof(x) y = 2;
     typeof(&x) p = &x;
-    typeof(x++) z = 3;
+    typeof(++x) z = 3;
 
     printf("x = %d, y = %d, *p = %d, z = %d\n", x, y, *p, z);
 
@@ -300,7 +300,7 @@ int main(void)
 x = 1, y = 2, *p = 1, z = 3
 ```
 
-출력에서 `x`는 1 그대로이다. `typeof(x++)`는 `int`가 되지만, `x++`는 실행되지 않기 때문이다.
+출력에서 `x`는 1 그대로이다. `typeof(++x)`는 `int`가 되지만, `++x`는 실행되지 않기 때문이다. `++x`가 실행되었다면 `x`와 `*p`는 2로 출력되었을 것이다.
 
 인용 1의 `container_of_const`는 `typeof`를 써서, `ptr`이 `const` 객체를 가리킬 때만 결과에도 `const`를 남긴다. `const typeof(*(ptr)) *`는 `ptr`이 가리키는 타입에 `const`를 붙인 포인터 타입이다.
 
