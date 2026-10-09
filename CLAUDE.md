@@ -29,7 +29,7 @@ Inline `$…$`, display `$$…$$`, rendered at build time. Inside table cells wr
 
 ## Diagrams
 
-Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels, triangle arrowheads on pointers, open arrowheads on dimension lines and radius-12 bends. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
+Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels, triangle arrowheads on pointers, open arrowheads on dimension lines and radius-12 bends. Strokes join without seams, notches or hairline gaps, and where a mark such as a bracket meets a reference line such as an extension line, the reference line stays in front; the kit's `lintJoins` checks the JSON forms. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
 
 ### Mermaid
 
@@ -41,6 +41,7 @@ Choose the type that avoids collisions by construction:
 
 - A node label is by default a function name on one line, with the Korean explanation in the prose. Use a longer or Korean label only when nothing shorter is accurate, then check phone width in every theme. Long labels break phone layouts.
 - Edge labels sit on the arrow. Keep them to 1–3 words. `-->` is the main path; `-.->` draws a dashed edge for an optional or asynchronous one.
+- The page routes every flowchart edge: straight when the two boxes line up, otherwise one bend between ranks into a third of the box. Do not steer edges with invisible links or spacer nodes.
 - Node classes mark roles, one per node: `:::accent` the result or the point, `:::muted` something off the main path, `:::danger` an error. Every label uses the code font.
 - Add no `%%{init}%%`, `classDef` or `style` lines. Prefer one language per diagram.
 
