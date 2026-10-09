@@ -892,9 +892,9 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
   "id": "return-address",
   "label": "커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다",
   "regions": [
-    {"id": "slot", "value": "0xffff8000800e31ec", "sub": "(kernel stack)", "start": "0xffff800083fcbc38", "to": "code", "h": 63},
-    {"gap": true, "h": 45},
-    {"id": "code", "value": "add  x0, sp, #0x28", "sub": "(.text)", "start": "0xffff8000800e31ec", "h": 77}
+    {"id": "slot", "value": "0xffff8000800e31ec", "sub": "(kernel stack)", "start": "0xffff800083fcbc38", "to": "code", "h": 83},
+    {"gap": true, "h": 58},
+    {"id": "code", "value": "add  x0, sp, #0x28", "sub": "(.text)", "start": "0xffff8000800e31ec", "h": 101}
   ]
 }
 ```

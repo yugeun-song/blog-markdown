@@ -92,7 +92,7 @@ MODULE_DESCRIPTION("container_of over a list_head list");
     {"value": "0x14", "sub": "(age, +0x110)", "start": "0xffffffffc0203130"},
     {"id": "prev", "value": "0xffffffffc0203370", "sub": "(list.prev, +0x108)", "start": "0xffffffffc0203128"},
     {"id": "next", "value": "0xffffffffc0203238", "sub": "(list.next, +0x100)", "start": "0xffffffffc0203120", "marker": "ptr: pos", "tone": "red"},
-    {"id": "name", "word": "\"alice\"", "sub": "(username, +0x000)", "start": "0xffffffffc0203020", "h": 120, "marker": "user == &users[0]", "tone": "blue"}
+    {"id": "name", "word": "\"alice\"", "sub": "(username, +0x000)", "start": "0xffffffffc0203020", "h": 152, "marker": "user == &users[0]", "tone": "blue"}
   ],
   "code": [
     [["user", "blue"], " = container_of(", ["pos", "red"], ", ", ["struct user_info", "orange"], ", ", ["list", "purple"], ");"],
