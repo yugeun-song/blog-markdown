@@ -29,7 +29,7 @@ Inline `$…$`, display `$$…$$`, rendered at build time. Inside table cells wr
 
 ## Diagrams
 
-Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels, triangle arrowheads and radius-12 bends. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
+Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels, triangle arrowheads on pointers, open arrowheads on dimension lines and radius-12 bends. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
 
 ### Mermaid
 
@@ -55,3 +55,5 @@ For address spaces, stack frames, pointer chains and region layouts, write a ` `
 ### Struct chains
 
 For intrusive lists, where structures link through an embedded member such as `struct list_head` and `container_of` steps back to the structure, write a ` ```struct-chain ` fence with one JSON object: `label`, `fields` (the members from the lowest offset, as in a memory table), `link` (`field`, the embedded member, and `cells`, its pointers with the forward one first), `nodes` (`name` and optional `values`), and optionally `head`, `tones` and `code`. A head makes the chain a ring. The build computes the offsets, the `offsetof` dimension on each node and the arrows. A head and three nodes fit the width.
+
+The `code` lines of a memory layout or struct chain render under the figure as text, in the same tone colors as the diagram.
