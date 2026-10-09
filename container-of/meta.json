@@ -1,5 +1,5 @@
 {
-  "title": "container_of 의 정의와 용법",
+  "title": "container_of의 정의와 용법",
   "date": "2026-10-01",
   "tags": ["linux", "kernel", "c"],
   "series": "linux-kernel/data-structure",

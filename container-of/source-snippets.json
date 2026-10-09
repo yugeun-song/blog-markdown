@@ -38,6 +38,60 @@
           ]
         }
       }
+    },
+    "platform_device": {
+      "path": "include/linux/platform_device.h",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.12",
+      "versions": {
+        "6.12": {
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 23,
+              "code": "struct platform_device {\n\tconst char\t*name;\n\tint\t\tid;\n\tbool\t\tid_auto;\n\tstruct device\tdev; /* [!hl] */\n\tu64\t\tplatform_dma_mask;\n\tstruct device_dma_parameters dma_parms;\n\tu32\t\tnum_resources;\n\tstruct resource\t*resource;\n\n\tconst struct platform_device_id\t*id_entry;\n\n\t/* MFD cell pointer */\n\tstruct mfd_cell *mfd_cell;\n\n\t/* arch specific additions */\n\tstruct pdev_archdata\tarchdata;\n};"
+            },
+            {
+              "startLine": 45,
+              "code": "#define to_platform_device(x) container_of((x), struct platform_device, dev) /* [!hl] */"
+            }
+          ]
+        }
+      }
+    },
+    "pci_dev": {
+      "path": "include/linux/pci.h",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.12",
+      "versions": {
+        "6.12": {
+          "ref": "v6.12.111",
+          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 336,
+              "code": "struct pci_dev {\n\tstruct list_head bus_list;\t/* Node in per-bus list */\n\tstruct pci_bus\t*bus;\t\t/* Bus this device is on */\n\tstruct pci_bus\t*subordinate;\t/* Bus this device bridges to */"
+            },
+            {
+              "startLine": 421,
+              "code": "\tstruct device\tdev;\t\t\t/* Generic device interface */ /* [!hl] */"
+            },
+            {
+              "startLine": 549,
+              "code": "};"
+            },
+            {
+              "startLine": 562,
+              "code": "#define\tto_pci_dev(n) container_of(n, struct pci_dev, dev) /* [!hl] */"
+            }
+          ]
+        }
+      }
     }
   }
 }
