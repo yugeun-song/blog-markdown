@@ -6,6 +6,8 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
 
 - Tone: 평이체 (`~다`, `~이다`, `~한다`), the neutral register of papers and technical reports. Not 격식체 (`~습니다`), not 반말. State facts with `~이다` / `~한다`. Keep `~할 수 있다` / `~로 보인다` for real uncertainty. Identifiers, terms, English messages and quotes stay verbatim. Chat replies keep the global 격식체.
 - 띄어쓰기: 조사는 앞말에 붙인다(한글 맞춤법 제41항). 앞말이 영어·코드·숫자여도 같다: `ftrace는`, `QEMU로`, `set_event`의, `nop`이. 서술격조사(`nop`인, `1`이면), 하다·되다 파생어(`emit한다`, `trace된다`), 접미사(`CPU당`, `Makefile들이`)도 붙인다. 뒤에 별도 명사·의존명사·부사가 오면 띄운다: `tracepoint 이벤트`, `Rust 등`, `cat 같은`. 코드 펜스 안에는 적용하지 않는다.
+- Paragraphs: one meaningful unit of context per paragraph, as in the ftrace and gdb posts, usually three to six sentences. A claim, its reasons and its example stay together, and a sentence that introduces a code block, list or figure ends the paragraph it belongs to. Never split a unit with blank lines. A paragraph stands alone short only as a section opener, between two code blocks, or for parallel cases.
+- When editing a post, act like a formatter: fix grammar and spacing, and regroup the paragraphs this way, in every post alike.
 - `# Title` must equal `meta.json.title` character for character, because the page `<h1>` comes from `meta.json`. Do not add `readTime`.
 - Images are centered by default. Add a lossless WebP twin with the engine's `build/encode-webp.py`.
 
