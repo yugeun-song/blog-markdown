@@ -49,7 +49,7 @@ Choose the type that avoids collisions by construction:
 
 ### Memory tables
 
-For struct layouts, packet headers and register bitfields, write a ` ```memory-table ` fence with one JSON object: `unit` (`"byte"` or `"bit"`), `fields` in order from the lowest offset (`["name (type)", size]`, `{"pad": n}`, `{"other": "text", "size": n}`), and optional `cols`, `order`, `base`, `label`. The build computes the rows, spans and offsets and draws the table as a memory diagram. Raw `<table class="mem-layout">` still works.
+For struct layouts, packet headers and register bitfields, write a ` ```memory-table ` fence with one JSON object: `label` (the aria-label), `unit` (`"byte"` or `"bit"`), `fields` in order from the lowest offset (`["name (type)", size]`, `{"pad": n}`, `{"other": "text", "size": n}`), and optional `cols`, `order`, `base`. The build computes the rows, spans and offsets and draws the table as a memory diagram. A raw `<table class="mem-layout">` still works when an `aria-label` or a `<caption>` names it. Each column must fit its number: up to 36 bit columns, and about 24 byte columns.
 
 ### Memory layouts
 
