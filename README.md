@@ -1,6 +1,6 @@
 # blog-markdown
 
-Posts for [vmfault.dev](https://vmfault.dev). The [blog](https://github.com/yugeun-song/blog) engine mounts this repo at `content/`. A push to `main` runs `.github/workflows/notify.yml`, which bumps that submodule and so deploys the site.
+Posts for [vmfault.dev](https://vmfault.dev). The [blog](https://github.com/yugeun-song/blog) engine mounts this repo at `content/`. A push to `main` runs `.github/workflows/notify.yml`, which bumps that submodule and so deploys the site. The workflow pins its action to a full commit SHA, reads with a minimal token and runs one push at a time.
 
 ## Layout
 
