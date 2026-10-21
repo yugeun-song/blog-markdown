@@ -227,8 +227,8 @@ make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=../build LLVM=1 V=
     ```makefile
     # SPDX-License-Identifier: GPL-2.0
     VERSION = 6
-    PATCHLEVEL = 12
-    SUBLEVEL = 79
+    PATCHLEVEL = 18
+    SUBLEVEL = 58
     EXTRAVERSION =
     NAME = Baby Opossum Posse
     ```
@@ -281,7 +281,7 @@ obj-$(CONFIG_EVENT_TRACING) += trace_event_perf.o
 endif
 obj-$(CONFIG_EVENT_TRACING) += trace_events_filter.o
 obj-$(CONFIG_EVENT_TRACING) += trace_events_trigger.o
-obj-$(CONFIG_PROBE_EVENTS) += trace_eprobe.o
+obj-$(CONFIG_EPROBE_EVENTS) += trace_eprobe.o
 obj-$(CONFIG_TRACE_EVENT_INJECT) += trace_events_inject.o
 obj-$(CONFIG_SYNTH_EVENTS) += trace_events_synth.o
 obj-$(CONFIG_HIST_TRIGGERS) += trace_events_hist.o
@@ -501,11 +501,15 @@ static void __sched notrace __schedule(int sched_mode) /* [!hl] */
 	 * as a preemption by schedule_debug() and RCU.
 	 */
 	bool preempt = sched_mode > SM_NONE;
+	bool is_switch = false;
 	unsigned long *switch_count;
 	unsigned long prev_state;
 	struct rq_flags rf;
 	struct rq *rq;
 	int cpu;
+
+	/* Trace preemptions consistently with task switches */
+	trace_sched_entry_tp(sched_mode == SM_PREEMPT);
 
 	cpu = smp_processor_id();
 	rq = cpu_rq(cpu);
@@ -515,6 +519,8 @@ static void __sched notrace __schedule(int sched_mode) /* [!hl] */
 
 	if (sched_feat(HRTICK) || sched_feat(HRTICK_DL))
 		hrtick_clear(rq);
+
+	klp_sched_try_switch(prev);
 
 	local_irq_disable();
 	rcu_note_context_switch(preempt);
@@ -561,25 +567,43 @@ static void __sched notrace __schedule(int sched_mode) /* [!hl] */
 			goto picked;
 		}
 	} else if (!preempt && prev_state) {
-		try_to_block_task(rq, prev, &prev_state);
+		/*
+		 * We pass task_is_blocked() as the should_block arg
+		 * in order to keep mutex-blocked tasks on the runqueue
+		 * for slection with proxy-exec (without proxy-exec
+		 * task_is_blocked() will always be false).
+		 */
+		try_to_block_task(rq, prev, &prev_state,
+				  !task_is_blocked(prev));
 		switch_count = &prev->nvcsw;
 	}
 
-	next = pick_next_task(rq, prev, &rf);
+pick_again:
+	assert_balance_callbacks_empty(rq);
+	next = pick_next_task(rq, &rf);
+	rq_set_donor(rq, next);
+	if (unlikely(task_is_blocked(next))) {
+		next = find_proxy_task(rq, next, &rf);
+		if (!next)
+			goto pick_again;
+		if (next == rq->idle)
+			goto keep_resched;
+	}
 picked:
 	clear_tsk_need_resched(prev);
 	clear_preempt_need_resched();
-#ifdef CONFIG_SCHED_DEBUG
+keep_resched:
 	rq->last_seen_need_resched_ns = 0;
-#endif
 
-	if (likely(prev != next)) {
+	is_switch = prev != next;
+	if (likely(is_switch)) {
 		rq->nr_switches++;
 		/*
 		 * RCU users of rcu_dereference(rq->curr) may not see
 		 * changes to task_struct made by pick_next_task().
 		 */
 		RCU_INIT_POINTER(rq->curr, next);
+
 		/*
 		 * The membarrier system call requires each architecture
 		 * to have a full memory barrier after updating
@@ -618,6 +642,7 @@ picked:
 		__balance_callbacks(rq);
 		raw_spin_rq_unlock_irq(rq);
 	}
+	trace_sched_exit_tp(is_switch);
 }
 ```
 
@@ -636,12 +661,14 @@ picked:
 <!-- source-ref id="ftrace_x86" -->
 ```asm
 SYM_FUNC_START(__fentry__)
+	ANNOTATE_NOENDBR
 	CALL_DEPTH_ACCOUNT
 	RET
 SYM_FUNC_END(__fentry__)
 EXPORT_SYMBOL(__fentry__)
 
 SYM_FUNC_START(ftrace_caller)
+	ANNOTATE_NOENDBR
 	/* save_mcount_regs fills in first two parameters */
 	save_mcount_regs
 
@@ -737,12 +764,21 @@ RISC-V도 arm64처럼 함수 진입부에 미리 깔린 NOP를 동적 패치하�
  * 2) jalr: setting low-12 offset to ra, jump to ra, and set ra to
  *          return address (original pc + 4)
  *
+ * The first 2 instructions for each tracable function is compiled to 2 nop
+ * instructions. Then, the kernel initializes the first instruction to auipc at
+ * boot time (<ftrace disable>). The second instruction is patched to jalr to
+ * start the trace.
+ *
+ *<Image>:
+ * 0: nop
+ * 4: nop
+ *
  *<ftrace enable>:
- * 0: auipc  t0/ra, 0x?
- * 4: jalr   t0/ra, ?(t0/ra)
+ * 0: auipc  t0, 0x?
+ * 4: jalr   t0, ?(t0)
  *
  *<ftrace disable>:
- * 0: nop
+ * 0: auipc  t0, 0x?
  * 4: nop
  *
  * Dynamic ftrace generates probes to call sites, so we must deal with
@@ -751,24 +787,24 @@ RISC-V도 arm64처럼 함수 진입부에 미리 깔린 NOP를 동적 패치하�
 
 /* ... */
 
-#define NOP4			(0x00000013)
+#define to_jalr_t0(offset)						\
+	(((offset & JALR_OFFSET_MASK) << JALR_SHIFT) | JALR_T0)
 
-/* ... */
-
-#define make_call_t0(caller, callee, call)				\
-do {									\
-	unsigned int offset =						\
-		(unsigned long) (callee) - (unsigned long) (caller);	\
-	call[0] = to_auipc_t0(offset);					\
-	call[1] = to_jalr_t0(offset);					\
-} while (0)
+#define to_auipc_t0(offset)						\
+	((offset & JALR_SIGN_MASK) ?					\
+	(((offset & AUIPC_OFFSET_MASK) + AUIPC_PAD) | AUIPC_T0) :	\
+	((offset & AUIPC_OFFSET_MASK) | AUIPC_T0))
 
 /* ... */
 
 /*
- * Let auipc+jalr be the basic *mcount unit*, so we make it 8 bytes here.
+ * Only the jalr insn in the auipc+jalr is patched, so we make it 4
+ * bytes here.
  */
-#define MCOUNT_INSN_SIZE 8
+#define MCOUNT_INSN_SIZE	4
+#define MCOUNT_AUIPC_SIZE	4
+#define MCOUNT_JALR_SIZE	4
+#define MCOUNT_NOP4_SIZE	4
 ```
 
 RISC-V의 직접 분기 명령 `jal`은 ±1 MB까지밖에 닿지 않아, 커널 텍스트 어디서든 `ftrace_caller`에 도달한다는 보장이 없다. 그래서 호출은 `auipc` (PC 기준 상위 20비트) + `jalr` (하위 12비트) 두 명령으로 32비트 상대 오프셋을 조립해야 한다. 주석의 도식이 보여주듯 비활성 상태는 NOP 두 개, 활성 상태는 `auipc t0` + `jalr t0` 쌍이며, `make_call_t0` 매크로가 호출지–목적지 오프셋으로부터 두 명령의 비트 패턴을 만든다. 이 8바이트 묶음이 패치의 최소 단위라는 점은 같은 파일의 `MCOUNT_INSN_SIZE 8` 정의("Let auipc+jalr be the basic *mcount unit*")에 명시되어 있고, `ftrace_make_nop()` (`arch/riscv/kernel/ftrace.c`)는 그 8바이트를 4바이트 NOP(`NOP4` = `0x00000013`) 두 개로 되돌린다.
