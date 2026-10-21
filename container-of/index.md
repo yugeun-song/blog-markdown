@@ -82,12 +82,7 @@ MODULE_DESCRIPTION("container_of over a list_head list");
     {"value": "0x14", "sub": "(age, +0x110)", "start": "0xffffffffc0203130"},
     {"id": "prev", "value": "0xffffffffc0203370", "sub": "(list.prev, +0x108)", "start": "0xffffffffc0203128"},
     {"id": "next", "value": "0xffffffffc0203238", "sub": "(list.next, +0x100)", "start": "0xffffffffc0203120", "marker": "ptr: pos", "tone": "red"},
-    {"id": "name", "word": "\"alice\"", "sub": "(username, +0x000)", "start": "0xffffffffc0203020", "h": 152, "marker": "user == &users[0]", "tone": "blue"}
-  ],
-  "code": [
-    [["user", "blue"], " = container_of(", ["pos", "red"], ", ", ["struct user_info", "orange"], ", ", ["list", "purple"], ");"],
-    [["(struct user_info *)", "orange"], "(", ["0xffffffffc0203120", "red"], " - 0x100) = ", ["0xffffffffc0203020", "blue"]],
-    [["user", "blue"], " == &users[0]"]
+    {"id": "name", "word": "\"alice\"", "sub": "(username, +0x000)", "start": "0xffffffffc0203020", "h": 2, "marker": "user == &users[0]", "tone": "blue"}
   ]
 }
 ```
@@ -119,11 +114,7 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
     {"name": "users[1]", "values": {"username": "\"bob\"", "age": "30"}},
     {"name": "users[2]", "values": {"username": "\"carol\"", "age": "40"}}
   ],
-  "tones": {"node": "orange", "link": "purple", "walk": "red", "offset": "blue"},
-  "code": [
-    ["list_for_each(", ["pos", "red"], ", ", ["&user_info_list", "purple"], ")"],
-    ["    ", ["user", "blue"], " = container_of(", ["pos", "red"], ", ", ["struct user_info", "orange"], ", ", ["list", "purple"], ");"]
-  ]
+  "tones": {"link": "purple", "walk": "red", "offset": "blue"}
 }
 ```
 
