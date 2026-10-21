@@ -31,7 +31,7 @@ Inline `$…$`, display `$$…$$`, rendered at build time. Inside table cells wr
 
 ## Diagrams
 
-Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels, triangle arrowheads on pointers, open arrowheads on dimension lines and radius-12 bends. Strokes join without seams, notches or hairline gaps, and where a mark such as a bracket meets a reference line such as an extension line, the reference line stays in front; the kit's `lintJoins` checks the JSON forms. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
+Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels in one style inside every box (a second line keeps the size and color), boxes about 2.3 times as wide as tall with the longest label filling about 60 to 70 % of the width, triangle arrowheads on pointers, open arrowheads on dimension lines, radius-12 bends on arrows while boxes keep square corners, and dashes for partial or virtual regions. Labels render at the size of code text. Strokes join without seams, notches or hairline gaps, and where a mark such as a bracket meets a reference line such as an extension line, the reference line stays in front; the kit's `lintJoins` checks the JSON forms. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
 
 ### Mermaid
 
@@ -53,10 +53,14 @@ For struct layouts, packet headers and register bitfields, write a ` ```memory-t
 
 ### Memory layouts
 
-For address spaces, stack frames, pointer chains and region layouts, write a ` ```memory-layout ` fence with one JSON object: `label` (the aria-label) and `regions` from the highest address to the lowest. A region has one of `value`, `word` or `"gap": true`, and optionally `sub`, `start` (its lowest address), `marker`, `id`, `to` (the region its value points into) and `h`. The build draws the column, addresses, arrows and `*(value)` labels, and stops on an invalid spec. The two fences in `gdb-kernel-debugging/index.md` are the reference. Check phone width and every theme.
+For address spaces, stack frames, pointer chains and region layouts, write a ` ```memory-layout ` fence with one JSON object: `label` (the aria-label) and `regions` from the highest address to the lowest. A region has one of `value`, `word` or `"gap": true`, and optionally `sub`, `start` (its lowest address), `marker`, `id`, `to` (the region its value points into) and `h` (a multiple of the default row height, which follows the column width). The build draws the column, addresses, arrows and `*(value)` labels, and stops on an invalid spec. The two fences in `gdb-kernel-debugging/index.md` are the reference. Check phone width and every theme.
+
+### Canvas
+
+For figures no other form fits, such as arenas and heaps side by side, arrays of slots with indexes and offsets, or bitmaps and the values that index them, write a ` ```canvas ` fence with one JSON object: `label`, an optional `title`, and `items` placed on coordinates. Items are `box` (a label, or a `title` with inner `fields`), `row` and `column` (cells sharing borders), `text` (notes), `arrow`, `line` and `dimension`; arrows and lines take points or references such as `"box.right"`, `"row|2.top"` or `{"at": "note.left", "dy": 6}`. The kit's `forms/canvas/prompt.md` lists every field, and its examples redraw the thread arena, the bin index shift and the binmap lookup. A label that does not fit is a build error that names the size it needs.
 
 ### Struct chains
 
-For intrusive lists, where structures link through an embedded member such as `struct list_head` and `container_of` steps back to the structure, write a ` ```struct-chain ` fence with one JSON object: `label`, `fields` (the members from the lowest offset, as in a memory table), `link` (`field`, the embedded member, and `cells`, its pointers with the forward one first), `nodes` (`name` and optional `values`), and optionally `head`, `tones` and `code`. A head makes the chain a ring. The build computes the offsets, the `offsetof` dimension on each node and the arrows. A head and three nodes fit the width.
+For intrusive lists, where structures link through an embedded member such as `struct list_head` and `container_of` steps back to the structure, write a ` ```struct-chain ` fence with one JSON object: `label`, `fields` (the members from the lowest offset, as in a memory table), `link` (`field`, the embedded member, and `cells`, its pointers with the forward one first), `nodes` (`name` and optional `values`), and optionally `head` and `tones`. A head makes the chain a ring. The build computes the offsets, the `offsetof` dimension on each node and the arrows. A head and three nodes fit the width.
 
-The `code` lines of a memory layout or struct chain render under the figure as text, in the same tone colors as the diagram.
+Figures carry no code lines under them; the prose or a code block shows the code.
