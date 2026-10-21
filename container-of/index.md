@@ -77,13 +77,14 @@ MODULE_DESCRIPTION("container_of over a list_head list");
   "id": "container-of-user-info",
   "label": "container_of(pos, struct user_info, list)의 계산: users[0]은 0xffffffffc0203020에서 시작하고, ptr인 pos는 list를 가리키며, offsetof는 0x100이고, 결과 user는 users[0]의 시작을 가리킨다. users[1](bob)은 그 다음 주소 0xffffffffc0203138에서 시작한다",
   "regions": [
-    {"word": "...", "sub": "(users[1], bob)", "start": "0xffffffffc0203138", "marker": "users[1]", "tone": "orange"},
-    {"id": "pad", "word": "00 00 00 00 00 00 00", "sub": "(padding, +0x111)", "start": "0xffffffffc0203131"},
+    {"word": "...", "sub": "(users[1], bob)", "start": "0xffffffffc0203138"},
+    {"id": "pad", "word": "00 00 00 00 00 00 00", "sub": "(padding, +0x111)", "start": "0xffffffffc0203131", "fill": "gap"},
     {"value": "0x14", "sub": "(age, +0x110)", "start": "0xffffffffc0203130"},
-    {"id": "prev", "value": "0xffffffffc0203370", "sub": "(list.prev, +0x108)", "start": "0xffffffffc0203128"},
-    {"id": "next", "value": "0xffffffffc0203238", "sub": "(list.next, +0x100)", "start": "0xffffffffc0203120", "marker": "ptr: pos", "tone": "red"},
+    {"id": "prev", "value": "0xffffffffc0203370", "sub": "(list.prev, +0x108)", "start": "0xffffffffc0203128", "fill": "purple"},
+    {"id": "next", "value": "0xffffffffc0203238", "sub": "(list.next, +0x100)", "start": "0xffffffffc0203120", "marker": "ptr: pos", "tone": "red", "fill": "purple"},
     {"id": "name", "word": "\"alice\"", "sub": "(username, +0x000)", "start": "0xffffffffc0203020", "h": 2, "marker": "user == &users[0]", "tone": "blue"}
-  ]
+  ],
+  "spans": [{"from": "name", "to": "name", "label": "offsetof", "sub": "= 0x100", "tone": "blue"}]
 }
 ```
 
