@@ -5,16 +5,16 @@
       "path": "include/linux/container_of.h",
       "symbol": "",
       "lang": "c",
-      "default": "6.12",
+      "default": "6.18",
       "versions": {
-        "6.12": {
-          "ref": "v6.12.111",
-          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+        "6.18": {
+          "ref": "v6.18.58",
+          "commit": "2926d88bb7fc4608fd942453d929c39e4e5ec006",
           "tree": "stable",
           "segments": [
             {
               "startLine": 1,
-              "code": "/* SPDX-License-Identifier: GPL-2.0 */\n#ifndef _LINUX_CONTAINER_OF_H\n#define _LINUX_CONTAINER_OF_H\n\n#include <linux/build_bug.h>\n#include <linux/stddef.h>\n\n#define typeof_member(T, m)\ttypeof(((T*)0)->m)\n\n/**\n * container_of - cast a member of a structure out to the containing structure\n * @ptr:\tthe pointer to the member.\n * @type:\tthe type of the container struct this is embedded in.\n * @member:\tthe name of the member within the struct.\n *\n * WARNING: any const qualifier of @ptr is lost.\n */\n#define container_of(ptr, type, member) ({\t\t\t\t\\\n\tvoid *__mptr = (void *)(ptr);\t\t\t\t\t\\\n\tstatic_assert(__same_type(*(ptr), ((type *)0)->member) ||\t\\\n\t\t      __same_type(*(ptr), void),\t\t\t\\\n\t\t      \"pointer type mismatch in container_of()\");\t\\\n\t((type *)(__mptr - offsetof(type, member))); }) /* [!hl] */\n\n/**\n * container_of_const - cast a member of a structure out to the containing\n *\t\t\tstructure and preserve the const-ness of the pointer\n * @ptr:\t\tthe pointer to the member\n * @type:\t\tthe type of the container struct this is embedded in.\n * @member:\t\tthe name of the member within the struct.\n */\n#define container_of_const(ptr, type, member)\t\t\t\t\\\n\t_Generic(ptr,\t\t\t\t\t\t\t\\\n\t\tconst typeof(*(ptr)) *: ((const type *)container_of(ptr, type, member)),\\\n\t\tdefault: ((type *)container_of(ptr, type, member))\t\\\n\t)\n\n#endif\t/* _LINUX_CONTAINER_OF_H */"
+              "code": "/* SPDX-License-Identifier: GPL-2.0 */\n#ifndef _LINUX_CONTAINER_OF_H\n#define _LINUX_CONTAINER_OF_H\n\n#include <linux/build_bug.h>\n#include <linux/stddef.h>\n\n#define typeof_member(T, m)\ttypeof(((T*)0)->m)\n\n/**\n * container_of - cast a member of a structure out to the containing structure\n * @ptr:\tthe pointer to the member.\n * @type:\tthe type of the container struct this is embedded in.\n * @member:\tthe name of the member within the struct.\n *\n * WARNING: any const qualifier of @ptr is lost.\n * Do not use container_of() in new code.\n */\n#define container_of(ptr, type, member) ({\t\t\t\t\\\n\tvoid *__mptr = (void *)(ptr);\t\t\t\t\t\\\n\tstatic_assert(__same_type(*(ptr), ((type *)0)->member) ||\t\\\n\t\t      __same_type(*(ptr), void),\t\t\t\\\n\t\t      \"pointer type mismatch in container_of()\");\t\\\n\t((type *)(__mptr - offsetof(type, member))); }) /* [!hl] */\n\n/**\n * container_of_const - cast a member of a structure out to the containing\n *\t\t\tstructure and preserve the const-ness of the pointer\n * @ptr:\t\tthe pointer to the member\n * @type:\t\tthe type of the container struct this is embedded in.\n * @member:\t\tthe name of the member within the struct.\n *\n * Always prefer container_of_const() instead of container_of() in new code.\n */\n#define container_of_const(ptr, type, member)\t\t\t\t\\\n\t_Generic(ptr,\t\t\t\t\t\t\t\\\n\t\tconst typeof(*(ptr)) *: ((const type *)container_of(ptr, type, member)),\\\n\t\tdefault: ((type *)container_of(ptr, type, member))\t\\\n\t)\n\n#endif\t/* _LINUX_CONTAINER_OF_H */"
             }
           ]
         }
@@ -24,11 +24,11 @@
       "path": "include/linux/stddef.h",
       "symbol": "",
       "lang": "c",
-      "default": "6.12",
+      "default": "6.18",
       "versions": {
-        "6.12": {
-          "ref": "v6.12.111",
-          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+        "6.18": {
+          "ref": "v6.18.58",
+          "commit": "2926d88bb7fc4608fd942453d929c39e4e5ec006",
           "tree": "stable",
           "segments": [
             {
@@ -43,11 +43,11 @@
       "path": "include/linux/platform_device.h",
       "symbol": "",
       "lang": "c",
-      "default": "6.12",
+      "default": "6.18",
       "versions": {
-        "6.12": {
-          "ref": "v6.12.111",
-          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+        "6.18": {
+          "ref": "v6.18.58",
+          "commit": "2926d88bb7fc4608fd942453d929c39e4e5ec006",
           "tree": "stable",
           "segments": [
             {
@@ -66,28 +66,47 @@
       "path": "include/linux/pci.h",
       "symbol": "",
       "lang": "c",
-      "default": "6.12",
+      "default": "6.18",
       "versions": {
-        "6.12": {
-          "ref": "v6.12.111",
-          "commit": "e2acc2211022246c77740d5df08265cc27eedcc5",
+        "6.18": {
+          "ref": "v6.18.58",
+          "commit": "2926d88bb7fc4608fd942453d929c39e4e5ec006",
           "tree": "stable",
           "segments": [
             {
-              "startLine": 336,
+              "startLine": 350,
               "code": "struct pci_dev {\n\tstruct list_head bus_list;\t/* Node in per-bus list */\n\tstruct pci_bus\t*bus;\t\t/* Bus this device is on */\n\tstruct pci_bus\t*subordinate;\t/* Bus this device bridges to */"
             },
             {
-              "startLine": 421,
+              "startLine": 437,
               "code": "\tstruct device\tdev;\t\t\t/* Generic device interface */ /* [!hl] */"
             },
             {
-              "startLine": 549,
+              "startLine": 572,
               "code": "};"
             },
             {
-              "startLine": 562,
+              "startLine": 585,
               "code": "#define\tto_pci_dev(n) container_of(n, struct pci_dev, dev) /* [!hl] */"
+            }
+          ]
+        }
+      }
+    },
+    "fork_sibling": {
+      "path": "kernel/fork.c",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.18",
+      "versions": {
+        "6.18": {
+          "ref": "v6.18.58",
+          "commit": "2926d88bb7fc4608fd942453d929c39e4e5ec006",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 2398,
+              "code": "\t\t\tlist_add_tail(&p->sibling, &p->real_parent->children); /* [!hl] */\n\t\t\tlist_add_tail_rcu(&p->tasks, &init_task.tasks);"
             }
           ]
         }

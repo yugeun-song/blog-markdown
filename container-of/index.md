@@ -150,6 +150,7 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
  * @member:	the name of the member within the struct.
  *
  * WARNING: any const qualifier of @ptr is lost.
+ * Do not use container_of() in new code.
  */
 #define container_of(ptr, type, member) ({				\
 	void *__mptr = (void *)(ptr);					\
@@ -164,6 +165,8 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
  * @ptr:		the pointer to the member
  * @type:		the type of the container struct this is embedded in.
  * @member:		the name of the member within the struct.
+ *
+ * Always prefer container_of_const() instead of container_of() in new code.
  */
 #define container_of_const(ptr, type, member)				\
 	_Generic(ptr,							\
@@ -336,6 +339,12 @@ main:
 ### `container_of`가 검사하는 것
 
 인용 1의 `static_assert`는 `*ptr`의 타입이 `member`의 타입과 같은지, 또는 `ptr`이 `void *`인지만 컴파일 시점에 검사한다. 실행 시점의 검사는 없다. `container_of`는 메모리를 읽지 않고, 주소에서 상수를 빼고 타입을 바꿀 뿐이기 때문이다. 따라서 타입이 맞는 실수는 그대로 컴파일된다. 예를 들어 `struct task_struct`의 자식 리스트에서 `member` 자리에 `sibling` 대신 `children`을 써도 컴파일은 된다. 두 멤버가 모두 `struct list_head`이기 때문이다. 이때는 엉뚱한 오프셋을 빼게 된다. 이 리스트에서 `member`는 `sibling`이어야 한다. 두 멤버는 함께 자식 프로세스의 리스트를 이루고, 부모의 `children`에 이어지는 노드는 각 자식의 `sibling`이기 때문이다.
+
+<!-- source-ref id="fork_sibling" -->
+```c
+			list_add_tail(&p->sibling, &p->real_parent->children); /* [!hl] */
+			list_add_tail_rcu(&p->tasks, &init_task.tasks);
+```
 
 `list_for_each_entry()`는 `list_for_each`의 순회와 `container_of`를 한 번에 하는 매크로이고, 세 번째 인자가 `member`이다. 커널은 자식 리스트를 `list_for_each_entry(p, &father->children, sibling)`처럼 순회한다. 이 매크로는 `container_of`의 `type` 자리에 `typeof(*pos)`를 넘긴다. 첫 원소를 구하는 시점의 `pos`는 아직 초기화 전일 수 있지만, `typeof`는 `*pos`를 평가하지 않으므로 문제가 없다.
 
