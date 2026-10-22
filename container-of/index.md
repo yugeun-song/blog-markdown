@@ -75,7 +75,7 @@ MODULE_DESCRIPTION("container_of over a list_head list");
 ```canvas
 {
   "id": "container-of-user-info",
-  "label": "container_of(pos, struct user_info, list)의 계산: users[0]은 0xffffffffc0203020에서 시작하고, ptr인 pos는 list를 가리키며, offsetof는 0x100이고, 결과 user는 users[0]의 시작을 가리킨다. struct user_info는 280바이트이므로 users[1](bob)은 그 다음 주소 0xffffffffc0203138에서 시작한다",
+  "label": "container_of(pos, struct user_info, list)의 계산: users[0]은 0xffffffffc0201020에서 시작하고, ptr인 pos는 list를 가리키며, offsetof는 0x100이고, 결과 user는 users[0]의 시작을 가리킨다. struct user_info는 280바이트이므로 users[1](bob)은 그 다음 주소 0xffffffffc0201138에서 시작한다",
   "items": [
     {"column": "u0", "x": 300, "y": 0, "w": 200, "cells": [
       {"h": 52, "label": ["users[1]", "\"bob\""], "line": "dashed"},
@@ -85,17 +85,17 @@ MODULE_DESCRIPTION("container_of over a list_head list");
       {"h": 52, "label": ["list.next", "+0x100"], "fill": "purple"},
       {"h": 140, "label": ["username", "\"alice\"", "+0x000"]}
     ]},
-    {"text": "0xffffffffc0203138", "x": 272, "y": 52, "anchor": "end", "role": "note"},
+    {"text": "0xffffffffc0201138", "x": 272, "y": 52, "anchor": "end", "role": "note"},
     {"line": [[280, 52], "u0|1.left"]},
-    {"text": "0xffffffffc0203131", "x": 272, "y": 104, "anchor": "end", "role": "note"},
+    {"text": "0xffffffffc0201131", "x": 272, "y": 104, "anchor": "end", "role": "note"},
     {"line": [[280, 104], "u0|2.left"]},
-    {"text": "0xffffffffc0203130", "x": 272, "y": 156, "anchor": "end", "role": "note"},
+    {"text": "0xffffffffc0201130", "x": 272, "y": 156, "anchor": "end", "role": "note"},
     {"line": [[280, 156], "u0|3.left"]},
-    {"text": "0xffffffffc0203128", "x": 272, "y": 208, "anchor": "end", "role": "note"},
+    {"text": "0xffffffffc0201128", "x": 272, "y": 208, "anchor": "end", "role": "note"},
     {"line": [[280, 208], "u0|4.left"]},
-    {"text": ["pos", "0xffffffffc0203120"], "x": 266, "y": 260, "anchor": "end", "tone": "red", "id": "pos"},
+    {"text": ["pos", "0xffffffffc0201120"], "x": 266, "y": 260, "anchor": "end", "tone": "red", "id": "pos"},
     {"arrow": ["pos.right", "u0|5.left"], "tone": "red"},
-    {"text": ["user", "0xffffffffc0203020"], "x": 266, "y": 400, "anchor": "end", "tone": "blue", "id": "user"},
+    {"text": ["user", "0xffffffffc0201020"], "x": 266, "y": 400, "anchor": "end", "tone": "blue", "id": "user"},
     {"arrow": ["user.right", "u0|6.left"], "tone": "blue"},
     {"line": ["u0|5.right", [542, 260]]},
     {"line": ["u0|1.right", [662, 52]]},
