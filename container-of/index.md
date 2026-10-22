@@ -472,7 +472,33 @@ struct pci_dev {
 #define	to_pci_dev(n) container_of(n, struct pci_dev, dev) /* [!hl] */
 ```
 
-`member` 자리에는 `a.b`처럼 중첩된 멤버를 가리키는 식도 쓸 수 있다. `offsetof`가 이런 식도 받기 때문이다. TCP 소켓은 `struct sock`을 세 겹으로 감싼다. 같은 `struct sock *`에서 출발해도, `type`과 `member`에 따라 도착하는 구조체가 다르다.
+`member` 자리에는 `a.b`처럼 중첩된 멤버를 가리키는 식도 쓸 수 있다. `offsetof`가 이런 식도 받기 때문이다. TCP 소켓은 `struct sock`을 세 겹으로 감싼다. 다이어그램 3은 이 계층 구조를 그린 것이다. `sk`는 `struct sock`을 가리키는 포인터 변수이고, 상자 안 둘째 줄은 멤버 이름이다. 상자의 너비는 구조체의 크기에 비례한다.
+
+```canvas
+{
+  "id": "tcp-sock-nesting",
+  "label": "struct tcp_sock은 첫 멤버 inet_conn으로 struct inet_connection_sock을 포함하고, struct inet_connection_sock은 첫 멤버 icsk_inet으로 struct inet_sock을, struct inet_sock은 첫 멤버 sk로 struct sock을 포함한다. 네 구조체가 같은 주소에서 시작하므로, struct sock을 가리키는 sk와 inet_sk(sk), inet_csk(sk), tcp_sk(sk)는 모두 같은 주소를 가리킨다. 상자의 너비는 구조체의 크기에 비례한다",
+  "items": [
+    {"line": [[0, 168], [0, 0], [540, 0], [540, 224], [182, 224]]},
+    {"line": [[0, 56], [326, 56], [326, 224]]},
+    {"line": [[0, 112], [236, 112], [236, 224]]},
+    {"box": "sock", "x": 0, "y": 168, "w": 182, "h": 56, "label": ["struct sock", "sk"], "fill": "purple"},
+    {"text": "struct tcp_sock", "x": 270, "y": 28, "anchor": "middle"},
+    {"text": ["struct inet_connection_sock", "inet_conn"], "x": 163, "y": 84, "anchor": "middle"},
+    {"text": ["struct inet_sock", "icsk_inet"], "x": 118, "y": 140, "anchor": "middle"},
+    {"text": "tcp_sk(sk)", "x": -34, "y": 28, "anchor": "end", "tone": "blue", "id": "tp"},
+    {"arrow": ["tp.right", [0, 28]], "tone": "blue"},
+    {"text": "inet_csk(sk)", "x": -34, "y": 84, "anchor": "end", "tone": "blue", "id": "icsk"},
+    {"arrow": ["icsk.right", [0, 84]], "tone": "blue"},
+    {"text": "inet_sk(sk)", "x": -34, "y": 140, "anchor": "end", "tone": "blue", "id": "inet"},
+    {"arrow": ["inet.right", [0, 140]], "tone": "blue"},
+    {"text": "sk", "x": -34, "y": 196, "anchor": "end", "tone": "red", "id": "sk"},
+    {"arrow": ["sk.right", "sock.left"], "tone": "red"}
+  ]
+}
+```
+
+같은 `struct sock *`에서 출발해도, `type`과 `member`에 따라 도착하는 구조체가 다르다.
 
 - `inet_sk()`는 `sk`로 `struct inet_sock`을 구한다.
 - `inet_csk()`는 `icsk_inet.sk`로 `struct inet_connection_sock`을 구한다.
