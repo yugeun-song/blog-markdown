@@ -157,32 +157,43 @@ function tracer 핵심 옵션 부분을 확대하면 다음과 같다. 메뉴 �
 
 ```text
 CONFIG_TRACING=y
+CONFIG_GENERIC_TRACER=y
 CONFIG_TRACING_SUPPORT=y
 CONFIG_FTRACE=y
+CONFIG_TRACEFS_AUTOMOUNT_DEPRECATED=y
 # CONFIG_BOOTTIME_TRACING is not set
 CONFIG_FUNCTION_TRACER=y
 CONFIG_FUNCTION_GRAPH_TRACER=y
+# CONFIG_FUNCTION_GRAPH_RETVAL is not set
+# CONFIG_FUNCTION_GRAPH_RETADDR is not set
 CONFIG_DYNAMIC_FTRACE=y
 CONFIG_DYNAMIC_FTRACE_WITH_DIRECT_CALLS=y
 CONFIG_DYNAMIC_FTRACE_WITH_CALL_OPS=y
 CONFIG_DYNAMIC_FTRACE_WITH_ARGS=y
+# CONFIG_FPROBE is not set
 # CONFIG_FUNCTION_PROFILER is not set
 CONFIG_STACK_TRACER=y
-CONFIG_IRQSOFF_TRACER=y
-CONFIG_PREEMPT_TRACER=y
+# CONFIG_IRQSOFF_TRACER is not set
+# CONFIG_PREEMPT_TRACER is not set
+# CONFIG_SCHED_TRACER is not set
 # CONFIG_HWLAT_TRACER is not set
 # CONFIG_OSNOISE_TRACER is not set
 # CONFIG_TIMERLAT_TRACER is not set
 CONFIG_FTRACE_SYSCALLS=y
 CONFIG_TRACER_SNAPSHOT=y
-CONFIG_TRACER_SNAPSHOT_PER_CPU_SWAP=y
-CONFIG_BLK_DEV_IO_TRACE=y
+# CONFIG_TRACER_SNAPSHOT_PER_CPU_SWAP is not set
+CONFIG_BRANCH_PROFILE_NONE=y
+# CONFIG_PROFILE_ANNOTATED_BRANCHES is not set
+# CONFIG_PROFILE_ALL_BRANCHES is not set
+# CONFIG_BLK_DEV_IO_TRACE is not set
+CONFIG_KPROBE_EVENTS=y
+# CONFIG_KPROBE_EVENTS_ON_NOTRACE is not set
 CONFIG_UPROBE_EVENTS=y
+CONFIG_EPROBE_EVENTS=y
 CONFIG_BPF_EVENTS=y
 CONFIG_DYNAMIC_EVENTS=y
-CONFIG_FTRACE_MCOUNT_RECORD=y
+CONFIG_PROBE_EVENTS=y
 CONFIG_FTRACE_MCOUNT_USE_PATCHABLE_FUNCTION_ENTRY=y
-CONFIG_TRACING_MAP=y
 ```
 
 한 줄이 곧 하나의 옵션 상태다. `=y`와 `# ... is not set`의 단순한 두 형태가 가장 많고, 여기에 모듈로 빌드되는 옵션의 `CONFIG_FOO=m`, 정수 값을 받는 `CONFIG_HZ=250`, 문자열 값을 받는 `CONFIG_LOCALVERSION="-test"`, 16진수 값을 받는 `CONFIG_PHYSICAL_START=0x1000000` 같은 형태가 더해진다.
@@ -897,7 +908,7 @@ TRACE_EVENT(sched_switch,
 이 정의로부터 실제 buffer에 남는 한 줄은 다음과 같은 모양이 된다 (뒤의 nop tracer 예시에서도 같은 형태가 나온다).
 
 ```text
-          <idle>-0       [002] d..2.     7.157935: sched_switch: prev_comm=swapper/2 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=160 next_prio=120
+          <idle>-0       [003] d..2.     4.344787: sched_switch: prev_comm=swapper/3 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=89 next_prio=120
 ```
 
 앞부분의 `TASK-PID [CPU#] FLAGS TIMESTAMP:`까지는 모든 trace 라인에 공통으로 붙는 헤더이고, `sched_switch:` 이후가 `TP_printk`가 만든 이벤트 고유 payload이다. 다른 tracepoint 이벤트를 켜면 `sched_switch:` 자리에 그 이벤트 이름이, 그 뒤에 그 이벤트의 `TP_printk`가 만든 payload가 들어간다.
@@ -905,7 +916,7 @@ TRACE_EVENT(sched_switch,
 예를 들어 `events/syscalls/sys_enter_openat/enable`을 켠 채 측정한 결과는 다음과 같이 나온다.
 
 ```text
-            find-170     [003] ...1.    16.429552: sys_openat(dfd: ffffffffffffff9c, filename: aaab1f299620, flags: 241, mode: 1b6)
+           xargs-97      [003] .....    10.773855: sys_openat(dfd: 0xffffffffffffff9c, filename: 0xaaaac517b220, flags: 0x241, mode: 0x1b6)
 ```
 
 시스템 콜 enter 이벤트는 `sched_switch:`처럼 `이름: payload` 형태가 아니라 **`sys_openat(...)` 같은 함수 호출 형태**로 찍히며, 괄호 안에 인자 4개(`dfd` / `filename` 포인터 / `flags` / `mode`)가 16진수로 나열된다. (`filename`은 추적 대상 태스크의 사용자 공간 포인터 값이라 사후에 경로 문자열로 되살릴 수 없다.) 이 syscall 이벤트의 출력 포맷은 일반 `TRACE_EVENT`의 `TP_printk`가 아니라 커널의 시스템 콜 추적 인프라가 자동 생성한다.
@@ -1008,7 +1019,7 @@ TRACE_EVENT(sched_switch,
 ```text
 # tracer: nop
 #
-# entries-in-buffer/entries-written: 62/62   #P:4
+# entries-in-buffer/entries-written: 72/72   #P:4
 #
 #                                _-----=> irqs-off/BH-disabled
 #                               / _----=> need-resched
@@ -1018,11 +1029,11 @@ TRACE_EVENT(sched_switch,
 #                              |||| /     delay
 #           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
 #              | |         |   |||||     |         |
-          <idle>-0       [002] d..2.     7.157935: sched_switch: prev_comm=swapper/2 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=160 next_prio=120
-              sh-154     [000] d..2.     7.157954: sched_switch: prev_comm=sh prev_pid=154 prev_prio=120 prev_state=S ==> next_comm=swapper/0 next_pid=0 next_prio=120
-          <idle>-0       [001] d..2.     7.159602: sched_switch: prev_comm=swapper/1 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=rcu_preempt next_pid=18 next_prio=120
-     rcu_preempt-18      [001] d..2.     7.159884: sched_switch: prev_comm=rcu_preempt prev_pid=18 prev_prio=120 prev_state=I ==> next_comm=swapper/1 next_pid=0 next_prio=120
-           sleep-160     [002] d..2.     7.164502: sched_switch: prev_comm=sleep prev_pid=160 prev_prio=120 prev_state=S ==> next_comm=swapper/2 next_pid=0 next_prio=120
+              sh-82      [002] d..2.     4.344769: sched_switch: prev_comm=sh prev_pid=82 prev_prio=120 prev_state=S ==> next_comm=swapper/2 next_pid=0 next_prio=120
+          <idle>-0       [003] d..2.     4.344787: sched_switch: prev_comm=swapper/3 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=89 next_prio=120
+          <idle>-0       [001] d..2.     4.346047: sched_switch: prev_comm=swapper/1 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=rcu_preempt next_pid=15 next_prio=120
+     rcu_preempt-15      [001] d..2.     4.346197: sched_switch: prev_comm=rcu_preempt prev_pid=15 prev_prio=120 prev_state=I ==> next_comm=swapper/1 next_pid=0 next_prio=120
+           sleep-89      [003] d..2.     4.350998: sched_switch: prev_comm=sleep prev_pid=89 prev_prio=120 prev_state=S ==> next_comm=swapper/3 next_pid=0 next_prio=120
 ```
 
 `vfs_read <-ksys_read` 같은 함수 호출 라인이 한 줄도 없는 대신, 매 라인이 `sched_switch:`로 시작하는 tracepoint payload로 채워져 있다. 즉 `nop`은 "**이벤트 추적은 그대로 두고 함수 추적기만 끈다**"의 의미이며, tracepoint 기반 분석을 할 때 함수 추적기의 노이즈를 제거한 default baseline으로 쓰인다.
@@ -1034,7 +1045,7 @@ TRACE_EVENT(sched_switch,
 ```text
 # tracer: function
 #
-# entries-in-buffer/entries-written: 16991/16991   #P:4
+# entries-in-buffer/entries-written: 876/876   #P:4
 #
 #                                _-----=> irqs-off/BH-disabled
 #                               / _----=> need-resched
@@ -1044,15 +1055,20 @@ TRACE_EVENT(sched_switch,
 #                              |||| /     delay
 #           TASK-PID     CPU#  |||||  TIMESTAMP  FUNCTION
 #              | |         |   |||||     |         |
-              sh-154     [001] .....    12.319025: vfs_fstatat <-__do_sys_newfstatat
-              sh-154     [001] .....    12.319111: vfs_statx <-vfs_fstatat
-              sh-154     [001] .....    12.319251: vfs_statx_path <-vfs_statx
-            find-162     [002] .....    12.324242: do_sys_openat2 <-__arm64_sys_openat
-            find-162     [002] .....    12.324306: vfs_open <-path_openat
-           xargs-164     [000] .....    12.326993: do_sys_openat2 <-__arm64_sys_openat
-            find-162     [002] .....    12.329506: vfs_read <-ksys_read
-            find-162     [002] .....    12.329632: vfs_fstat <-__do_sys_newfstat
-            find-162     [002] .....    12.329640: vfs_getattr <-vfs_fstat
+              sh-82      [000] .....     8.112990: vfs_fstatat <-__do_sys_newfstatat
+              sh-82      [000] .....     8.112992: vfs_statx <-vfs_fstatat
+              sh-82      [000] .....     8.113009: vfs_fstatat <-__do_sys_newfstatat
+              sh-82      [000] .....     8.113011: vfs_statx <-vfs_fstatat
+            find-92      [002] .....     8.114439: vfs_open <-path_openat
+            find-92      [003] .....     8.116869: vfs_open <-path_openat
+              sh-82      [000] .....     8.120574: vfs_getattr_nosec <-vfs_statx
+            find-92      [003] .....     8.122223: do_sys_openat2 <-__arm64_sys_openat
+            find-92      [003] .....     8.122316: do_sys_openat2 <-__arm64_sys_openat
+            find-92      [003] .....     8.122351: vfs_open <-path_openat
+            find-92      [003] .....     8.122430: vfs_read <-ksys_read
+           xargs-93      [002] .....     8.122603: do_sys_openat2 <-__arm64_sys_openat
+            find-92      [003] .....     8.122678: vfs_fstat <-__do_sys_newfstat
+            find-92      [003] .....     8.122690: vfs_getattr_nosec <-vfs_fstat
 ```
 
 각 컬럼의 의미는 다음과 같다.
@@ -1068,15 +1084,16 @@ TRACE_EVENT(sched_switch,
 여기에 tracepoint 이벤트를 함께 켜면 (예: `events/sched/sched_switch/enable=1`, `events/syscalls/sys_enter_openat/enable=1`) 함수 호출 라인과 이벤트 라인이 같은 buffer에 시간순으로 섞여 출력된다. 두 종류는 공통 헤더(`TASK-PID [CPU#] FLAGS TIMESTAMP:`)까지는 같은 모양이고, 그 뒤가 다르다. 함수는 `FUNCTION <-CALLER`, 이벤트는 `event_name: payload` 형식이고, syscall 이벤트는 앞서 본 함수 호출 형태다.
 
 ```text
-          <idle>-0       [003] d..2.    16.427878: sched_switch: prev_comm=swapper/3 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=170 next_prio=120
-            find-170     [003] ...1.    16.429552: sys_openat(dfd: ffffffffffffff9c, filename: aaab1f299620, flags: 241, mode: 1b6)
-            find-170     [003] .....    16.429596: do_sys_openat2 <-__arm64_sys_openat
-            find-170     [003] .....    16.429679: vfs_open <-path_openat
-            head-171     [000] d..2.    16.434550: sched_switch: prev_comm=head prev_pid=171 prev_prio=120 prev_state=D ==> next_comm=swapper/0 next_pid=0 next_prio=120
-           xargs-172     [002] ...1.    16.434557: sys_openat(dfd: ffffffffffffff9c, filename: aaab1f2995c0, flags: 241, mode: 1b6)
-           xargs-172     [002] .....    16.434566: do_sys_openat2 <-__arm64_sys_openat
-            find-170     [003] .....    16.435972: vfs_read <-ksys_read
-            find-170     [003] .....    16.436155: vfs_fstat <-__do_sys_newfstat
+          <idle>-0       [001] d..2.    10.771824: sched_switch: prev_comm=swapper/1 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=96 next_prio=120
+          <idle>-0       [003] d..2.    10.773091: sched_switch: prev_comm=swapper/3 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=97 next_prio=120
+              sh-82      [000] d..2.    10.773341: sched_switch: prev_comm=sh prev_pid=82 prev_prio=120 prev_state=S ==> next_comm=swapper/0 next_pid=0 next_prio=120
+            find-96      [001] .....    10.773635: vfs_open <-path_openat
+           xargs-97      [003] .....    10.773855: sys_openat(dfd: 0xffffffffffffff9c, filename: 0xaaaac517b220, flags: 0x241, mode: 0x1b6)
+           xargs-97      [003] .....    10.773917: do_sys_openat2 <-__arm64_sys_openat
+           xargs-97      [003] .....    10.773994: vfs_open <-path_openat
+           xargs-97      [003] .....    10.774104: vfs_open <-path_openat
+            find-96      [001] .....    10.774639: vfs_open <-path_openat
+           xargs-97      [003] .....    10.774641: vfs_open <-path_openat
 ```
 
 라인 단위로 함수와 이벤트가 평면적으로 나란히 늘어선다는 점이 `function` tracer의 특징이다.
@@ -1091,147 +1108,132 @@ TRACE_EVENT(sched_switch,
 # CPU  DURATION                  FUNCTION CALLS
 # |     |   |                     |   |   |   |
  0)               |  do_sys_openat2() {
- 0)               |    getname() {
+ 0)               |    getname_flags() {
  0)               |      getname_flags.part.0() {
- 0)   8.176 us    |        kmem_cache_alloc_noprof();
- 0) + 24.448 us   |      }
- 0) + 35.040 us   |    }
+ 0)   2.496 us    |        kmem_cache_alloc_noprof();
+ 0)   7.312 us    |      }
+ 0) + 10.240 us   |    }
  0)               |    get_unused_fd_flags() {
  0)               |      alloc_fd() {
- 0)               |        _raw_spin_lock() {
- 0)   3.584 us    |          preempt_count_add();
- 0) + 11.648 us   |        }
- 0)   4.240 us    |        expand_files();
- 0)               |        _raw_spin_unlock() {
- 0)   3.760 us    |          preempt_count_sub();
- 0) + 10.752 us   |        }
- 0) + 44.560 us   |      }
- 0) + 52.464 us   |    }
+ 0)   1.232 us    |        _raw_spin_lock();
+ 0)   1.184 us    |        _raw_spin_unlock();
+ 0)   6.800 us    |      }
+ 0) + 12.624 us   |    }
  0)               |    do_filp_open() {
  0)               |      path_openat() {
  0)               |        alloc_empty_file() {
- 0)   5.584 us    |          kmem_cache_alloc_noprof();
+ 0)   1.392 us    |          kmem_cache_alloc_noprof();
  0)               |          init_file() {
- 0)               |            security_file_alloc() {
- 0)   3.792 us    |              bpf_lsm_file_alloc_security();
- 0) + 12.624 us   |            }
- 0)   3.840 us    |            __mutex_init();
- 0) + 30.032 us   |          }
- 0) + 48.464 us   |        }
+ 0)   1.392 us    |            security_file_alloc();
+ 0)   1.216 us    |            __mutex_init();
+ 0)   6.976 us    |          }
+ 0) + 12.816 us   |        }
  0)               |        path_init() {
- 0)   3.744 us    |          __rcu_read_lock();
+ 0)   1.104 us    |          __rcu_read_lock();
  0)               |          nd_jump_root() {
- 0)   4.624 us    |            set_root();
- 0) + 13.280 us   |          }
- 0) + 29.104 us   |        }
- 0)               |        link_path_walk.part.0.constprop.0() {
+ 0)   1.312 us    |            set_root();
+ 0)   3.888 us    |          }
+ 0)   8.928 us    |        }
+ 0)               |        link_path_walk() {
  0)               |          inode_permission() {
  0)               |            generic_permission() {
- 0)   3.712 us    |              make_vfsuid();
- 0) + 12.240 us   |            }
- 0)               |            security_inode_permission() {
- 0)   3.616 us    |              bpf_lsm_inode_permission();
- 0) + 11.632 us   |            }
- 0) + 36.544 us   |          }
+ 0)   1.120 us    |              make_vfsuid();
+ 0)   3.808 us    |            }
+ 0)   1.184 us    |            security_inode_permission();
+ 0)   9.200 us    |          }
  0)               |          walk_component() {
  0)               |            lookup_fast() {
- 0)   5.360 us    |              __d_lookup_rcu();
- 0) + 13.680 us   |            }
+ 0)   2.032 us    |              __d_lookup_rcu();
+ 0)   4.608 us    |            }
  0)               |            step_into() {
- 0)   4.864 us    |              __lookup_mnt();
- 0) + 15.520 us   |            }
- 0) + 41.728 us   |          }
+ 0)   1.600 us    |              __lookup_mnt();
+ 0)   4.816 us    |            }
+ 0) + 13.440 us   |          }
  0)               |          inode_permission() {
- 0)               |            generic_permission() {
- 0)   3.936 us    |              make_vfsuid();
- 0) + 11.664 us   |            }
- 0)               |            security_inode_permission() {
- 0)   3.520 us    |              bpf_lsm_inode_permission();
- 0) + 10.624 us   |            }
- 0) + 33.552 us   |          }
- 0)   3.744 us    |          make_vfsuid();
- 0) ! 136.864 us  |        } # [!hl]
+ 0)   1.120 us    |            generic_permission();
+ 0)   1.104 us    |            security_inode_permission();
+ 0)   6.384 us    |          }
+ 0)   1.088 us    |          make_vfsuid();
+ 0) + 37.376 us   |        }
  0)               |        lookup_fast() {
- 0)   5.232 us    |          __d_lookup_rcu();
- 0) + 16.624 us   |        }
- 0)   3.808 us    |        step_into();
+ 0)   1.984 us    |          __d_lookup_rcu();
+ 0)   4.400 us    |        }
+ 0)   1.152 us    |        step_into();
  0)               |        complete_walk() {
  0)               |          try_to_unlazy() {
- 0)   4.800 us    |            legitimize_links();
+ 0)   1.088 us    |            legitimize_links();
  0)               |            __legitimize_path() {
- 0)   4.144 us    |              __legitimize_mnt();
- 0) + 12.672 us   |            }
- 0)   3.744 us    |            __rcu_read_unlock();
- 0) + 36.656 us   |          }
- 0) + 44.096 us   |        }
+ 0)   1.296 us    |              __legitimize_mnt();
+ 0)   3.840 us    |            }
+ 0)   1.120 us    |            __rcu_read_unlock();
+ 0) + 11.296 us   |          }
+ 0) + 13.808 us   |        }
  0)               |        may_open() {
  0)               |          inode_permission() {
- 0)   3.680 us    |            make_vfsuid();
- 0) + 14.128 us   |            make_vfsgid();
- 0)               |            generic_permission() {
- 0)   3.632 us    |              make_vfsuid();
- 0) + 11.408 us   |            }
+ 0)   1.136 us    |            make_vfsuid();
+ 0)   1.200 us    |            make_vfsgid();
+ 0)   1.424 us    |            _raw_spin_lock();
+ 0)   1.184 us    |            _raw_spin_unlock();
+ 0)   1.216 us    |            generic_permission();
  0)               |            devcgroup_check_permission() {
- 0)   3.616 us    |              __rcu_read_lock();
- 0)   3.920 us    |              match_exception_partial();
- 0)   3.648 us    |              __rcu_read_unlock();
- 0) + 27.120 us   |            }
- 0)               |            security_inode_permission() {
- 0)   4.352 us    |              bpf_lsm_inode_permission();
- 0) + 11.584 us   |            }
- 0) + 91.776 us   |          }
- 0) ! 100.704 us  |        }
+ 0)   1.312 us    |              __rcu_read_lock();
+ 0)   7.168 us    |              match_exception_partial();
+ 0)   1.120 us    |              __rcu_read_unlock();
+ 0) + 25.680 us   |            }
+ 0)   1.088 us    |            security_inode_permission();
+ 0) + 48.976 us   |          }
+ 0) + 52.480 us   |        }
  0)               |        vfs_open() {
  0)               |          do_dentry_open() {
  0)               |            path_get() {
- 0)   4.160 us    |              mntget();
- 0) + 12.848 us   |            }
- 0)   4.160 us    |            try_module_get();
- 0)               |            security_file_open() {
- 0)   3.776 us    |              bpf_lsm_file_open();
- 0) + 12.400 us   |            }
+ 0)   1.408 us    |              mntget();
+ 0)   4.544 us    |            }
+ 0)   1.280 us    |            try_module_get();
+ 0)   1.200 us    |            security_file_open();
+ 0)   1.472 us    |            fsnotify_open_perm_and_set_mode();
  0)               |            chrdev_open() {
- 0)               |              _raw_spin_lock() {
- 0)   3.792 us    |                preempt_count_add();
- 0) + 11.936 us   |              }
- 0)   3.504 us    |              try_module_get();
- 0)               |              _raw_spin_unlock() {
- 0)   4.464 us    |                preempt_count_sub();
- 0) + 11.968 us   |              }
- 0)   4.000 us    |              try_module_get();
- 0)   4.064 us    |              module_put();
- 0)   5.440 us    |              memory_open();
- 0) + 72.576 us   |            } # [!hl]
+ 0)   1.344 us    |              _raw_spin_lock();
+ 0)   1.184 us    |              _raw_spin_unlock();
+ 0)               |              kobj_lookup() {
+ 0)   1.648 us    |                mutex_lock();
+ 0)   1.120 us    |                try_module_get();
+ 0)               |                exact_lock() {
+ 0)   1.152 us    |                  try_module_get();
+ 0) + 11.344 us   |                }
+ 0)   1.728 us    |                mutex_unlock();
+ 0)   4.000 us    |                exact_match();
+ 0)   1.312 us    |                module_put();
+ 0) + 53.168 us   |              }
+ 0)   1.152 us    |              _raw_spin_lock();
+ 0)   1.088 us    |              _raw_spin_unlock();
+ 0)   1.104 us    |              try_module_get();
+ 0)   1.056 us    |              module_put();
+ 0) + 23.712 us   |              memory_open();
+ 0) ! 115.632 us  |            }
  0)               |            file_ra_state_init() {
- 0)   4.832 us    |              inode_to_bdi();
- 0) + 13.088 us   |            }
- 0) ! 151.728 us  |          } # [!hl]
- 0) ! 161.312 us  |        } # [!hl]
- 0)               |        security_file_post_open() {
- 0)   3.952 us    |          bpf_lsm_file_post_open();
- 0) + 12.016 us   |        }
+ 0)   1.360 us    |              inode_to_bdi();
+ 0)   4.160 us    |            }
+ 0) ! 144.672 us  |          }
+ 0) ! 147.360 us  |        }
+ 0)   1.200 us    |        security_file_post_open();
  0)               |        terminate_walk() {
+ 0)   1.088 us    |          drop_links();
  0)               |          dput() {
- 0)   3.904 us    |            __rcu_read_lock();
- 0)   4.560 us    |            __rcu_read_unlock();
- 0) + 21.312 us   |          }
+ 0)   1.040 us    |            __rcu_read_lock();
+ 0)   1.072 us    |            __rcu_read_unlock();
+ 0)   6.016 us    |          }
  0)               |          mntput() {
- 0)               |            mntput_no_expire() {
- 0)   3.728 us    |              __rcu_read_lock();
- 0)   3.776 us    |              __rcu_read_unlock();
- 0) + 19.984 us   |            }
- 0) + 27.712 us   |          }
- 0) + 61.920 us   |        }
- 0) ! 661.584 us  |      } # [!hl]
- 0) ! 671.296 us  |    } # [!hl]
- 0)               |    fd_install() {
- 0)   4.144 us    |      preempt_count_add();
- 0)   4.080 us    |      preempt_count_sub();
- 0) + 20.992 us   |    }
+ 0)   1.008 us    |            __rcu_read_lock();
+ 0)   1.088 us    |            __rcu_read_unlock();
+ 0)   6.048 us    |          }
+ 0) + 18.352 us   |        }
+ 0) ! 316.672 us  |      } # [!hl]
+ 0) ! 320.944 us  |    } # [!hl]
+ 0)   1.296 us    |    fd_install();
  0)               |    putname() {
- 0)   6.416 us    |      kmem_cache_free();
- 0) + 15.264 us   |    }
- 0) ! 844.144 us  |  } # [!hl]
+ 0)   1.344 us    |      kmem_cache_free();
+ 0)   3.856 us    |    }
+ 0) ! 364.960 us  |  } # [!hl]
 ```
 
 각 컬럼은 다음과 같다.
@@ -1267,50 +1269,33 @@ DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라,
 `function_graph`에서 tracepoint 이벤트가 함께 켜져 있을 때는 출력 형식이 또 한 번 달라진다. 이벤트는 `function` tracer처럼 평면적인 한 줄이 아니라, 발생한 시점의 호출 깊이에 맞춰 `/* event_name: payload */` 형식의 주석으로 트리 안에 박힌다. 이 처리는 `kernel/trace/trace_functions_graph.c`의 `print_graph_comment()`가 담당하며, `TRACE_GRAPH_ENT`·`TRACE_GRAPH_RET`(및 `TRACE_FN`·`TRACE_STACK`)를 제외한 나머지 entry가 이 경로로 렌더링된다. 아래 실제 출력에서는 추적 대상 함수(`do_sys_openat2`)가 호출되지 않는 idle 구간에 `sched_switch`들이 발생해 깊이 0에 주석으로 찍히고, function_graph가 task 전환을 표시하는 `---- prev => next ----` 구분선이 함께 출력된다. 반면 `sys_openat` 이벤트는 마침 `openat` 시스템 콜 진입 직후에 fire되어 그 호출의 `do_sys_openat2()` 트리 바로 앞에 자리한다.
 
 ```text
- 0)               |  /* sched_switch: prev_comm=swapper/0 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=rcu_preempt next_pid=18 next_prio=120 */
+ 0)               |  /* sched_switch: prev_comm=sh prev_pid=82 prev_prio=120 prev_state=S ==> next_comm=sh next_pid=90 next_prio=120 */
  ------------------------------------------
- 0)    <idle>-0    =>   rcu_pre-18
- ------------------------------------------
-
- 0)               |  /* sched_switch: prev_comm=rcu_preempt prev_pid=18 prev_prio=120 prev_state=I ==> next_comm=swapper/0 next_pid=0 next_prio=120 */
- ------------------------------------------
- 0)   rcu_pre-18   =>    <idle>-0
+ 0)     sh-82      =>     sh-90     
  ------------------------------------------
 
- 0)               |  /* sched_switch: prev_comm=swapper/0 prev_pid=0 prev_prio=120 prev_state=R ==> next_comm=sh next_pid=188 next_prio=120 */
- ------------------------------------------
- 0)    <idle>-0    =>   xargs-188
- ------------------------------------------
-
- 0)               |  /* sys_openat(dfd: ffffffffffffff9c, filename: aaab1f2995c0, flags: 241, mode: 1b6) */
+ 0)               |  /* sys_openat(dfd: 0xffffffffffffff9c, filename: 0xffffb9561d18, flags: 0x80000, mode: 0) */
  0)               |  do_sys_openat2() {
- 0)               |    getname() {
+ 0)               |    getname_flags() {
  0)               |      getname_flags.part.0() {
- 0)   6.992 us    |        kmem_cache_alloc_noprof();
- 0) + 18.688 us   |      }
- 0) + 30.880 us   |    }
+ 0)   3.600 us    |        kmem_cache_alloc_noprof();
+ 0) + 10.592 us   |      }
+ 0) + 14.640 us   |    }
  0)               |    get_unused_fd_flags() {
  0)               |      alloc_fd() {
- 0)               |        _raw_spin_lock() {
- 0)   4.272 us    |          preempt_count_add();
- 0) + 10.096 us   |        }
- 0)   2.816 us    |        expand_files();
- 0)               |        _raw_spin_unlock() {
- 0)   2.944 us    |          preempt_count_sub();
- 0)   8.800 us    |        }
- 0) + 34.320 us   |      }
- 0) + 42.032 us   |    }
+ 0)   2.112 us    |        _raw_spin_lock();
+ 0)   1.440 us    |        _raw_spin_unlock();
+ 0)   9.712 us    |      }
+ 0) + 13.632 us   |    }
  0)               |    do_filp_open() {
  0)               |      path_openat() {
  0)               |        alloc_empty_file() {
- 0)   3.888 us    |          kmem_cache_alloc_noprof();
+ 0)   1.632 us    |          kmem_cache_alloc_noprof();
  0)               |          init_file() {
- 0)               |            security_file_alloc() {
- 0)   3.696 us    |              bpf_lsm_file_alloc_security();
- 0) + 12.560 us   |            }
- 0)   3.120 us    |            __mutex_init();
- 0) + 27.552 us   |          }
- 0) + 41.760 us   |        }
+ 0)   1.648 us    |            security_file_alloc();
+ 0)   1.504 us    |            __mutex_init();
+ 0)   8.880 us    |          }
+ 0) + 16.464 us   |        }
 ```
 
 함수 호출 트리의 구조 (들여쓰기·`{`·`}`)는 그대로 유지되며, 이벤트는 그 사이사이에 자신이 발생한 시점의 들여쓰기 깊이를 그대로 가지고 들어간다. 덕분에 "어느 함수 안의 어느 지점에서 이 이벤트가 발생했는가"가 한눈에 잡힌다. 평면적인 `function` tracer의 시간순 나열보다 의미를 추적하기 쉬운 경우가 많다.
