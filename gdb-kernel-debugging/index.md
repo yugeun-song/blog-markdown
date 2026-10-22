@@ -114,14 +114,15 @@ $ gdb ./vmlinux
 ```text
 (gdb) target remote :포트번호
 (gdb) hbreak start_kernel
-Hardware assisted breakpoint 1 at 0xffff8000829c0bd8: file init/main.c, line 915.
+Hardware assisted breakpoint 1 at 0xffff800082300990: file init/main.c, line 871.
 (gdb) continue
+Continuing.
 
-Breakpoint 1, start_kernel () at init/main.c:915 # [!hl]
-915	{
+Breakpoint 1, start_kernel () at init/main.c:871 # [!hl]
+871	{
 (gdb) bt
-#0  start_kernel () at init/main.c:915
-#1  0xffff8000829cad48 in __primary_switched () at arch/arm64/kernel/head.S:243
+#0  start_kernel () at init/main.c:871
+#1  0xffff800082309f88 in __primary_switched () at arch/arm64/kernel/head.S:246
 Backtrace stopped: previous frame identical to this frame (corrupt stack?)
 ```
 
@@ -131,9 +132,9 @@ Backtrace stopped: previous frame identical to this frame (corrupt stack?)
 
 ```text
 (gdb) lx-version
-Linux version 6.12.92 (root@...) (aarch64-linux-gnu-gcc 13.3.0, GNU ld 2.42) #1 SMP PREEMPT ...
+Linux version 6.18.58 (root@build) (aarch64-linux-gnu-gcc (GCC) 16.2.0, GNU ld (GNU Binutils) 2.47) #2 SMP PREEMPT Wed Oct 21 23:16:54 KST 2026
 (gdb) p init_task.comm
-$1 = "swapper/0\000\000\000\000\000\000"
+$1 = "swapper\000\000\000\000\000\000\000\000"
 ```
 
 `p init_task.comm`이 부팅 0번 태스크 `swapper`의 이름을 그대로 돌려준다. gdb가 `vmlinux`의 심볼(`init_task`)과 타입(`struct task_struct`)을 알고 있으므로, 살아 있는 커널 메모리를 C 표현식으로 읽는 것이다.
@@ -172,14 +173,15 @@ gdb는 `Note: breakpoint N also set at pc ...`로 같은 자리에 이미 중단
 
 ```text
 pwndbg> b
-Note: breakpoint 1 also set at pc 0xffff8000829c0bd8.
-Breakpoint 4 at 0xffff8000829c0bd8: file init/main.c, line 915.
+Note: breakpoint 1 also set at pc 0xffff800082300990.
+Breakpoint 2 at 0xffff800082300990: file init/main.c, line 871.
 pwndbg> info b
 Num     Type           Disp Enb Address            What
-1       breakpoint     keep y   0xffff8000829c0bd8 in start_kernel at init/main.c:915
-        breakpoint already hit 1 time
-4       breakpoint     keep y   0xffff8000829c0bd8 init/main.c:915
-pwndbg> d 4            # 중복된 4번만 지우고
+1       breakpoint     keep y   0xffff800082300990 in start_kernel
+                                                   at init/main.c:871
+	breakpoint already hit 1 time
+2       breakpoint     keep y   0xffff800082300990 init/main.c:871
+pwndbg> d 2            # 중복된 2번만 지우고
 pwndbg> c              # 이어서 진행
 Continuing.
 ```
@@ -190,7 +192,8 @@ Continuing.
 (gdb) help tbreak
 Set a temporary breakpoint.
 Like "break" except the breakpoint is only temporary,
-so it will be deleted when hit.
+so it will be deleted when hit.  Equivalent to "break" followed
+by using "enable delete" on the breakpoint number.
 
 (gdb) help hbreak
 Set a hardware assisted breakpoint.
@@ -205,7 +208,7 @@ some target hardware may not have this support.
 
 ```text
 (gdb) help bp
-Undefined command: "bp".  Try "help". # [!hl]
+❌️ Undefined command: "bp".  Try "help". # [!hl]
 ```
 
 `bp`는 **pwndbg가 추가하는 명령**이다. pwndbg를 로드한 gdb에서는 다음과 같이 나온다.
@@ -213,6 +216,7 @@ Undefined command: "bp".  Try "help". # [!hl]
 ```text
 pwndbg> help bp
 Set a breakpoint at the specified address.
+
 usage: bp [-h] where
 ```
 
@@ -227,13 +231,14 @@ x86_64에서는 QEMU가 `-S`로 vCPU를 레거시 리셋 벡터(real mode)에 �
 ```text
 # x86_64 (KVM): 리셋 벡터(real mode), 소프트웨어 중단점 삽입 실패
 (gdb) break start_kernel
-Breakpoint 1 at 0xffffffff83b4da60: file init/main.c, line 915.
+Breakpoint 1 at 0xffffffff835b28f0: file init/main.c, line 871.
 (gdb) continue
-Warning:
+Continuing.
+❌️ Warning:
 Cannot insert breakpoint 1.
-Cannot access memory at address 0xffffffff83b4da60 # [!hl]
+Cannot access memory at address 0xffffffff835b28f0 # [!hl]
 
-Command aborted.
+❌️ Command aborted.
 ```
 
 소프트웨어 중단점은 메모리를 써야 하는데 그 주소를 쓸 수 없으니 삽입에 실패하고 `continue`까지 중단된다. 그런데 똑같은 `break start_kernel`을 TCG로 띄운 arm64나 riscv64에서 하면 결과가 다르다. 소프트웨어 중단점이 그대로 삽입되고 `start_kernel`에 곧바로 멈춘다.
@@ -241,17 +246,20 @@ Command aborted.
 ```text
 # arm64 (TCG): 커널 엔트리에서 시작, 소프트웨어 중단점이 그대로 들어가고 정지
 (gdb) break start_kernel
-Breakpoint 1 at 0xffff8000829c0bd8: file init/main.c, line 915.
+Breakpoint 1 at 0xffff800082300990: file init/main.c, line 871.
 (gdb) continue
+Continuing.
 
-Breakpoint 1, start_kernel () at init/main.c:915 # [!hl]
+Breakpoint 1, start_kernel () at init/main.c:871 # [!hl]
+871	{
 
 # riscv64 (TCG): 동일하게 start_kernel에 정지
 (gdb) break start_kernel
-Breakpoint 1 at 0xffffffff80c00882 (2 locations)
+Breakpoint 1 at 0xffffffff80e008f0 (2 locations)
 (gdb) continue
+Continuing.
 
-Breakpoint 1.1, 0xffffffff80c00882 in start_kernel () # [!hl]
+Breakpoint 1.1, 0xffffffff80e008f0 in start_kernel () # [!hl]
 ```
 
 정리하면, 리셋 직후 소프트웨어 중단점이 실패하는 것은 아키텍처가 아니라 가속기 차이 때문이다. KVM에서 `break`는 게스트 메모리에 `int3`를 써넣어야 하므로 페이지 테이블이 서기 전에는 실패한다. 반면 TCG에서는 QEMU가 소프트웨어 중단점(`Z0`)과 하드웨어 중단점(`Z1`)을 모두 내부의 PC 비교 중단점으로 구현해 메모리를 쓰지 않으므로, x86_64도 TCG로 띄우면 `break start_kernel`이 그대로 걸린다. 하드웨어 중단점(`hbreak`)은 메모리를 건드리지 않으므로 가속기와 아키텍처를 가리지 않고 이 시점에 안전하게 동작한다. 앞서 보인 표준 세션이 `hbreak`를 쓴 이유다. 부팅 극초기를 확실히 잡으려면 `hbreak`가 무난하고, 페이징이 선 뒤의 일반 함수에는 소프트웨어 `break`(`b`)가 잘 듣는다.
@@ -262,14 +270,16 @@ Breakpoint 1.1, 0xffffffff80c00882 in start_kernel () # [!hl]
 
 ```text
 (gdb) watch jiffies_64
-Hardware watchpoint 2: jiffies_64 # [!hl]
+Hardware watchpoint 1: jiffies_64 # [!hl]
 (gdb) continue
+Continuing.
 
-Hardware watchpoint 2: jiffies_64
+Hardware watchpoint 1: jiffies_64
 
-Old value = 4294892732
-New value = 4294892733
-tick_do_update_jiffies64 (now=<optimized out>) at kernel/time/tick-sched.c:130
+Old value = 4294892296
+New value = 4294892297
+do_timer (ticks=ticks@entry=1) at kernel/time/timekeeping.c:2552
+2552		calc_global_load();
 ```
 
 `Hardware watchpoint`라는 표기가 핵심이다. gdb가 아니라 대상 쪽(KVM이면 CPU의 디버그 레지스터, TCG면 QEMU 내부)이 변경을 감시하므로 거의 공짜다. 만약 **소프트웨어** watchpoint(`Watchpoint`로 표기)라면 gdb는 매 명령마다 멈춰 값을 비교한다. 유저 프로그램이라면 느릴 뿐이지만, 커널 전체를 매 명령마다 멈춰 가며 돌리면 진행이 사실상 기어갈 정도로 느려진다. 그래서 커널에서 watch를 실용적으로 쓰려면 하드웨어 백업이 거의 필수다. 참고로 KVM에서는 x86의 하드웨어 디버그 레지스터가 4개(DR0–DR3)뿐이라 `hbreak`와 watchpoint류가 이 4개를 나눠 쓰고, 넘치면 재개할 때 `Could not insert hardware watchpoint` 오류가 난다. TCG에서는 QEMU가 소프트웨어로 구현하므로 이런 개수 제한이 없다.
@@ -278,16 +288,16 @@ watchpoint는 한 종류가 아니라 *무엇을 잡을 것인가*에 따라 세
 
 ```text
 (gdb) watch jiffies_64
-Hardware watchpoint 4: jiffies_64
+Hardware watchpoint 2: jiffies_64
 (gdb) rwatch jiffies_64
-Hardware read watchpoint 5: jiffies_64
+Hardware read watchpoint 3: jiffies_64
 (gdb) awatch jiffies_64
-Hardware access (read/write) watchpoint 6: jiffies_64
+Hardware access (read/write) watchpoint 4: jiffies_64
 (gdb) info watchpoints
 Num     Type            Disp Enb Address            What
-4       hw watchpoint   keep y                      jiffies_64
-5       read watchpoint keep y                      jiffies_64
-6       acc watchpoint  keep y                      jiffies_64
+2       hw watchpoint   keep y                      jiffies_64
+3       read watchpoint keep y                      jiffies_64
+4       acc watchpoint  keep y                      jiffies_64
 ```
 
 KVM에서는 셋 다 디버그 레지스터(x86은 4개)를 나눠 쓰므로 남발하면 디버그 활용에 필요한 여분의 레지스터가 부족해진다.
@@ -298,13 +308,16 @@ KVM에서는 셋 다 디버그 레지스터(x86은 4개)를 나눠 쓰므로 남
 
 ```text
 (gdb) break try_to_wake_up if p->pid == 2
+Breakpoint 2 at 0xffff80008012fb68: file kernel/sched/core.c, line 4160.
 (gdb) info breakpoints
 Num     Type           Disp Enb Address            What
-3       breakpoint     keep y   0xffff8000800fc9a0 in try_to_wake_up at kernel/sched/core.c:4143
+2       breakpoint     keep y   0xffff80008012fb68 in try_to_wake_up at kernel/sched/core.c:4160
 	stop only if p->pid == 2 # [!hl]
 (gdb) continue
+Continuing.
 
-Breakpoint 3, try_to_wake_up (p=0xffff000004669300, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4143
+Breakpoint 2, try_to_wake_up (p=0xffff000003679200, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4160
+4160	{
 ```
 
 조건식은 그 자리에서 유효한 C-like 표현식이면 된다. 다만 문자열 비교는 주의해야 한다. `p->comm == "kthreadd"`처럼 `==`로는 문자열 내용을 비교할 수 없으므로, 문자열은 gdb 편의 함수 `$_streq`로 비교하거나, 더 강력하게는 파이썬 API로 처리한다.
@@ -315,15 +328,15 @@ Breakpoint 3, try_to_wake_up (p=0xffff000004669300, state=state@entry=3, wake_fl
 
 ```text
 (gdb) break try_to_wake_up
-Breakpoint 1 at 0xffff8000800fc9a0: file kernel/sched/core.c, line 4143.
+Breakpoint 1 at 0xffff80008012fb68: file kernel/sched/core.c, line 4160.
 (gdb) break do_unlinkat
-Breakpoint 2 at 0xffff80008042e950: file fs/namei.c, line 4506.
+Breakpoint 2 at 0xffff800080475018: file fs/namei.c, line 4735.
 (gdb) watch jiffies_64
 Hardware watchpoint 3: jiffies_64
 (gdb) info breakpoints
 Num     Type           Disp Enb Address            What
-1       breakpoint     keep y   0xffff8000800fc9a0 in try_to_wake_up at kernel/sched/core.c:4143
-2       breakpoint     keep y   0xffff80008042e950 in do_unlinkat at fs/namei.c:4506
+1       breakpoint     keep y   0xffff80008012fb68 in try_to_wake_up at kernel/sched/core.c:4160
+2       breakpoint     keep y   0xffff800080475018 in do_unlinkat at fs/namei.c:4735
 3       hw watchpoint  keep y                      jiffies_64
 ```
 
@@ -333,8 +346,8 @@ Num     Type           Disp Enb Address            What
 (gdb) disable 2
 (gdb) info breakpoints
 Num     Type           Disp Enb Address            What
-1       breakpoint     keep y   0xffff8000800fc9a0 in try_to_wake_up at kernel/sched/core.c:4143
-2       breakpoint     keep n   0xffff80008042e950 in do_unlinkat at fs/namei.c:4506
+1       breakpoint     keep y   0xffff80008012fb68 in try_to_wake_up at kernel/sched/core.c:4160
+2       breakpoint     keep n   0xffff800080475018 in do_unlinkat at fs/namei.c:4735
 3       hw watchpoint  keep y                      jiffies_64
 ```
 
@@ -343,9 +356,10 @@ Num     Type           Disp Enb Address            What
 ```text
 (gdb) delete 3              # 3번(워치포인트) 제거
 (gdb) clear do_unlinkat     # do_unlinkat에 걸린 2번을 위치로 제거
+Deleted breakpoint 2
 (gdb) info breakpoints
 Num     Type           Disp Enb Address            What
-1       breakpoint     keep y   0xffff8000800fc9a0 in try_to_wake_up at kernel/sched/core.c:4143
+1       breakpoint     keep y   0xffff80008012fb68 in try_to_wake_up at kernel/sched/core.c:4160
 ```
 
 남은 1번에 조건을 나중에 붙이거나 떼는 것도 번호로 한다. `condition <번호> <식>`은 조건을 (재)지정하고, 식 없이 `condition <번호>`만 주면 조건을 없앤다. `ignore <번호> <횟수>`는 그 횟수만큼 적중을 무시한다.
@@ -356,7 +370,7 @@ Num     Type           Disp Enb Address            What
 Will stop next time breakpoint 1 is reached.
 (gdb) info breakpoints
 Num     Type           Disp Enb Address            What
-1       breakpoint     keep y   0xffff8000800fc9a0 in try_to_wake_up at kernel/sched/core.c:4143
+1       breakpoint     keep y   0xffff80008012fb68 in try_to_wake_up at kernel/sched/core.c:4160
 	stop only if p->pid == 2
 ```
 
@@ -368,28 +382,27 @@ Num     Type           Disp Enb Address            What
 
 ```text
 (gdb) bt
-#0  try_to_wake_up (p=0xffff000004669300, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4143
-#1  0xffff8000800fd120 in wake_up_process (p=<optimized out>) at kernel/sched/core.c:4429 # [!hl]
-#2  0xffff8000800e31ec in __kthread_create_on_node (threadfn=..., data=..., node=-1, namefmt=... "pool_workqueue_release", ...) at kernel/kthread.c:455
-#3  __kthread_create_worker (...) at kernel/kthread.c:884
+#0  try_to_wake_up (p=0xffff000003679200, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4160
+#1  0xffff800080130208 in wake_up_process (p=<optimized out>) at kernel/sched/core.c:4440 # [!hl]
+#2  0xffff800080113494 in __kthread_create_on_node (threadfn=threadfn@entry=0xffff800080114548 <kthread_worker_fn>, data=data@entry=0xffff000003482980, node=node@entry=-1, namefmt=namefmt@entry=0xffff80008200d130 "pool_workqueue_release", args=<error reading variable: Cannot access memory at address 0x0>) at kernel/kthread.c:498
 ...
-#6  workqueue_init () at kernel/workqueue.c:7945
+#6  workqueue_init () at kernel/workqueue.c:8018
 
 (gdb) info registers pc sp x0 x1
-pc  0xffff8000800fc9a0  <try_to_wake_up>
-sp  0xffff800083fcbc30
-x0  0xffff000004669300   -281474902879488
-x1  0x3                  3
+pc             0xffff80008012fb68  0xffff80008012fb68 <try_to_wake_up>
+sp             0xffff800082e9bc70  0xffff800082e9bc70
+x0             0xffff000003679200  -281474919591424
+x1             0x3                 3
 
 (gdb) p/x $TTBR1_EL1
-$1 = 0x42bba000
+$2 = 0x424f5000
 
 (gdb) ptype struct task_struct
 type = struct task_struct {
     struct thread_info thread_info;
     unsigned int __state;
+    unsigned int saved_state;
     void *stack;
-    unsigned int flags;
     ...
 }
 ```
@@ -402,8 +415,9 @@ type = struct task_struct {
 
 ```text
 (gdb) finish
-Run till exit from #0  try_to_wake_up (...) at kernel/sched/core.c:4143
-0xffff8000800fd120 in wake_up_process (p=<optimized out>) at kernel/sched/core.c:4430
+Run till exit from #0  try_to_wake_up (p=0xffff000003679200, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4160
+0xffff800080130208 in wake_up_process (p=<optimized out>) at kernel/sched/core.c:4441
+4441	}
 Value returned is $1 = 0 # [!hl]
 ```
 
@@ -413,9 +427,16 @@ Value returned is $1 = 0 # [!hl]
 
 ```text
 (gdb) list
-920        smp_setup_processor_id();
-921        debug_objects_early_init();
-922        init_vmlinux_build_id();
+866	#endif
+867	}
+868
+869	asmlinkage __visible __init __no_sanitize_address __noreturn __no_stack_protector
+870	void start_kernel(void)
+871	{
+872		char *command_line;
+873		char *after_dashes;
+874
+875		set_task_stack_end_magic(&init_task);
 ```
 
 ### print로 값 출력하기
@@ -424,17 +445,17 @@ Value returned is $1 = 0 # [!hl]
 
 ```text
 (gdb) p init_task.comm
-$1 = "swapper/0\000\000\000\000\000\000"
+$3 = "swapper/0\000\000\000\000\000\000"
 (gdb) p/x init_task.flags        # /x: 16진수
-$2 = 0x4200002
+$4 = 0x4200000
 (gdb) p/d $x0                    # /d: 부호 있는 10진수
-$3 = -281474902879488
+$5 = -281474919591424
 (gdb) p/t (unsigned char) 0xb4   # /t: 2진수
-$4 = 10110100
+$6 = 10110100
 (gdb) p/c 65                     # /c: 문자
-$5 = 65 'A'
+$7 = 65 'A'
 (gdb) p/a $pc                    # /a: 주소를 심볼로
-$6 = 0xffff8000800fc9a0 <try_to_wake_up>
+$8 = 0xffff80008012fb68 <try_to_wake_up>
 ```
 
 자주 쓰는 포맷 글자는 `/x`(16진), `/d`(10진), `/u`(부호 없는 10진), `/o`(8진), `/t`(2진), `/c`(문자), `/a`(주소+심볼), `/f`(실수), `/s`(문자열)다.
@@ -443,15 +464,15 @@ $6 = 0xffff8000800fc9a0 <try_to_wake_up>
 
 ```text
 (gdb) p sizeof(struct task_struct)        # 타입 크기
-$7 = 4864
+$9 = 4608
 (gdb) p &init_task                        # 주소 (타입까지)
-$8 = (struct task_struct *) 0xffff800083865900 <init_task>
+$10 = (struct task_struct *) 0xffff8000827160c0 <init_task>
 (gdb) p $lx_current()->comm               # 특수 함수 + 멤버 접근
-$9 = "init", '\000' <repeats 11 times>
+$11 = "swapper/0\000\000\000\000\000\000"
 (gdb) p *(unsigned long *)&init_task @ 4  # 인공 배열: 식@개수
-$10 = {8, 4294967298, 0, 0}
+$12 = {16, 4294967298, 0, 0}
 (gdb) p $pc                               # 레지스터 특수 변수
-$11 = (void (*)()) 0xffff8000800fc9a0 <try_to_wake_up>
+$13 = (void (*)()) 0xffff80008012fb68 <try_to_wake_up>
 ```
 
 `식@개수`는 gdb 고유의 "인공 배열" 표기로, 왼쪽 식이 놓인 주소부터 원하는 개수만큼을 배열처럼 펼쳐 본다. 포인터 `p`를 그대로 쓰면 `p`가 저장된 자리가 펼쳐지므로 `*p@4`처럼 역참조해야 한다. `$pc`, `$x0` 같은 레지스터와 `$lx_current()` 같은 커널 헬퍼도 표현식 안에서 그대로 평가된다.
@@ -477,21 +498,21 @@ type = struct files_struct *
 ```text
 (gdb) disassemble try_to_wake_up
 Dump of assembler code for function try_to_wake_up:
-=> 0xffff8000800fc9a0 <+0>:     mov     x9, x30
-   0xffff8000800fc9a8 <+8>:     paciasp
-   0xffff8000800fc9ac <+12>:    sub     sp, sp, #0x70
-   0xffff8000800fc9b0 <+16>:    mrs     x3, sp_el0
-   ...
+=> 0xffff80008012fb68 <+0>:	mov	x9, x30
+   0xffff80008012fb6c <+4>:	nop
+   0xffff80008012fb70 <+8>:	paciasp
+   0xffff80008012fb74 <+12>:	sub	sp, sp, #0x80
+...
 ```
 
 pwndbg는 같은 일을 `nearpc`(별칭 `u`, `pdisass`)로도 할 수 있다. 현재 명령에 `►`가 붙고, 분기와 메모리 접근에는 에뮬레이션 주석이 달린다.
 
 ```text
 pwndbg> nearpc 5      # u 5, pdisass 5도 같은 출력
-b► 0xffff8000800fc9a0 <try_to_wake_up>    mov x9, x30    X9 => 0xffff8000800fd120 (wake_up_process+32)
-   0xffff8000800fc9a8 <try_to_wake_up+8>  paciasp
-   0xffff8000800fc9ac <try_to_wake_up+12> sub sp, sp, #0x70
-   ...
+b► 0xffff80008012fb68 <try_to_wake_up>       mov    x9, x30                   X9 => 0xffff800080130208 (wake_up_process+32) ◂— ldp x29, x30, [sp], #0x10
+   0xffff80008012fb6c <try_to_wake_up+4>     nop
+   0xffff80008012fb70 <try_to_wake_up+8>     paciasp
+...
 ```
 
 ### x로 메모리 검사하기
@@ -500,13 +521,13 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>    mov x9, x30    X9 => 0xffff8000800fd
 
 ```text
 (gdb) x/5i $pc            # i: 명령어 5개
-=> 0xffff8000800fc9a0 <try_to_wake_up>: mov     x9, x30
+=> 0xffff80008012fb68 <try_to_wake_up>:	mov	x9, x30
    ...
 (gdb) x/8xb &init_task    # x 16진, b 바이트
-0xffff800083865900 <init_task>: 0x08  0x00  0x00  0x00  0x00  0x00  0x00  0x00
+0xffff8000827160c0 <init_task>:	0x10	0x00	0x00	0x00	0x00	0x00	0x00	0x00
 (gdb) x/4xg $sp           # x 16진, g 8바이트
-0xffff800083fcbc30:     0xffff800083fcbc90      0xffff8000800e31ec
-0xffff800083fcbc40:     0xffff800083fcbdc0      0xffff800083fcbdc0
+0xffff800082e9bc70:	0xffff800082e9bcd0	0xffff800080113494
+0xffff800082e9bc80:	0xffff800082e9bdf0	0xffff800082e9bdf0
 ```
 
 `x`는 주소에서 메모리를 읽어 보여 준다는 점에서 C의 역참조 연산자 `*`와 가장 닮았다. 실제로 `x/1xg &jiffies_64`는 `*(unsigned long *)&jiffies_64`와 같은 8바이트를 읽는다. 다만 둘이 100% 같지는 않다. `*`는 포인터의 타입(`T *`)에 따라 `T` 값을 *만들어 내는* 연산자라 다른 식에 끼워 쓸 수 있는 반면, `x`는 식의 타입을 무시하고 `<크기><포맷>`을 직접 받아 그 바이트를 *표시만* 하는 명령이다. 같은 주소라도 `x/xg`(8바이트), `x/xw`(4바이트), `x/xb`(1바이트)로 읽는 폭이 달라지고 값을 돌려주지도 않는다. 그래서 `x`와 완벽히 동일한 C 연산자는 없고, 의미가 가장 가까운 것은 `*`이다.
@@ -515,10 +536,10 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>    mov x9, x30    X9 => 0xffff8000800fd
 
 ```text
 (gdb) x/20i ($pc - 10)
-   0xffff8000829c0bce:    .inst    0x201fd503 ; undefined
-   0xffff8000829c0bd2:    .inst    0x201fd503 ; undefined
-   0xffff8000829c0bd6 <start_kernel-2>:    .inst    0x201fd503 ; undefined
-   0xffff8000829c0bda <start_kernel+2>:    .inst    0x201fd503 ; undefined
+   0xffff800082300986:	.inst	0x201fd503 ; undefined
+   0xffff80008230098a:	.inst	0x201fd503 ; undefined
+   0xffff80008230098e:	.inst	0x201fd503 ; undefined
+   0xffff800082300992 <start_kernel+2>:	.inst	0x201fd503 ; undefined
    ...
 ```
 
@@ -540,29 +561,33 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>    mov x9, x30    X9 => 0xffff8000800fd
 `next`는 호출이 있든 없든 같은 함수 안에서 다음 줄로만 간다. `try_to_wake_up`에서 `scoped_guard (raw_spinlock_irqsave, &p->pi_lock)` 줄에 `next`를 치면, 그 락 획득 호출을 끝까지 실행하되 그 안으로 들어가지는 않고 다음 줄로 넘어간다(step over).
 
 ```text
-try_to_wake_up (...) at kernel/sched/core.c:4180   scoped_guard (raw_spinlock_irqsave, &p->pi_lock) {
-(gdb) next        # -> kernel/sched/core.c:4181   smp_mb__after_spinlock();
-(gdb) next        # -> kernel/sched/core.c:4182   if (!ttwu_state_match(p, state, &success))   (락 호출을 넘김: over)
+0xffff80008012fbb8 in try_to_wake_up (p=0xffff000003679200, state=state@entry=3, wake_flags=8, wake_flags@entry=0) at kernel/sched/core.c:4197
+4197		scoped_guard (raw_spinlock_irqsave, &p->pi_lock) {
+(gdb) next        # 락을 잡는 호출은 끝까지 실행만 하고 넘어간다(over)
+4198			smp_mb__after_spinlock();
+(gdb) next
+4199			if (!ttwu_state_match(p, state, &success))
 ```
 
 반대로 `step`은 호출 줄에서 그 함수 안으로 내려간다. 같은 함수의 `if (!ttwu_state_match(p, state, &success))` 줄에서 `step`을 치면 `ttwu_state_match`로 진입한다(step into).
 
 ```text
-try_to_wake_up (...) at kernel/sched/core.c:4182   if (!ttwu_state_match(p, state, &success))
-(gdb) step
-ttwu_state_match (state=3, p=0xffff000004669300, ...) at kernel/sched/core.c:4000   (호출 안으로 진입: into)
-4000		*success = !!(match = __task_state_match(p, state));
+4199			if (!ttwu_state_match(p, state, &success))
+(gdb) step        # 호출 안으로 진입(into)
+ttwu_state_match (p=0xffff000003679200, state=3, success=<synthetic pointer>) at kernel/sched/core.c:4017
+4017		*success = !!(match = __task_state_match(p, state));
 ```
 
 `stepi`와 `nexti`도 유사하게 작동한다. `bl`(arm64)이나 `call`(x86) 명령에서 `stepi`는 그 함수의 첫 명령으로 진입하고, `nexti`는 호출을 끝까지 실행한 뒤 다음 명령으로 넘어간다.
 
 ```text
 (gdb) x/i $pc
-=> 0xffff8000800fc9e0 <try_to_wake_up+64>:      bl      0xffff8000800f2f38 <preempt_count_add>
-(gdb) stepi
-preempt_count_add (val=val@entry=1) at kernel/sched/core.c:5803     # bl 안으로 진입
+=> 0xffff80008012fbc8 <try_to_wake_up+96>:	bl	0xffff8000814a2408 <_raw_spin_lock_irqsave>
+(gdb) stepi       # bl 안으로 진입
+_raw_spin_lock_irqsave (lock=lock@entry=0xffff0000036799dc) at kernel/locking/spinlock.c:161
+161	{
 (gdb) x/i $pc
-=> 0xffff8000800f2f38 <preempt_count_add>:       nop
+=> 0xffff8000814a2408 <_raw_spin_lock_irqsave>:	mov	x9, x30
 ```
 
 ### set var로 값 강제 변경
@@ -571,10 +596,10 @@ preempt_count_add (val=val@entry=1) at kernel/sched/core.c:5803     # bl 안으�
 
 ```text
 (gdb) p state
-$1 = 3                   # TASK_NORMAL
+$2 = 3                   # TASK_NORMAL
 (gdb) set var state = 1
 (gdb) p state
-$2 = 1                   # TASK_INTERRUPTIBLE로 바뀜
+$3 = 1                   # TASK_INTERRUPTIBLE로 바뀜
 ```
 
 커널 메모리에 그대로 써지므로, 이대로 `continue`하면 커널이 바뀐 값으로 진행한다. 그만큼 위험하니 무엇을 바꾸는지 알고 써야 한다.
@@ -584,27 +609,34 @@ $2 = 1                   # TASK_INTERRUPTIBLE로 바뀜
 ```text
 (gdb) set var panic_on_oops = 1      # oops를 즉시 패닉으로 승격
 (gdb) hbreak try_to_wake_up
+Hardware assisted breakpoint 1 at 0xffff80008012fb68: file kernel/sched/core.c, line 4160.
 (gdb) continue
-Breakpoint, try_to_wake_up (p=0xffff000004c14c00, state=3, wake_flags=0) at kernel/sched/core.c:4143
+Continuing.
+
+Breakpoint 1, try_to_wake_up (p=0xffff0000045a1200, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4160
+4160	{
 (gdb) set $x0 = 0                    # 깨우려는 태스크 포인터 p를 NULL로 강제
+(gdb) delete                         # 다음 호출에서 다시 멈추지 않게 중단점을 지운다
 (gdb) continue
+Continuing.
 ```
 
 재개하는 순간 `try_to_wake_up`은 `p->pi_lock`을 잠그려 하는데, `p`가 0이라 주소 `0x89c`(= `p`가 0일 때 `pi_lock`의 오프셋)를 역참조해 NULL 포인터 역참조 Oops가 난다. `panic_on_oops`를 켜 두었으므로 Oops는 그대로 패닉으로 이어진다(마침 PID 1 문맥이라 켜 두지 않았어도 패닉했을 것이다). 게스트 콘솔에 찍힌 실제 출력이다.
 
 ```text
-Unable to handle kernel NULL pointer dereference at virtual address 000000000000089c
-Internal error: Oops: 0000000096000004 [#1] PREEMPT SMP
-CPU: 0 UID: 0 PID: 1 Comm: swapper/0 Not tainted 6.12.92 #1
-pc : _raw_spin_lock_irqsave+0x64/0xa8
-lr : _raw_spin_lock_irqsave+0x30/0xa8
+[    8.404602] Unable to handle kernel NULL pointer dereference at virtual address 00000000000007dc
+[    8.405706] Internal error: Oops: 0000000096000004 [#1]  SMP
+[    8.407340] CPU: 0 UID: 0 PID: 0 Comm: swapper/0 Not tainted 6.18.58 #2 PREEMPT
+[    8.407784] pc : _raw_spin_lock_irqsave+0x48/0x90
+[    8.408228] lr : try_to_wake_up+0x64/0x680
 ...
-Call trace:
- _raw_spin_lock_irqsave+0x64/0xa8
- try_to_wake_up+0x64/0x760
- ...
-Kernel panic - not syncing: Oops: Fatal exception
----[ end Kernel panic - not syncing: Oops: Fatal exception ]---
+[    8.409312] Call trace:
+[    8.409494]  _raw_spin_lock_irqsave+0x48/0x90 (P)
+[    8.409654]  wake_up_process+0x20/0x40
+[    8.409728]  process_timeout+0x1c/0x30
+...
+[    8.411507] Kernel panic - not syncing: Oops: Fatal exception in interrupt
+[    8.412282] ---[ end Kernel panic - not syncing: Oops: Fatal exception in interrupt ]---
 ```
 
 `pc`가 `_raw_spin_lock_irqsave`이고 콜 트레이스가 `try_to_wake_up+0x64`인 것이 핵심이다. `p`를 NULL로 만든 탓에 `try_to_wake_up`이 `p->pi_lock`을 잠그려다 폴트가 났다는 뜻이다. `-snapshot`으로 띄웠으므로 디스크 이미지나 VM 설정에는 아무 변화가 없고, 패닉은 이 일회용 게스트 런타임에서만 일어난다. QEMU를 다시 띄우면 멀쩡하다.
@@ -617,17 +649,17 @@ Kernel panic - not syncing: Oops: Fatal exception
 
 ```text
 (gdb) info line try_to_wake_up
-Line 4143 of "kernel/sched/core.c" starts at address 0xffff8000800fc9a0 <try_to_wake_up> and ends at 0xffff8000800fc9dc <try_to_wake_up+60>.
+Line 4160 of "kernel/sched/core.c" starts at address 0xffff80008012fb68 <try_to_wake_up> and ends at 0xffff80008012fba0 <try_to_wake_up+56>.
 (gdb) info address try_to_wake_up
-Symbol "try_to_wake_up" is a function at address 0xffff8000800fc9a0.
+Symbol "try_to_wake_up" is a function at address 0xffff80008012fb68.
 (gdb) info address init_task
-Symbol "init_task" is static storage at address 0xffff800083865900.
+Symbol "init_task" is static storage at address 0xffff8000827160c0.
 (gdb) info symbol $pc
 try_to_wake_up in section .text
 (gdb) whatis init_task
 type = struct task_struct
 (gdb) info args
-p = 0xffff000004669300
+p = 0xffff000003679200
 state = 3
 wake_flags = 0
 ```
@@ -654,9 +686,11 @@ at <user-defined>:-1
 (gdb) info variables jiffies          # 이름에 jiffies가 든 것 전부 (수십 개)
 ...
 (gdb) pipe info variables jiffies | grep jiffies_64   # 셸로 파이프 (ls | grep처럼)
-61:	u64 jiffies_64;
+60:	u64 jiffies_64;
+0xffff800082273814  __ksymtab_jiffies_64
+...
 (gdb) info address jiffies_64          # 정확한 주소 찾기
-Symbol "jiffies_64" is static storage at address 0xffff8000838579c0.
+Symbol "jiffies_64" is static storage at address 0xffff8000827089c0.
 ```
 
 이렇게 `jiffies_64`가 실재하는 전역 변수임을 확인하고 나면, 안심하고 `watch jiffies_64`를 걸 수 있다.
@@ -666,9 +700,10 @@ Symbol "jiffies_64" is static storage at address 0xffff8000838579c0.
 심볼이 아니라 명령 자체를 잊었을 때는 `apropos`로 키워드에 맞는 gdb/pwndbg 명령을 찾는다. 명령과 한 줄 설명이 함께 나온다.
 
 ```text
-(gdb) apropos breakpoint
+pwndbg> apropos breakpoint
 bc -- Clear the breakpoint with the specified index.
 bd -- Disable the breakpoint with the specified index.
+be -- Enable the breakpoint with the specified index.
 bl -- List breakpoints.
 bp -- Set a breakpoint at the specified address.
 break, brea, bre, br, b -- Set breakpoint at specified location.
@@ -690,7 +725,7 @@ break-range -- Set a breakpoint for an address range.
 **KVM 가속**(`-enable-kvm`)에서도 게스트 시계인 `kvm-clock`은 gdb가 VM을 멈춘 동안 함께 멈춘다. 그래서 `jiffies`나 로그 타임스탬프에는 멈춰 있던 시간이 들어가지 않는다. 다만 TSC는 CPU의 카운터라 호스트 실시간대로 계속 흐른다. 실제로 KVM 게스트를 45초 멈췄다 재개하면 콘솔에 다음이 찍힌다.
 
 ```text
-clocksource: Long readout interval, skipping watchdog check: cs_nsec: 45775429558 wd_nsec: 504061131
+clocksource: Long readout interval, skipping watchdog check: cs_nsec: 45531619916 wd_nsec: 504049081
 ```
 
 clocksource 워치독이 감시하는 TSC(`cs_nsec`)는 45.77초가 흘렀는데, 기준으로 삼는 `kvm-clock`(`wd_nsec`)은 0.5초만 흘렀다. 측정 구간이 너무 길어 워치독이 이번 검사를 건너뛰었다는 경고이며, TSC가 불안정(unstable)으로 표시되지는 않는다. 게스트 시계도 도약하지 않았으므로 RCU stall이나 soft lockup으로 번지지 않는다.
@@ -719,18 +754,18 @@ qemu-system-aarch64 -accel tcg -icount shift=auto -cpu cortex-a72  ...  -gdb tcp
 ```text
 (gdb) info threads
   Id   Target Id                    Frame
-* 1    Thread 1.1 (CPU#0 [running]) try_to_wake_up (p=0xffff000004689300, state=3, wake_flags=0) at kernel/sched/core.c:4143
-  2    Thread 1.2 (CPU#1 [running]) __arch_counter_get_cntvct () at ./arch/arm64/include/asm/arch_timer.h:208
+* 1    Thread 1.1 (CPU#0 [running]) try_to_wake_up (p=0xffff000003724800, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4160
+  2    Thread 1.2 (CPU#1 [halted ]) cpu_do_idle () at arch/arm64/kernel/idle.c:32
 ```
 
 중단점이 걸린 `CPU#0`만이 아니라 다른 코어 `CPU#1`까지 그 순간 함께 멈췄다(all-stop). 그리고 45초를 붙잡고 있어도 게스트의 `jiffies_64`는 한 틱도 늘지 않는다.
 
 ```text
 (gdb) p jiffies_64        # 멈춘 직후
-$1 = 4294892484
+$1 = 4294895616
    ── 디버거 콘솔에서 45초 경과 ──
 (gdb) p jiffies_64        # 재개해 다음 wakeup에서 다시 멈춘 뒤
-$2 = 4294892484           # delta 0: 정지한 45초가 게스트 시간에서 통째로 빠졌다
+$2 = 4294895624           # 8틱(HZ=250에서 32ms)만 늘었다
 ```
 
 KVM이었어도 `kvm-clock`이 함께 멈추므로 `jiffies_64`는 도약하지 않는다. TCG가 다른 점은 TSC까지 함께 멈춘다는 것이다. 즉 `continue` 이후 다음 적중 전까지는 vCPU들이 (icount에서는 직렬로) 진행하고, 적중하는 순간 전부 멈추며, 그 멈춰 있던 시간만 게스트 시계에서 빠진다.
@@ -745,7 +780,8 @@ KVM이었어도 `kvm-clock`이 함께 멈추므로 `jiffies_64`는 도약하지 
 
 ```text
 (gdb) bt 1
-#0  0xffffffff96d122cf in ?? () # [!hl]
+#0  0xffffffffa01f1f6f in ?? () # [!hl]
+(More stack frames follow...)
 (gdb) p/x &_text
 $1 = 0xffffffff81000000        # vmlinux 링크 시점 베이스
 ```
@@ -754,13 +790,22 @@ $1 = 0xffffffff81000000        # vmlinux 링크 시점 베이스
 
 ```text
 pwndbg> kbase -v
-Found virtual text base address: 0xffffffff95c00000 # [!hl]
-corresponding physical address: 0x29000000
+Found virtual text base address: 0xffffffff9ee00000 # [!hl]
+corresponding physical address: 0x56000000
 
-slide = 0xffffffff95c00000 - 0xffffffff81000000 = 0x14c00000
+slide = 0xffffffff9ee00000 - 0xffffffff81000000 = 0x1de00000
 ```
 
 베이스를 찾으면 `kbase -r`로 코드 심볼의 어긋남을 바로잡는다. 내부적으로는 방금 찾은 런타임 베이스로 `add-symbol-file vmlinux <런타임 베이스>`를 실행해, `vmlinux`의 심볼 파일을 슬라이드된 주소에 다시 로드한다. 그러면 멈춘 주소가 함수 이름으로 풀려 `?? ()`가 사라지고 백트레이스가 제대로 나온다. 다만 `p jiffies_64` 같은 변수 접근은 여전히 링크 시점 주소를 읽으므로, 심볼을 그대로 쓰려면 `nokaslr`가 확실하다. 아니면 애초에 부팅 커맨드라인에 `nokaslr`를 줘서 슬라이드를 0으로 만들어도 된다. 기본적으로 `nokaslr`로 부팅하므로 정적 심볼이 그대로 들어맞고, 위 결과는 일부러 `nokaslr`를 빼고 부팅해 슬라이드를 만든 경우다.
+
+```text
+pwndbg> kbase -r
+Found virtual text base address: 0xffffffff9ee00000
+pwndbg> bt 1
+#0  0xffffffffa01f1f6f in pv_native_safe_halt ()
+    at arch/x86/kernel/paravirt.c:82
+(More stack frames follow...)
+```
 
 ## pwndbg로 더 편리하게
 
@@ -770,9 +815,9 @@ pwndbg는 본래 유저스페이스 익스플로잇용 도구이지만, 주소�
 
 ```text
 (gdb) context
-Undefined command: "context".  Try "help".
+❌️ Undefined command: "context".  Try "help".
 (gdb) telescope $sp
-Undefined command: "telescope".  Try "help".
+❌️ Undefined command: "telescope".  Try "help".
 ```
 
 ### context로 멈춘 지점을 한 화면에 보기
@@ -782,34 +827,36 @@ pwndbg를 로드하면 멈출 때마다 레지스터, 디스어셈블, 소스, �
 <pre class="dbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
 <span class="ansi-blue">─────────────[ REGISTERS / show-flags off / show-compact-regs off ]─────────────</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X0  </span> <span class="ansi-magenta">0xffff000004669300</span> ◂— 8
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X0  </span> <span class="ansi-blue">0xffff000003679200</span> ◂— 0x10
 <span class="ansi-red">*</span><span class="ansi-b ansi-red">X1  </span> 3
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X9  </span> <span class="ansi-red">0xffff8000800e31ec (__kthread_create_on_node+244)</span> ◂— <span class="ansi-c-green">add</span> <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x28</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X19 </span> <span class="ansi-magenta">0xffff00000443d940</span> —▸ <span class="ansi-magenta">0xffff0000044084e0</span> ◂— <span class="ansi-yellow">&#x27;pool_workqueue_release&#x27;</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X9  </span> <span class="ansi-red">0xffff800080113494 (__kthread_create_on_node+228)</span> ◂— <span class="ansi-c-green">add</span> <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x28</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X19 </span> <span class="ansi-blue">0xffff000003482a40</span> —▸ <span class="ansi-blue">0xffff00000340b4e0</span> ◂— &#x27;pool_workqueue_release&#x27;
  <span class="ansi-gray">...</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X29 </span> <span class="ansi-yellow">0xffff800083fcbc30</span> —▸ <span class="ansi-yellow">0xffff800083fcbc90</span> —▸ <span class="ansi-yellow">0xffff800083fcbcd0</span> ◂— ...
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">SP  </span> <span class="ansi-yellow">0xffff800083fcbc30</span> —▸ <span class="ansi-yellow">0xffff800083fcbc90</span> —▸ <span class="ansi-yellow">0xffff800083fcbcd0</span> ◂— ...
- <span class="ansi-b">LR  </span> <span class="ansi-red">0xffff8000800fd120 (wake_up_process+32)</span> ◂— <span class="ansi-c-green">ldp</span> <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">x30</span>, [<span class="ansi-c-cyan">sp</span>], <span class="ansi-c-purple">#0x10</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">PC  </span> <span class="ansi-red">0xffff8000800fc9a0 (try_to_wake_up)</span> ◂— <span class="ansi-c-green">mov</span> <span class="ansi-c-cyan">x9</span>, <span class="ansi-c-cyan">x30</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X29 </span> <span class="ansi-yellow">0xffff800082e9bc70</span> —▸ <span class="ansi-yellow">0xffff800082e9bcd0</span> —▸ <span class="ansi-yellow">0xffff800082e9bd80</span> —▸ <span class="ansi-yellow">0xffff800082e9bdf0</span> —▸ <span class="ansi-yellow">0xffff800082e9be40</span> —▸ ...
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">SP  </span> <span class="ansi-yellow">0xffff800082e9bc70</span> —▸ <span class="ansi-yellow">0xffff800082e9bcd0</span> —▸ <span class="ansi-yellow">0xffff800082e9bd80</span> —▸ <span class="ansi-yellow">0xffff800082e9bdf0</span> —▸ <span class="ansi-yellow">0xffff800082e9be40</span> —▸ ...
+ <span class="ansi-b">LR  </span> <span class="ansi-red">0xffff800080130208 (wake_up_process+32)</span> ◂— <span class="ansi-c-green">ldp</span> <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">x30</span>, [<span class="ansi-c-cyan">sp</span>], <span class="ansi-c-purple">#0x10</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">PC  </span> <span class="ansi-red">0xffff80008012fb68 (try_to_wake_up)</span> ◂— <span class="ansi-c-green">mov</span> <span class="ansi-c-cyan">x9</span>, <span class="ansi-c-cyan">x30</span>
 <span class="ansi-blue">─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────</span>
-<span class="ansi-red">b►</span> <span class="ansi-b ansi-green">0xffff8000800fc9a0</span> <span class="ansi-b ansi-green">&lt;try_to_wake_up&gt;</span>   <span class="ansi-b ansi-c-green">mov</span> <span class="ansi-b ansi-c-cyan">x9</span>, <span class="ansi-b ansi-c-cyan">x30</span>   <span class="ansi-b ansi-red">X9</span> =&gt; <span class="ansi-red">0xffff8000800fd120 (wake_up_process+32)</span>
-   0xffff8000800fc9a8 &lt;try_to_wake_up+8&gt;     <span class="ansi-c-green">paciasp</span>
-   0xffff8000800fc9ac &lt;try_to_wake_up+12&gt;    <span class="ansi-c-green">sub</span>    <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x70</span>   <span class="ansi-b ansi-red">SP</span> =&gt; <span class="ansi-yellow">0xffff800083fcbbc0</span>
+<span class="ansi-red">b►</span> <span class="ansi-b ansi-green">0xffff80008012fb68</span> <span class="ansi-b ansi-green">&lt;try_to_wake_up&gt;    </span>   <span class="ansi-b ansi-c-green">mov</span>    <span class="ansi-b ansi-c-cyan">x9</span><span class="ansi-b">,</span> <span class="ansi-b ansi-c-cyan">x30</span>                   <span class="ansi-b ansi-red">X9</span> =&gt; <span class="ansi-red">0xffff800080130208 (wake_up_process+32)</span> ◂— <span class="ansi-c-green">ldp</span> <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">x30</span>, [<span class="ansi-c-cyan">sp</span>], <span class="ansi-c-purple">#0x10</span>
+   0xffff80008012fb6c &lt;try_to_wake_up+4&gt;     <span class="ansi-c-green">nop</span>
+   0xffff80008012fb70 &lt;try_to_wake_up+8&gt;     <span class="ansi-c-green">paciasp</span>
+   0xffff80008012fb74 &lt;try_to_wake_up+12&gt;    <span class="ansi-c-green">sub</span>    <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x80</span>             <span class="ansi-b ansi-red">SP</span> =&gt; <span class="ansi-yellow">0xffff800082e9bbf0</span> (0xffff800082e9bc70 - 0x80)
  <span class="ansi-gray">...</span>
 <span class="ansi-blue">───────────────────────────────[ SOURCE (CODE) ]────────────────────────────────</span>
-   4142 <span class="ansi-c-cyan">int</span> <span class="ansi-c-green">try_to_wake_up</span>(<span class="ansi-c-cyan">struct</span> <span class="ansi-c-green">task_struct</span> <span class="ansi-c-pink">*</span>p, <span class="ansi-c-cyan">unsigned</span> <span class="ansi-c-cyan">int</span> state, <span class="ansi-c-cyan">int</span> wake_flags)
-<span class="ansi-b ansi-green"> ► 4143 </span><span class="ansi-b">{</span>
-   4144         <span class="ansi-c-green">guard</span>(preempt)();
+   4159 <span class="ansi-c-cyan">int</span> try_to_wake_up(<span class="ansi-c-cyan">struct</span> <span class="ansi-c-green">task_struct</span> *p, <span class="ansi-c-cyan">unsigned</span> <span class="ansi-c-cyan">int</span> state, <span class="ansi-c-cyan">int</span> wake_flags)
+<span class="ansi-b ansi-green"> ► 4160 </span><span class="ansi-b">{</span>
+   4161         guard(preempt)();
  <span class="ansi-gray">...</span>
 <span class="ansi-blue">───────────────────────────────────[ STACK ]────────────────────────────────────</span>
-00:0000│ x29 sp <span class="ansi-yellow">0xffff800083fcbc30</span> —▸ <span class="ansi-yellow">0xffff800083fcbc90</span> —▸ <span class="ansi-yellow">0xffff800083fcbcd0</span> ◂— ...
-01:0008│+008    <span class="ansi-yellow">0xffff800083fcbc38</span> —▸ <span class="ansi-red">0xffff8000800e31ec (__kthread_create_on_node+244)</span> ◂— <span class="ansi-c-green">add</span> <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x28</span>
+00:0000│ <span class="ansi-b">x29 sp</span> <span class="ansi-yellow">0xffff800082e9bc70</span> —▸ <span class="ansi-yellow">0xffff800082e9bcd0</span> —▸ <span class="ansi-yellow">0xffff800082e9bd80</span> —▸ <span class="ansi-yellow">0xffff800082e9bdf0</span> —▸ <span class="ansi-yellow">0xffff800082e9be40</span> —▸ ...
+01:0008│+008    <span class="ansi-yellow">0xffff800082e9bc78</span> —▸ <span class="ansi-red">0xffff800080113494 (__kthread_create_on_node+228)</span> ◂— <span class="ansi-c-green">add</span> <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x28</span>
  <span class="ansi-gray">...</span>
 <span class="ansi-blue">─────────────────────────────────[ BACKTRACE ]──────────────────────────────────</span>
- ► 0 0xffff8000800fc9a0 try_to_wake_up
-   1 0xffff8000800fd120 wake_up_process+32
-   2 0xffff8000800e31ec __kthread_create_on_node+244
-   3 0xffff8000800e3504 __kthread_create_worker+316
+ ► 0 0xffff80008012fb68 try_to_wake_up
+   1 0xffff800080130208 wake_up_process+32
+   2 0xffff800080113494 __kthread_create_on_node+228
+   3 0xffff8000801138f8 kthread_create_worker_on_node+224
+ <span class="ansi-gray">...</span>
 <span class="ansi-blue">────────────────────────────────────────────────────────────────────────────────</span>
 </pre>
 
@@ -827,7 +874,7 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 **1. 레지스터 체인**
 
 ```text
-*X29  0xffff800083fcbc30 —▸ 0xffff800083fcbc90 —▸ 0xffff800083fcbcd0 ◂— ...
+*X29  0xffff800082e9bc70 —▸ 0xffff800082e9bcd0 —▸ 0xffff800082e9bd80 —▸ 0xffff800082e9bdf0 —▸ 0xffff800082e9be40 —▸ ...
 ```
 
 `X29`는 프레임 포인터(FP)다. 담긴 주소를 따라가면 스택 프레임을 한 칸씩 거슬러 올라가는 연결 리스트가 되고, 각 노드는 이전 프레임에 저장된 프레임 포인터다.
@@ -867,7 +914,7 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 **2. 디스어셈블**
 
 ```text
-b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 (wake_up_process+32)
+b► 0xffff80008012fb68 <try_to_wake_up>  mov  x9, x30  X9 => 0xffff800080130208 (wake_up_process+32) ◂— ldp x29, x30, [sp], #0x10
 ```
 
 | 토큰 | 의미 |
@@ -882,7 +929,7 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 **3. 스택**
 
 ```text
-01:0008│+008  0xffff800083fcbc38 —▸ 0xffff8000800e31ec (__kthread_create_on_node+244) ◂— add x0, sp, #0x28
+01:0008│+008  0xffff800082e9bc78 —▸ 0xffff800080113494 (__kthread_create_on_node+228) ◂— add x0, sp, #0x28
 ```
 
 | 토큰 | 의미 |
@@ -921,43 +968,44 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 <pre class="dbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
 <span class="ansi-blue">─────────────[ REGISTERS / show-flags off / show-compact-regs off ]─────────────</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X1  </span> <span class="ansi-magenta">0xffff800083869dc0 (__boot_cpu_mode)</span> ◂— 0xe1100000e11
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X5  </span> <span class="ansi-magenta">0xffff800082147000 (kimage_voffset)</span> ◂— 0xffff80003fe00000
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X8  </span> <span class="ansi-red">0xffff800080010800 (vectors)</span> ◂— <span class="ansi-c-green">sub</span> <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x150</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X1  </span> <span class="ansi-yellow">0xffff80008271a708 (__boot_cpu_mode)</span> ◂— 0xe1100000e11
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X5  </span> <span class="ansi-magenta">0xffff80008223d000 (kimage_voffset)</span> ◂— 0xffff80003fe00000
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X8  </span> <span class="ansi-red">0xffff800080011000 (vectors)</span> ◂— <span class="ansi-c-green">sub</span> <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#0x140</span>
  <span class="ansi-gray">...</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">X29 </span> <span class="ansi-yellow">0xffff800083853fe0 (init_thread_union+16352)</span> ◂— 0
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">SP  </span> <span class="ansi-yellow">0xffff800083853eb0 (init_thread_union+16048)</span> ◂— 0
- <span class="ansi-b">LR  </span> <span class="ansi-red">0xffff8000829cad48 (__primary_switched+128)</span> ◂— <span class="ansi-c-green">brk</span> <span class="ansi-c-purple">#0x800</span>
-<span class="ansi-red">*</span><span class="ansi-b ansi-red">PC  </span> <span class="ansi-red">0xffff8000829c0bd8 (start_kernel)</span> ◂— <span class="ansi-c-green">nop</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">X29 </span> <span class="ansi-yellow">0xffff800082703fe8 (init_thread_union+16360)</span> ◂— 0
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">SP  </span> <span class="ansi-yellow">0xffff800082703ec0 (init_thread_union+16064)</span> ◂— 0
+ <span class="ansi-b">LR  </span> <span class="ansi-red">0xffff800082309f88 (__primary_switched+136)</span> ◂— <span class="ansi-c-green">brk</span> <span class="ansi-c-purple">#0x800</span>
+<span class="ansi-red">*</span><span class="ansi-b ansi-red">PC  </span> <span class="ansi-red">0xffff800082300990 (start_kernel)</span> ◂— <span class="ansi-c-green">nop</span>
 <span class="ansi-blue">─────────────────────[ DISASM / aarch64 / set emulate on ]──────────────────────</span>
-<span class="ansi-red">b►</span> <span class="ansi-b ansi-green">0xffff8000829c0bd8</span> <span class="ansi-b ansi-green">&lt;start_kernel&gt;</span>       <span class="ansi-b ansi-c-green">nop</span>
-   0xffff8000829c0bdc &lt;start_kernel+4&gt;     <span class="ansi-c-green">nop</span>
-   0xffff8000829c0be0 &lt;start_kernel+8&gt;     <span class="ansi-c-green">paciasp</span>
-   0xffff8000829c0be4 &lt;start_kernel+12&gt;    <span class="ansi-c-green">adrp</span>   <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-purple">0xffff800083865000</span>     <span class="ansi-b ansi-red">X0</span> =&gt; <span class="ansi-magenta">0xffff800083865000 (vlan_packet_offloads+64)</span> —▸ <span class="ansi-red">0xffff80008140c2e0 (vlan_gro_receive)</span> ◂— <span class="ansi-c-green">nop</span>
-   0xffff8000829c0be8 &lt;start_kernel+16&gt;    <span class="ansi-c-green">stp</span>    <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">x30</span>, [<span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#-0x70</span>]!
-   0xffff8000829c0bec &lt;start_kernel+20&gt;    <span class="ansi-c-green">add</span>    <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-purple">#0x900</span>             <span class="ansi-b ansi-red">X0</span> =&gt; <span class="ansi-magenta">0xffff800083865900 (init_task)</span> (0xffff800083865000 + 0x900)
-   0xffff8000829c0bf0 &lt;start_kernel+24&gt;    <span class="ansi-c-green">mov</span>    <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">sp</span>                    <span class="ansi-b ansi-red">X29</span> =&gt; <span class="ansi-yellow">0xffff800083853e40 (init_thread_union+15936)</span> —▸ <span class="ansi-gray">...</span>
+<span class="ansi-red">b►</span> <span class="ansi-b ansi-green">0xffff800082300990</span> <span class="ansi-b ansi-green">&lt;start_kernel&gt;    </span>   <span class="ansi-b ansi-c-green">nop</span>
+   0xffff800082300994 &lt;start_kernel+4&gt;     <span class="ansi-c-green">nop</span>
+   0xffff800082300998 &lt;start_kernel+8&gt;     <span class="ansi-c-green">paciasp</span>
+   0xffff80008230099c &lt;start_kernel+12&gt;    <span class="ansi-c-green">adrp</span>   <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-purple">0xffff800082716000</span>      <span class="ansi-b ansi-red">X0</span> =&gt; <span class="ansi-yellow">0xffff800082716000 (root_mountflags)</span> ◂— 0x8001
+   0xffff8000823009a0 &lt;start_kernel+16&gt;    <span class="ansi-c-green">stp</span>    <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">x30</span>, [<span class="ansi-c-cyan">sp</span>, <span class="ansi-c-purple">#-0x70</span>]!
+   0xffff8000823009a4 &lt;start_kernel+20&gt;    <span class="ansi-c-green">add</span>    <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-cyan">x0</span>, <span class="ansi-c-purple">#0xc0</span>               <span class="ansi-b ansi-red">X0</span> =&gt; <span class="ansi-yellow">0xffff8000827160c0 (init_task)</span> (0xffff800082716000 + 0xc0)
+   0xffff8000823009a8 &lt;start_kernel+24&gt;    <span class="ansi-c-green">mov</span>    <span class="ansi-c-cyan">x29</span>, <span class="ansi-c-cyan">sp</span>                     <span class="ansi-b ansi-red">X29</span> =&gt; <span class="ansi-yellow">0xffff800082703e50 (init_thread_union+15952)</span> —▸ <span class="ansi-yellow">0xffff800082703fe8 (init_thread_union+16360)</span> ◂— 0
  <span class="ansi-gray">...</span>
 <span class="ansi-blue">───────────────────────────────[ SOURCE (CODE) ]────────────────────────────────</span>
-   913 asmlinkage __visible __init __no_sanitize_address __noreturn __no_stack_protector
-   914 <span class="ansi-c-cyan">void</span> <span class="ansi-c-green">start_kernel</span>(<span class="ansi-c-cyan">void</span>)
-<span class="ansi-b ansi-green"> ► 915 </span><span class="ansi-b">{</span>
-   916         <span class="ansi-c-cyan">char</span> <span class="ansi-c-pink">*</span>command_line;
-   917         <span class="ansi-c-cyan">char</span> <span class="ansi-c-pink">*</span>after_dashes;
-   918 
-   919         <span class="ansi-c-green">set_task_stack_end_magic</span>(&amp;init_task);
-   920         <span class="ansi-c-green">smp_setup_processor_id</span>();
+   869 asmlinkage __visible __init __no_sanitize_address __noreturn __no_stack_protector
+   870 <span class="ansi-c-cyan">void</span> start_kernel(<span class="ansi-c-cyan">void</span>)
+<span class="ansi-b ansi-green"> ► 871 </span><span class="ansi-b">{</span>
+   872         <span class="ansi-c-cyan">char</span> *command_line;
+   873         <span class="ansi-c-cyan">char</span> *after_dashes;
+   874
+   875         set_task_stack_end_magic(&amp;init_task);
+   876         smp_setup_processor_id();
+ <span class="ansi-gray">...</span>
 <span class="ansi-blue">───────────────────────────────────[ STACK ]────────────────────────────────────</span>
-00:0000│  sp <span class="ansi-yellow">0xffff800083853eb0 (init_thread_union+16048)</span> ◂— 0
-<span class="ansi-gray">... ↓       7 skipped</span>
+00:0000│ <span class="ansi-b"> sp</span> <span class="ansi-yellow">0xffff800082703ec0 (init_thread_union+16064)</span> ◂— 0
+... ↓       7 skipped
 <span class="ansi-blue">─────────────────────────────────[ BACKTRACE ]──────────────────────────────────</span>
- ► 0 0xffff8000829c0bd8 start_kernel
-   1 0xffff8000829cad48 __primary_switched+128
+ ► 0 0xffff800082300990 start_kernel
+   1 0xffff800082309f88 __primary_switched+136
 <span class="ansi-blue">─────────────────────────────[ THREADS (4 TOTAL) ]──────────────────────────────</span>
-  ► 1   "" stopped: 0xffff8000829c0bd8 &lt;start_kernel&gt;
-    4   "" stopped: 0
-    3   "" stopped: 0
-    2   "" stopped: 0
+  ► 1   "" <span class="ansi-yellow">stopped</span>: <span class="ansi-red">0xffff800082300990</span> &lt;<span class="ansi-b ansi-green">start_kernel</span>&gt;
+    4   "" <span class="ansi-yellow">stopped</span>: 0
+    3   "" <span class="ansi-yellow">stopped</span>: 0
+    2   "" <span class="ansi-yellow">stopped</span>: 0
 <span class="ansi-blue">────────────────────────────────────────────────────────────────────────────────</span>
 </pre>
 
@@ -971,11 +1019,11 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 
 ```text
 pwndbg> telescope $sp 6
-00:0000│ x29 sp 0xffff800083fcbc30 —▸ 0xffff800083fcbc90 —▸ 0xffff800083fcbcd0 —▸ 0xffff800083fcbd80 ◂— ...
-01:0008│+008    0xffff800083fcbc38 —▸ 0xffff8000800e31ec (__kthread_create_on_node+244) ◂— add x0, sp, #0x28
-02:0010│+010    0xffff800083fcbc40 —▸ 0xffff800083fcbdc0 —▸ 0xffff800083fcbe20 ◂— ...
+00:0000│ x29 sp 0xffff800082e9bc70 —▸ 0xffff800082e9bcd0 —▸ 0xffff800082e9bd80 —▸ 0xffff800082e9bdf0 —▸ 0xffff800082e9be40 —▸ ...
+01:0008│+008    0xffff800082e9bc78 —▸ 0xffff800080113494 (__kthread_create_on_node+228) ◂— add x0, sp, #0x28
+02:0010│+010    0xffff800082e9bc80 —▸ 0xffff800082e9bdf0 —▸ 0xffff800082e9be40 —▸ 0xffff800082e9bea0 —▸ 0xffff800082e9bfe8 —▸ ...
 ...
-05:0028│+028    0xffff800083fcbc58 ◂— 0xffffffd0
+05:0028│+028    0xffff800082e9bc98 ◂— 0xffffffd8
 ```
 
 `telescope $sp 6`은 `sp`에서 8바이트씩 여섯 슬롯을 찍되, 각 슬롯의 값을 다시 역참조해 사슬로 풀어 준다. C로 보면 각 행은 `*(void **)(sp + 오프셋)`을 구하고, 그 결과가 또 주소이면 거기에 `*`를 거듭 적용해 더는 주소가 아닌 값에 닿을 때까지 따라가는 것이다. 그래서 화살표가 여러 개인 한 행은 시작 주소에 역참조를 그 개수만큼 거듭한 것과 같다. `A —▸ B —▸ C —▸ D ◂— ...`에서 `B == *(void **)A`, `C == *(void **)B`, `D == *(void **)C`이므로 `D`는 `A`를 세 번 역참조한 값, 즉 개념적으로 `***A`다(엄밀히는 매 단계에서 읽은 8바이트를 다시 포인터로 해석하므로 `*(void **)`를 세 번 포갠 꼴이다). 한 행은 이 다중 역참조의 최종 값만이 아니라 중간 단계(`*A`, `**A`, ...)까지 함께 찍어 준다. 끝의 `◂—`는 거기서 한 번 더 따라간 값이 포인터가 아니거나 표시 깊이에 걸려 사슬이 멈췄다는 표시다.
@@ -986,11 +1034,13 @@ pwndbg> telescope $sp 6
 
 ```text
 pwndbg> vmmap
-            Start                End Perm     Size File
-0xffff800080010000 0xffff800081480000 r-xp 1470000 kernel [.text]
-0xffff800081480000 0xffff8000829c0000 rw-p 1540000 kernel [.bss]
-0xffff8000829c0000 0xffff800082ae0000 r-xp  120000 kernel [.text]
-0xffff800082ae0000 0xffff800083fa0000 rw-p  14c0000 kernel [.bss] [stack]
+             Start                End Perm     Size  Offset File (set vmmap-prefer-relpaths on)
+0xffff000000000000 0xffff000080000000 rw-p 80000000       0 physmap
+0xffff800080000000 0xffff800080010000 rw-p    10000       0 vmalloc
+0xffff800080010000 0xffff8000814c0000 r-xp  14b0000       0 kernel [.text]
+0xffff8000814c0000 0xffff800082300000 rw-p   e40000 14b0000 kernel [.bss]
+0xffff800082300000 0xffff800082420000 r-xp   120000 22f0000 kernel [.text]
+...
 ```
 
 `.text`는 `r-xp`(실행), `.bss`/`.data`는 `rw-p`로 갈려, 어떤 주소가 코드인지 데이터인지와 권한(W+X 위반 여부)을 한눈에 본다. 맨 위 `.text` 시작 주소 `0xffff800080010000`이 곧 `kbase`다(앞쪽 저주소 물리 RAM 영역은 생략했다).
@@ -1001,14 +1051,14 @@ pwndbg> vmmap
 
 ```text
 pwndbg> p linux_banner
-$1 = 0xffff800081ac2698 <linux_banner> "Linux version 6.12.92 (root@5044726c930e) (aarch64-linux-gnu-gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #2 SMP PREEMPT Wed Jun 17 13:33:27 UTC 2026\n"
+$1 = "Linux version 6.18.58 (root@build) (aarch64-linux-gnu-gcc (GCC) 16.2.0, GNU ld (GNU Binutils) 2.47) #2 SMP PREEMPT Wed Oct 21 23:16:54 KST 2026\n"
 pwndbg> hexdump linux_banner 0x60
-+0000 0xffff800081ac2698  4c 69 6e 75 78 20 76 65  72 73 69 6f 6e 20 36 2e  │Linux.ve│rsion.6.│
-+0010 0xffff800081ac26a8  31 32 2e 39 32 20 28 72  6f 6f 74 40 35 30 34 34  │12.92.(r│oot@5044│
-+0020 0xffff800081ac26b8  37 32 36 63 39 33 30 65  29 20 28 61 61 72 63 68  │726c930e│).(aarch│
-+0030 0xffff800081ac26c8  36 34 2d 6c 69 6e 75 78  2d 67 6e 75 2d 67 63 63  │64-linux│-gnu-gcc│
-+0040 0xffff800081ac26d8  20 28 55 62 75 6e 74 75  20 31 33 2e 33 2e 30 2d  │.(Ubuntu│.13.3.0-│
-+0050 0xffff800081ac26e8  36 75 62 75 6e 74 75 32  7e 32 34 2e 30 34 2e 31  │6ubuntu2│~24.04.1│
++0000 0xffff800081b96718  4c 69 6e 75 78 20 76 65  72 73 69 6f 6e 20 36 2e  │Linux.ve│rsion.6.│
++0010 0xffff800081b96728  31 38 2e 35 38 20 28 72  6f 6f 74 40 62 75 69 6c  │18.58.(r│oot@buil│
++0020 0xffff800081b96738  64 29 20 28 61 61 72 63  68 36 34 2d 6c 69 6e 75  │d).(aarc│h64-linu│
++0030 0xffff800081b96748  78 2d 67 6e 75 2d 67 63  63 20 28 47 43 43 29 20  │x-gnu-gc│c.(GCC).│
++0040 0xffff800081b96758  31 36 2e 32 2e 30 2c 20  47 4e 55 20 6c 64 20 28  │16.2.0,.│GNU.ld.(│
++0050 0xffff800081b96768  47 4e 55 20 42 69 6e 75  74 69 6c 73 29 20 32 2e  │GNU.Binu│tils).2.│
 ```
 
 한 행은 16바이트씩이고, 열은 다음과 같이 읽는다.
@@ -1026,7 +1076,7 @@ pwndbg> hexdump linux_banner 0x60
 
 ```text
 pwndbg> hexdump &jiffies_64 0x10
-+0000 0xffff8000838579c0  16 db fe ff 00 00 00 00  00 00 00 00 00 00 00 00  │........│........│
++0000 0xffff8000827089c0  0f db fe ff 00 00 00 00  00 00 00 00 00 00 00 00  │........│........│
 ```
 
 ASCII 칸이 전부 `.`인 것은 바이트 값이 출력 가능한 문자 범위를 벗어났기 때문이다. 값을 읽을 때는 엔디언에 주의한다. arm64는 리틀엔디언이라 낮은 주소의 바이트가 하위 바이트다. 따라서 `16 db fe ff 00 00 00 00`은 64비트 정수로 모으면 `0x00000000fffedb16`이고 `16`이 최하위 바이트다. 같은 8바이트를 `x/1xg &jiffies_64`로 읽으면 이 값을 한 덩어리로 보여 준다. 바이트 배치를 그대로 보고 싶을 때는 `hexdump`, 정수 값으로 보고 싶을 때는 `x`가 편하다.
@@ -1035,12 +1085,12 @@ ASCII 칸이 전부 `.`인 것은 바이트 값이 출력 가능한 문자 범�
 
 ```text
 pwndbg> p $sp
-$1 = (void *) 0xffff800083fcbc30
+$2 = (void *) 0xffff800082e9bc70
 pwndbg> hexdump
-+0000 0xffff800083fcbc30  90 bc fc 83 00 80 ff ff  ec 31 0e 80 00 80 ff ff  │........│.1......│
-+0010 0xffff800083fcbc40  c0 bd fc 83 00 80 ff ff  c0 bd fc 83 00 80 ff ff  │........│........│
-+0020 0xffff800083fcbc50  90 bd fc 83 00 80 ff ff  d0 ff ff ff 00 00 00 00  │........│........│
-+0030 0xffff800083fcbc60  c0 0d 00 00 00 00 00 00  00 00 00 00 00 00 00 00  │........│........│
++0000 0xffff800082e9bc70  d0 bc e9 82 00 80 ff ff  94 34 11 80 00 80 ff ff  │........│.4......│
++0010 0xffff800082e9bc80  f0 bd e9 82 00 80 ff ff  f0 bd e9 82 00 80 ff ff  │........│........│
++0020 0xffff800082e9bc90  c0 bd e9 82 00 80 ff ff  d8 ff ff ff 00 00 00 00  │........│........│
++0030 0xffff800082e9bca0  40 2a 48 03 00 00 ff ff  00 00 00 00 00 00 00 00  │@*H.....│........│
 ```
 
 맨 앞 8바이트 `90 bc fc 83 00 80 ff ff`를 리틀엔디언으로 모으면 `0xffff800083fcbc90`이고, 이는 앞서 `telescope $sp`가 첫 칸에서 보여 준 값(`0xffff800083fcbc30 —▸ 0xffff800083fcbc90`)과 같다. 둘 다 같은 `$sp`를 가리키니 당연한 일치다. 인자 없이 다시 `hexdump`를 불러도 기준이 `$sp`라 같은 구간이 나오고, 자동으로 다음 구간으로 넘어가지는 않는다.
@@ -1060,31 +1110,31 @@ QEMU 게스트 커널에 제대로 붙어 있으면, 순정 gdb로는 손이 많
 
 ```text
 pwndbg> slab list
-Name                       # Objects    Size    Obj Size    # inuse    order
------------------------  -----------  ------  ----------  ---------  -------
-ext4_groupinfo_4k                 26     152         152          8        0
-p9_req_t                          25     160         152          0        0
-isp1760_qtd                       56      72          72          0        0
+Name                   # Objects    Size    Obj Size    # inuse    order
+-------------------  -----------  ------  ----------  ---------  -------
+taskstats                     14     560         560          0        1
+mem_cgroup_per_node            9     448         448          1        0
+mem_cgroup                    19    1664        1608          1        3
 ...
 
 pwndbg> slab info kmalloc-64
- Slab Cache @ 0xffff000004401700
+ Slab Cache @ 0xffff000003401700
      Name: kmalloc-64
      Flags: SLAB_RECLAIM_ACCOUNT
      ...
-     kmem_cache_cpu @ 0xffff00003fde7700 [CPU 0]:
-         Freelist: 0xffff000005156180
+     kmem_cache_cpu @ 0xffff00007fbe3af0 [CPU 0]:
+         Freelist: 0xffff000003482a80
 ```
 
 페이지 테이블을 직접 걸어 가상→물리 변환도 보여 준다. `init_task`의 주소를 4단계로 걸어 보면 다음과 같다.
 
 ```text
 pwndbg> pagewalk &init_task
-L0 @ 0xffff000002bba000[256] —▸ L0e: 0x100000004418d003 [ UNX pnx ap:00 ]
-L1 @ 0xffff00000418d000[002] —▸ L1e: 0x100000004418e003 [ UNX pnx ap:00 ]
-L2 @ 0xffff00000418e000[028] —▸ L2e: 0x1000000044193003 [ UNX pnx ap:00 ]
-L3 @ 0xffff000004193000[101] —▸ L3e: 0xf8000043a65703 [ UNX PNX ap:00 ]
-pagewalk result: 0xffff000003a65900 [phys: 0x43a65900]
+L0 @ 0xffff0000024f5000[256] —▸ L0e: 0x100000004305c003 [ UNX pnx ap:00 ]
+L1 @ 0xffff00000305c000[002] —▸ L1e: 0x100000004305d003 [ UNX pnx ap:00 ]
+L2 @ 0xffff00000305d000[019] —▸ L2e: 0x1000000043062003 [ UNX pnx ap:00 ]
+L3 @ 0xffff000003062000[278] —▸ L3e: 0xf8000042916703 [ UNX PNX ap:00 ]
+pagewalk result: 0xffff0000029160c0 [phys: 0x429160c0]
 ```
 
 커널 전용 명령은 그 밖에도 여러 가지가 있다. 다음은 arm64 v6.12 QEMU에서 직접 돌린 결과다. `kbase`는 커널 텍스트 베이스(KASLR 슬라이드 탐지의 기준)를, `ktask`/`kcurrent`는 태스크 목록과 현재 태스크를, `kmod`는 적재된 모듈을, `kdmesg`는 printk 링 버퍼를 보여 준다.
@@ -1093,12 +1143,12 @@ pagewalk result: 0xffff000003a65900 [phys: 0x43a65900]
 pwndbg> kbase
 Found virtual text base address: 0xffff800080010000
 pwndbg> ktask
-   [pid 0]     [cpu: -] task @ 0xffff800083865900: swapper/0        [uid: 0] [gid: 0]
- ► [pid 1]     [cpu: 0] task @ 0xffff000004690000: init             [uid: 0] [gid: 0] [user task]
-   [pid 2]     [cpu: -] task @ 0xffff000004691300: kthreadd         [uid: 0] [gid: 0]
-   ...
+   [pid 0]     [cpu: -] task @ 0xffff8000827160c0: swapper/0        [uid: 0]    [gid: 0]
+ ► [pid 1]     [cpu: 0] task @ 0xffff000003678000: swapper/0        [uid: 0]    [gid: 0]
+   [pid 2]     [cpu: -] task @ 0xffff000003679200: swapper/0        [uid: 0]    [gid: 0]
 pwndbg> kmod
-Kernel modules address found at 0xffff8000839074f0.
+Kernel modules address found at 0xffff8000827b7b40.
+
 Address    Name    Size    Used by
 ---------  ------  ------  ---------
 ```
@@ -1170,15 +1220,15 @@ CONFIG_IKCONFIG = y # [!hl]
 네 번째 출처는 pwndbg가 아니라 **커널 소스 자체**다. `scripts/gdb` 폴더 아래에 커널 메인테이너들이 관리하는 파이썬 헬퍼가 있고, `CONFIG_GDB_SCRIPTS=y`로 빌드하면 `vmlinux-gdb.py` 심볼릭 링크를 통해 gdb 로드 시 자동으로 딸려 온다. 명령은 `lx-` 접두사를 쓴다.
 
 ```text
-(gdb) apropos ^lx       # 이 커널에서 32개 등록됨
+(gdb) apropos ^lx       # 이 커널에서 명령 34개, 함수 17개
 (gdb) lx-ps
       TASK          PID    COMM
-0xffff800083865900  0x0  swapper/0
-0xffff000004690000  0x1  init
-0xffff000004691300  0x2  kthreadd
+0xffff8000827160c0   0   swapper/0
+0xffff000003678000   1   swapper/0
+0xffff000003679200   2   kthreadd
 ...
 (gdb) p $lx_current()->comm
-$1 = "init", '\000' <repeats 11 times>
+$2 = "swapper/0\000\000\000\000\000\000"
 ```
 
 `lx-ps`, `lx-dmesg`, `lx-lsmod`, `lx-version` 같은 명령어들과 `$lx_current()`, `$lx_per_cpu()` 같은 함수들이 있다.
@@ -1189,7 +1239,7 @@ $1 = "init", '\000' <repeats 11 times>
 (gdb) p $lx_current()->pid
 $1 = 1
 (gdb) p $lx_current()->comm
-$2 = "init", '\000' <repeats 11 times>
+$2 = "swapper/0\000\000\000\000\000\000"
 ```
 
 `$lx_per_cpu(runqueues, 0)`처럼 per-cpu 변수와 CPU 번호를 주면 그 CPU의 인스턴스를 읽는다. 주의할 점은, 이 함수들이 인식되지 않는 경우다. 많은 경우 커널의 `scripts/gdb` 스크립트가 auto-load되지 않은 것이다. `$lx_*`와 `lx-*`는 `vmlinux-gdb.py`가 로드될 때 비로소 등록되는데, 그 경로가 auto-load 안전 경로에 없으면 gdb가 `auto-loading has been declined ...` 경고와 함께 로딩을 거부한다. `apropos lx`에 아무것도 안 뜨면 스크립트가 안 올라온 것이니, `vmlinux`를 로드하기 전에 `add-auto-load-safe-path <커널 빌드 디렉토리>`로 경로를 등록하거나, 로드 후 `source <커널>/vmlinux-gdb.py`로 직접 읽으면 된다.
@@ -1198,8 +1248,8 @@ $2 = "init", '\000' <repeats 11 times>
 # riscv64: 디바이스 트리를 lx-fdtdump로 추출 (pwndbg의 아키텍처별 커널 명령은 riscv 미지원)
 (gdb) lx-fdtdump
 fdt_magic:         0xD00DFEED # [!hl]
-fdt_totalsize:     0x17F9
-version:           17
+fdt_totalsize:     0x2484
+...
 Dumped fdt blob to fdtdump.dtb
 ```
 
@@ -1212,20 +1262,20 @@ Dumped fdt blob to fdtdump.dtb
 ```text
 # 1) pi: 한 줄 (python-interactive)
 (gdb) pi import sys; print('embedded Python', sys.version.split()[0])
-embedded Python 3.14.5
+embedded Python 3.14.8
 
 # 2) python ... end: 여러 줄 블록
 (gdb) python
 >import gdb
 >print('sizeof(struct task_struct) =', int(gdb.parse_and_eval('sizeof(struct task_struct)')))
 >end
-sizeof(struct task_struct) = 4864
+sizeof(struct task_struct) = 4608
 
 # 3) source FILE.py: 파일에서 불러오기
 (gdb) source demo.py
 [demo.py] hello-kernel 명령 등록됨
 (gdb) hello-kernel
-hello-kernel: sizeof(struct task_struct) = 4864
+hello-kernel: sizeof(struct task_struct) = 4608
 ```
 
 gdb 17.2는 Python 3.14.5를 내장하므로 표준 파이썬 문법과 라이브러리를 그대로 쓸 수 있다.
@@ -1252,17 +1302,20 @@ class WakeTracer(gdb.Breakpoint):
 (gdb) target remote :1234            # 게스트 gdbstub에 attach
 (gdb) source wake_tracer.py          # 위 WakeTracer 정의
 (gdb) python WakeTracer(8)           # 여덟 번째 wakeup까지 추적
+Breakpoint 1 at 0xffff80008012fb68: file kernel/sched/core.c, line 4160.
 (gdb) continue
+Continuing.
 [wake #0] kthreadd
 [wake #1] pool_workqueue_
 [wake #2] kthreadd
-[wake #3] kworker/R-kvfre
+[wake #3] kworker/R-rcu_g
 [wake #4] kthreadd
-[wake #5] kworker/R-rcu_g
+[wake #5] kworker/R-sync_
 [wake #6] kthreadd
-[wake #7] swapper/0
+[wake #7] kworker/R-kvfre
 
-Breakpoint 1, try_to_wake_up (p=0xffff000004668000, state=3, wake_flags=0) at kernel/sched/core.c:4143
+Breakpoint 1, try_to_wake_up (p=0xffff00000367da00, state=state@entry=3, wake_flags=wake_flags@entry=0) at kernel/sched/core.c:4160
+4160	{
 ```
 
 재사용할 명령은 `gdb.Command`로, 구조체 탐색은 `gdb.Value`로 묶는다.
@@ -1280,7 +1333,7 @@ class KCur(gdb.Command):
 
 ```text
 (gdb) kcur
-pid=1 comm=init
+pid=1 comm=swapper/0
 ```
 
 여기서 `kcur`는 직접 정의한 사용자 명령이며, pwndbg의 `kcurrent`와는 이름만 비슷할 뿐 무관하다.
