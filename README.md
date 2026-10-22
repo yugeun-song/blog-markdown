@@ -9,6 +9,7 @@ One directory per post. Its kebab-case ASCII name is the URL slug: `ftrace-usage
 - `meta.json`: metadata
 - `index.md`: body without frontmatter. The first line is `# Title`.
 - `source-snippets.json`: kernel source excerpts, written by the engine's `resolve_kernel.py`
+- `mermaid.json`: the post's Mermaid figures as SVG, written by the engine's `npm run mermaid`
 - anything else: assets, referenced by relative path (`./foo.png`) and published next to the page. A PNG may have a lossless `.webp` twin, which browsers get instead.
 
 ## meta.json

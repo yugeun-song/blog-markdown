@@ -43,9 +43,10 @@ Choose the type that avoids collisions by construction:
 
 - A node label is by default a function name on one line, with the Korean explanation in the prose. Use a longer or Korean label only when nothing shorter is accurate, then check phone width in every theme. Long labels break phone layouts.
 - Edge labels sit on the arrow. Keep them to 1–3 words. `-->` is the main path; `-.->` draws a dashed edge for an optional or asynchronous one.
-- The page routes every flowchart edge: straight when the two boxes line up, otherwise one bend between ranks into a third of the box. Do not steer edges with invisible links or spacer nodes.
+- The renderer routes every flowchart edge: straight when the two boxes line up, otherwise one bend between ranks into a third of the box. Do not steer edges with invisible links or spacer nodes.
 - Node classes mark roles, one per node: `:::accent` the result or the point, `:::muted` something off the main path, `:::danger` an error. Every label uses the code font.
 - Add no `%%{init}%%`, `classDef` or `style` lines. Prefer one language per diagram.
+- The engine draws every figure before deployment, so the page runs no Mermaid. After adding or changing a fence, run `npm run mermaid -- ../blog-markdown/<slug>` in the engine, after any build or preview since it reads the built CSS, and commit the `mermaid.json` it writes beside `index.md` with the post. The Cloudflare build cannot draw and fails on a figure missing from that file. The preview draws into its own cache and warns when the file is stale.
 
 ### Memory tables
 
