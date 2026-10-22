@@ -1310,11 +1310,11 @@ DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라,
 
 지금까지 다룬 `echo X > /sys/kernel/tracing/Y` 흐름은 tracefs의 가장 원초적인 인터페이스이지만, 매 측정마다 9 줄짜리 echo 시퀀스를 직접 타이핑하는 것은 실전에서 번거롭다. `trace-cmd`는 이 시퀀스를 한 번의 CLI 호출로 묶어 주는 사용자 공간 front-end이다.
 
-### trace-cmd는 ftrace의 별도 구현이 아니라 래퍼이다
+### trace-cmd는 ftrace의 별도 구현이 아니라 wrapper이다
 
 `trace-cmd`는 ftrace의 **wrapper**라는 표현이 정확하다. 커널 측에 trace-cmd 전용 인터페이스가 따로 존재하지 않으며, 내부적으로는 본 글에서 다룬 것과 똑같은 `/sys/kernel/tracing/*` 파일들을 그대로 읽고 쓴다. 즉 trace-cmd가 하는 일은 다음 세 가지이다.
 
-- **인간 친화적인 CLI 래퍼**: `-p`로 tracer 선택, `-l`로 필터 추가, `-e`로 tracepoint 이벤트 활성화 등의 옵션을 받아 해당 echo들을 대신 실행한다.
+- **인간 친화적인 CLI wrapper**: `-p`로 tracer 선택, `-l`로 필터 추가, `-e`로 tracepoint 이벤트 활성화 등의 옵션을 받아 해당 echo들을 대신 실행한다.
 - **binary 형식의 dump**: 측정이 도는 동안 ring buffer를 임시 파일로 계속 빨아내고, 명령이 끝나면 합쳐 `trace.dat`를 만든다. 텍스트만 다루던 `cat trace`와 달리 원본 데이터를 손실 없이 저장해 추후에 다양한 view로 재가공할 수 있다.
 - **후처리 도구 제공**: `trace-cmd report`가 그 `trace.dat`를 사람이 읽을 수 있는 텍스트로 변환한다. 사실상 `cat trace`가 보여주던 라인 단위 출력을 재구성하는 역할이다.
 
