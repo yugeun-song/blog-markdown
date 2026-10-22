@@ -498,13 +498,13 @@ struct pci_dev {
 }
 ```
 
-같은 `struct sock *`에서 출발해도, `type`과 `member`에 따라 도착하는 구조체가 다르다.
+같은 `sk`에서 출발해도, `type`과 `member`에 따라 도착하는 구조체가 다르다.
 
-- `inet_sk()`는 `sk`로 `struct inet_sock`을 구한다.
-- `inet_csk()`는 `icsk_inet.sk`로 `struct inet_connection_sock`을 구한다.
-- `tcp_sk()`는 `inet_conn.icsk_inet.sk`로 `struct tcp_sock`을 구한다.
+- `inet_sk(sk)`: `type`은 `struct inet_sock`, `member`는 `sk`이다.
+- `inet_csk(sk)`: `type`은 `struct inet_connection_sock`, `member`는 `icsk_inet.sk`이다.
+- `tcp_sk(sk)`: `type`은 `struct tcp_sock`, `member`는 `inet_conn.icsk_inet.sk`이다.
 
-세 결과는 `ptr`과 주소가 같고 타입만 다르다. 각 구조체가 바로 안쪽 구조체를 첫 멤버로 포함해, 세 `member`의 오프셋이 모두 0이기 때문이다. 상위 구조체로 갈수록 `member`에 이어 쓰는 멤버 이름이 늘고, 한 번에 건너뛰는 단계도 많아진다. 세 매크로는 모두 `container_of_const`로 정의되어 있다.
+세 결과는 `sk`와 주소가 같고 타입만 다르다. 각 구조체가 바로 안쪽 구조체를 첫 멤버로 포함해, 세 `member`의 오프셋이 모두 0이기 때문이다. 상위 구조체로 갈수록 `member`에 이어 쓰는 멤버 이름이 늘고, 한 번에 건너뛰는 단계도 많아진다. 세 매크로는 모두 `container_of_const`로 정의되어 있다.
 
 ## `container_of`에 담긴 커널과 C의 설계 철학
 
