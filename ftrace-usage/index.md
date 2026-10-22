@@ -153,7 +153,7 @@ function tracer 핵심 옵션 부분을 확대하면 다음과 같다. 메뉴 �
 
     baseline의 파일명 규칙은 아키텍처마다 다르다. x86은 `<variant>_defconfig`식으로 여러 개를 두고, arm64는 `defconfig` 하나만 둔다. `make x86_64_defconfig` (x86)나 `make defconfig` (arm64, 또는 `ARCH=arm64` 환경) 같은 명령이 이 중 하나를 `.config`로 복사하며, `kernel/configs/*.config`의 fragment들은 `scripts/kconfig/merge_config.sh`로 기존 `.config` 위에 합쳐 넣는다. 즉 `CONFIG_X=y` 형식이 등장하는 파일의 출처는 `.config`, `arch/<arch>/configs/`, `kernel/configs/*.config`, `include/config/auto.conf`의 네 곳이다.
 
-이 형식의 파일을 실제로 들여다보면 다음과 같다. 아래는 한 빌드의 `.config`에서 ftrace 관련 영역만 발췌한 것이다.
+이 형식의 파일을 실제로 들여다보면 다음과 같다. 아래는 v6.18.58 arm64 빌드의 `.config`에서 ftrace 관련 영역을 발췌한 것이다.
 
 ```text
 CONFIG_TRACING=y
@@ -726,7 +726,7 @@ SYM_FUNC_END(ftrace_caller);
 
 x86_64 빌드에서 컴파일러는 모든 추적 가능 함수의 진입부에 `call __fentry__`를 emit한다. 이 명령을 심는 플래그의 출처는 빌드 시스템에서 그대로 추적할 수 있다. 최상위 `Makefile`은 `CONFIG_FUNCTION_TRACER=y`일 때 `CC_FLAGS_FTRACE := -pg`를 기본값으로 잡고, `CONFIG_HAVE_FENTRY=y`면 거기에 `-mfentry`를 덧붙인다. x86은 `arch/x86/Kconfig`의 `select HAVE_FENTRY if X86_64 || DYNAMIC_FTRACE`로 64비트 빌드에서 항상 이 경로를 탄다. `-pg` 단독으로는 profiling 호출이 함수 프롤로그 뒤에 들어가지만, `-mfentry`가 그 호출을 프롤로그보다 앞으로 끌어올린다. 위 코드의 진입 심볼이 `__fentry__`인 것은 이 플래그 때문이다.
 
-이렇게 emit된 `call __fentry__` 자리(`arch/x86/include/asm/ftrace.h`의 `MCOUNT_INSN_SIZE` = 5바이트)는 부팅 과정에서 모두 NOP로 패치되어 평소에는 오버헤드가 없고, ftrace가 특정 함수에 대해 활성화될 때만 그 자리가 `call ftrace_caller`로 다시 패치되어 위 dispatch 경로로 들어간다. 이것이 앞서 다룬 `CONFIG_DYNAMIC_FTRACE=y`의 핵심, 곧 "비활성화된 함수의 진입부에는 NOP만 남아 있어 오버헤드가 0에 가깝고, 활성화될 때만 호출 분기 명령으로 살아난다"의 실제 모습이다. 한 가지 덧붙이면, 5바이트 명령 하나를 바꾸는 일조차 다른 CPU가 그 중간 바이트를 실행하고 있을 수 있어 단순 메모리 쓰기로는 안전하지 않다. 그래서 `arch/x86/kernel/ftrace.c`는 breakpoint 기반의 `smp_text_poke_batch_add()` / `smp_text_poke_single()` 인프라로 이 자리를 바꾼다.
+이렇게 emit된 `call __fentry__` 자리(`arch/x86/include/asm/ftrace.h`의 `MCOUNT_INSN_SIZE` = 5바이트)는 부팅 과정에서 모두 NOP로 패치되어 평소에는 오버헤드가 없고, ftrace가 특정 함수에 대해 활성화될 때만 그 자리가 다시 `call`로 패치된다. 호출 대상은 그 함수에 붙은 `ftrace_ops`의 수로 정해진다. 하나뿐이면 커널은 위 `ftrace_caller`를 `ftrace_caller_end`까지 복사해 그 ops 전용 trampoline을 만들고, 그 trampoline이 ops의 callback(function tracer라면 `function_trace_call()`)을 바로 부른다. 여럿이면 `ftrace_caller`를 부르고, `ftrace_call` 자리의 `arch_ftrace_ops_list_func()`가 ops 목록을 순회한다. 레지스터 전체를 저장해야 하는 ops라면 두 경우 모두 `ftrace_caller` 대신 `ftrace_regs_caller`가 그 역할을 맡는다. v6.18.58 x86_64 VM에서 `vfs_read`에 function tracer만 걸면 그 자리가 `call 0xffffffffc0000000`(trampoline)이 되고, 다른 instance가 같은 함수를 함께 추적하면 `call ftrace_caller`로 바뀐다. 이것이 앞서 다룬 `CONFIG_DYNAMIC_FTRACE=y`의 핵심, 곧 "비활성화된 함수의 진입부에는 NOP만 남아 있어 오버헤드가 0에 가깝고, 활성화될 때만 호출 분기 명령으로 살아난다"의 실제 모습이다. 한 가지 덧붙이면, 5바이트 명령 하나를 바꾸는 일조차 다른 CPU가 그 중간 바이트를 실행하고 있을 수 있어 단순 메모리 쓰기로는 안전하지 않다. 그래서 `arch/x86/kernel/ftrace.c`는 breakpoint 기반의 `smp_text_poke_batch_add()` / `smp_text_poke_single()` 인프라로 이 자리를 바꾼다.
 
 ### arm64에서는 어떻게 hook되는가
 
@@ -836,11 +836,11 @@ NOP 자리를 예약하는 플래그는 `arch/riscv/Makefile`에 있다. `CONFIG
 |---|---|---|---|
 | patchable 자리 예약 | `-pg -mfentry` (`call __fentry__` emit 후 부팅 시 NOP화) | `-fpatchable-function-entry=2` (CALL_OPS면 `4,2`) | `-fpatchable-function-entry=8,4` (C 확장) / `=4,2` |
 | 비활성 상태 | 5바이트 NOP | `MOV X9, LR` + NOP | `auipc t0` + NOP |
-| 활성화 시 패치 | `call ftrace_caller` | `MOV X9, LR` + `BL ftrace_caller` | `auipc t0` + `jalr t0` |
+| 활성화 시 패치 | `call` trampoline (ops가 여럿이면 `call ftrace_caller`) | `MOV X9, LR` + `BL ftrace_caller` | `auipc t0` + `jalr t0` |
 | 반환 주소 처리 | `call`이 스택에 push | `MOV X9, LR`로 별도 보존 | `jalr`이 `t0`에 기록, `ra` 무손상 |
 | 런타임 패치 방식 | breakpoint (`smp_text_poke_batch_add()`) | 단일 명령 교체 | 단일 명령 교체 (`jalr` ↔ NOP) |
 
-디테일은 모두 다르지만 골격은 하나다. 함수 진입부, 프롤로그보다 앞에 컴파일러가 미리 마련해 둔 patchable 영역이 있고, 추적이 꺼져 있으면 NOP가, 켜지면 `ftrace_caller`로의 분기가 그 자리에 들어간다. 함수 추적기의 trigger 시점이 "함수 진입"이라고 표현되는 이유이며, 세 아키텍처의 `ftrace_caller`가 모두 "레지스터 보존 → 공통 callback 호출 → 복원"의 같은 순서로 짜여 있는 이유이다.
+디테일은 모두 다르지만 골격은 하나다. 함수 진입부, 프롤로그보다 앞에 컴파일러가 미리 마련해 둔 patchable 영역이 있고, 추적이 꺼져 있으면 NOP가, 켜지면 `ftrace_caller`로의 분기가 그 자리에 들어간다(x86에서는 그 복사본인 trampoline으로 분기하기도 한다). 함수 추적기의 trigger 시점이 "함수 진입"이라고 표현되는 이유이며, 세 아키텍처의 `ftrace_caller`가 모두 "레지스터 보존 → 공통 callback 호출 → 복원"의 같은 순서로 짜여 있는 이유이다.
 
 ### tracepoint 이벤트는 어떻게 정의되고 어떻게 출력되는가
 
@@ -993,7 +993,7 @@ TRACE_EVENT(sched_switch,
 
 ## `nop`, `function`, `function_graph` 출력 읽기
 
-실전에서 가장 자주 쓰이는 tracer는 `nop`, `function`, `function_graph` 셋이다. 각각이 어떤 형태로 ring buffer에 결과를 남기는지 읽는 법을 정리한다.
+실전에서 가장 자주 쓰이는 tracer는 `nop`, `function`, `function_graph` 셋이다. 각각이 어떤 형태로 ring buffer에 결과를 남기는지 읽는 법을 정리한다. 이 절의 출력은 모두 v6.18.58 arm64 빌드를 QEMU의 4코어 VM으로 부팅해 얻은 것이다.
 
 ### `nop`: "함수 추적은 끄고 이벤트만 본다"
 
@@ -1253,20 +1253,20 @@ TRACE_EVENT(sched_switch,
 
 바깥 함수의 시간은 그 안에서 부른 함수들의 시간을 모두 더한 값에, 바깥 함수가 호출과 호출 사이에 직접 쓴 시간을 합한 값이다. 여기에 추적 훅의 비용이 더해진다. graph tracer는 진입 시각을 진입 이벤트를 ring buffer에 쓰기 전에 재고, 탈출 시각도 탈출 이벤트를 쓰기 전에 잰다. 그래서 진입 이벤트를 쓰는 비용은 그 함수 자신의 DURATION에 들어가고, 진입 시각을 재기 전의 처리와 탈출 이벤트를 쓰는 비용은 부모 구간에 쌓인다. 따라서 안쪽 함수들의 시간을 다 더한 값은 바깥 함수의 시간보다 늘 적게 잡힌다.
 
-위 트리에서 `do_sys_openat2`가 부른 `getname`(35.040), `get_unused_fd_flags`(52.464), `do_filp_open`(671.296), `fd_install`(20.992), `putname`(15.264)을 더하면 795.056µs다. `do_sys_openat2` 자신은 844.144µs다. 차이인 약 49µs에는 자식 호출마다 붙은 graph tracer의 훅 비용이 섞여 있어 그대로 self time으로 읽을 수 없다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출은 그 안에서 부른 함수가 없으므로 자식 몫을 뺄 필요가 없다. 다만 그 줄의 시간에도 진입 이벤트를 쓰는 훅 비용이 들어 있어, 추적하지 않을 때의 실행 시간보다 길게 잡힌다.
+위 트리에서 `do_sys_openat2`가 부른 `getname_flags`(10.240), `get_unused_fd_flags`(12.624), `do_filp_open`(320.944), `fd_install`(1.296), `putname`(3.856)을 더하면 348.960µs다. `do_sys_openat2` 자신은 364.960µs다. 차이인 16µs에는 자식 호출마다 붙은 graph tracer의 훅 비용이 섞여 있어 그대로 self time으로 읽을 수 없다. 진입과 탈출이 한 줄로 합쳐진 leaf 호출은 그 안에서 부른 함수가 없으므로 자식 몫을 뺄 필요가 없다. 다만 그 줄의 시간에도 진입 이벤트를 쓰는 훅 비용이 들어 있어, 추적하지 않을 때의 실행 시간보다 길게 잡힌다.
 
 DURATION은 진입 시각과 탈출 시각의 차이를 그대로 잰 값이라, 그 사이에 함수가 선점되거나 인터럽트를 처리하느라 멈춰 있던 시간까지 그대로 들어간다. 따라서 시간이 길다고 그 함수가 CPU를 오래 붙들고 있었다고 단정할 수는 없고, 병목으로 지목하기 전에 그 구간이 실제로 일을 한 시간인지 그냥 기다린 시간인지를 함께 봐야 한다.
 
-위 예시에서 `do_sys_openat2()` 한 번의 호출이 총 844.144µs 걸렸음을 마지막 `!` 표가 알려준다. 그 안에서 `do_filp_open`이 671.296µs, 다시 그 안의 `path_openat`이 661.584µs로 거의 전부를 차지하며, 그 내부는 다시 경로 탐색(`link_path_walk.part.0` 136.864µs)과 파일 열기(`vfs_open` 161.312µs, 그 내부의 `do_dentry_open` 151.728µs와 `chrdev_open` 72.576µs)로 나뉜다. 즉 한 번의 `open(2)` 호출에서 어느 단계가 병목인지를 한눈에 짚어내는 데 적합하다. (이 트리에 `bpf_lsm_*`·`security_*` 같은 LSM 훅이 곳곳에 보이는 것은 이 실제 환경의 커널이 BPF LSM을 켜고 빌드되었기 때문이다.)
+위 예시에서 `do_sys_openat2()` 한 번의 호출이 총 364.960µs 걸렸음을 마지막 `!` 표가 알려준다. 그 안에서 `do_filp_open`이 320.944µs, 다시 그 안의 `path_openat`이 316.672µs로 거의 전부를 차지하며, 그 내부는 다시 경로 탐색(`link_path_walk` 37.376µs), 권한 확인(`may_open` 52.480µs), 파일 열기(`vfs_open` 147.360µs, 그 내부의 `do_dentry_open` 144.672µs와 `chrdev_open` 115.632µs)로 나뉜다. 즉 한 번의 `open(2)` 호출에서 어느 단계가 병목인지를 한눈에 짚어내는 데 적합하다.
 
 실전에서 자주 부딪히는 문제가 한 가지 있다. `function_graph`의 `trace` 파일은 **모든 CPU의 출력을 타임스탬프순으로 한데 섞어** 내보낸다. 그래서 CPU가 여러 개이고 같은 시간대에 여러 CPU가 바쁘면, 서로 다른 CPU의 호출 트리가 줄 단위로 교차해 찍히고 `{`와 `}`의 들여쓰기 대응이 시각적으로 무너져 호출 관계를 따라가기 어려워진다. 맨 앞의 `0)`·`3)` 같은 CPU 번호로 구분은 되지만, 눈으로 트리를 읽기는 힘들다. 깨끗한 단일 트리를 보려면 **CPU를 하나로 좁히면** 된다. 방법은 둘이다.
 
 - **추적 자체를 한 CPU로 제한**: `tracing_cpumask`에 비트마스크를 쓴다. `echo 1 > /sys/kernel/tracing/tracing_cpumask`는 CPU 0만(`1` = `0b0001`) 추적하므로, 처음부터 다른 CPU의 엔트리가 buffer에 섞이지 않는다.
 - **특정 CPU의 버퍼만 읽기**: ring buffer는 본래 CPU별로 분리되어 있으므로, 모든 CPU를 추적했더라도 `cat /sys/kernel/tracing/per_cpu/cpu0/trace`로 CPU 0의 버퍼만 떠내면 그 CPU의 트리가 교차 없이 깨끗하게 중첩되어 나온다.
 
-여기에 측정 대상 명령을 특정 CPU에 붙박아 두려면 `taskset -c 0 <command>`로 그 CPU에 고정해 실행하면 된다. 위 `function_graph` 예시도 이렇게 CPU 0 하나의 트리만 떼어 본 것이며, 그래서 모든 줄의 머리가 `0)`으로 통일되어 들여쓰기 트리가 한눈에 읽힌다.
+여기에 측정 대상 명령을 특정 CPU에 붙박아 두려면 `taskset -c 0 <command>`로 그 CPU에 고정해 실행하면 된다. 위 `function_graph` 예시도 측정에 쓴 셸을 CPU 0에 고정한 뒤 CPU 0의 버퍼만 떼어 본 것이다. 이 글의 VM에는 `taskset`이 없어, cgroup v2의 `cpuset.cpus`에 `0`을 써서 고정했다. 그래서 모든 줄이 `0)`으로 시작하고, 들여쓰기 트리가 한눈에 읽힌다.
 
-`function_graph`에서 tracepoint 이벤트가 함께 켜져 있을 때는 출력 형식이 또 한 번 달라진다. 이벤트는 `function` tracer처럼 평면적인 한 줄이 아니라, 발생한 시점의 호출 깊이에 맞춰 `/* event_name: payload */` 형식의 주석으로 트리 안에 박힌다. 이 처리는 `kernel/trace/trace_functions_graph.c`의 `print_graph_comment()`가 담당하며, `TRACE_GRAPH_ENT`·`TRACE_GRAPH_RET`(및 `TRACE_FN`·`TRACE_STACK`)를 제외한 나머지 entry가 이 경로로 렌더링된다. 아래 실제 출력에서는 추적 대상 함수(`do_sys_openat2`)가 호출되지 않는 idle 구간에 `sched_switch`들이 발생해 깊이 0에 주석으로 찍히고, function_graph가 task 전환을 표시하는 `---- prev => next ----` 구분선이 함께 출력된다. 반면 `sys_openat` 이벤트는 마침 `openat` 시스템 콜 진입 직후에 fire되어 그 호출의 `do_sys_openat2()` 트리 바로 앞에 자리한다.
+`function_graph`에서 tracepoint 이벤트가 함께 켜져 있을 때는 출력 형식이 또 한 번 달라진다. 이벤트는 `function` tracer처럼 평면적인 한 줄이 아니라, 발생한 시점의 호출 깊이에 맞춰 `/* event_name: payload */` 형식의 주석으로 트리 안에 박힌다. 이 처리는 `kernel/trace/trace_functions_graph.c`의 `print_graph_comment()`가 담당하며, `TRACE_GRAPH_ENT`·`TRACE_GRAPH_RET`(및 `TRACE_FN`·`TRACE_STACK`)를 제외한 나머지 entry가 이 경로로 렌더링된다. 아래 실제 출력에서는 추적 대상 함수(`do_sys_openat2`) 바깥에서 일어난 `sched_switch`가 깊이 0에 주석으로 찍히고, function_graph가 task 전환을 표시하는 `---- prev => next ----` 구분선이 함께 출력된다. 반면 `sys_openat` 이벤트는 마침 `openat` 시스템 콜 진입 직후에 fire되어 그 호출의 `do_sys_openat2()` 트리 바로 앞에 자리한다.
 
 ```text
  0)               |  /* sched_switch: prev_comm=sh prev_pid=82 prev_prio=120 prev_state=S ==> next_comm=sh next_pid=90 next_prio=120 */
