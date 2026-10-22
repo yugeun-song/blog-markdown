@@ -123,7 +123,7 @@ ftrace는 현대적인 버전의 커널로 빌드된 대부분의 PC용 리눅�
 - `CONFIG_KPROBE_EVENTS=y`, `CONFIG_UPROBE_EVENTS=y`: `kprobe_events`, `uprobe_events` 인터페이스를 통한 동적 이벤트 등록.
 - `CONFIG_STACK_TRACER=y`, `CONFIG_TRACER_SNAPSHOT=y`: 스택 사용량 추적과 스냅샷 기능.
 
-v6.18.58 트리 기준으로, `make menuconfig`를 실행하면 다음과 같은 최상위 메뉴를 만난다. 여기서 맨 아래의 `Kernel hacking` 항목으로 진입한다.
+v6.18 트리에서 `make menuconfig`를 실행하면 다음과 같은 최상위 메뉴를 만난다. 여기서 맨 아래의 `Kernel hacking` 항목으로 진입한다.
 
 ![최상위 메뉴에서 맨 아래의 Kernel hacking 항목 선택](./menuconfig.png)
 
@@ -131,13 +131,11 @@ Kernel hacking 메뉴 하위에 `Tracers` 항목이 보인다. 이 항목 자체
 
 ![Kernel hacking 메뉴에서 하위의 Tracers 항목 선택](./kernel-hacking.png)
 
-`Tracers`를 켜고 들어가면 ftrace 관련 옵션들이 나타난다. 위에서 적은 `CONFIG_FUNCTION_TRACER`, `CONFIG_FUNCTION_GRAPH_TRACER` 등을 여기서 직접 토글한다.
+`Tracers`를 켜고 들어가면 ftrace 관련 옵션들이 나타난다.
 
 ![Tracers 메뉴 내부의 ftrace 관련 옵션들](./tracers.png)
 
-function tracer 핵심 옵션 부분을 확대하면 다음과 같다. 메뉴 라벨과 `CONFIG_*`의 대응은 `kernel/trace/Kconfig`의 prompt 문자열에서 나온다. `Kernel Function Tracer`가 `CONFIG_FUNCTION_TRACER`, `Kernel Function Graph Tracer`가 `CONFIG_FUNCTION_GRAPH_TRACER`이다. `CONFIG_DYNAMIC_FTRACE`는 prompt가 없으므로 이 메뉴에 없다.
-
-![function tracer 핵심 옵션 클로즈업](./ftrace-option.png)
+메뉴에는 `CONFIG_*` 이름 대신 `kernel/trace/Kconfig`의 prompt 문자열이 라벨로 보인다. 위에서 적은 `CONFIG_FUNCTION_TRACER`는 `Kernel Function Tracer`, `CONFIG_FUNCTION_GRAPH_TRACER`는 그 아래에 들여쓴 `Kernel Function Graph Tracer`이다. `CONFIG_DYNAMIC_FTRACE`는 prompt가 없으므로 이 메뉴에 없다. 두 항목 앞의 `-*-`는 다른 옵션이 `select`로 켜 둔 항목이라는 표시이다. 이 설정에서는 `Trace max stack`(`CONFIG_STACK_TRACER`)이 `CONFIG_FUNCTION_TRACER`를, `Kernel Function Probe (fprobe)`(`CONFIG_FPROBE`)가 `CONFIG_FUNCTION_GRAPH_TRACER`를 `select`한다. 이런 항목은 `select`한 옵션을 먼저 꺼야 끌 수 있다.
 
 `make menuconfig` 같은 대화형 인터페이스를 거치지 않고 `CONFIG_*` 값을 설정하는 방법도 여러 가지 있다. 그 방법들을 이해하려면 우선 옵션이 어디에 어떻게 저장되어 있는지부터 짚어야 한다.
 
