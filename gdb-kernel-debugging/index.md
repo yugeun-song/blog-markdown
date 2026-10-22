@@ -39,8 +39,11 @@ sudo dnf install gdb
 
 여기서 배포판마다 갈리는 핵심이 하나 있다. **Arch의 gdb 패키지는 이미 멀티 아키텍처로 빌드되어 있어서 별도의 `gdb-multiarch`가 존재하지 않는다.** 확인은 인자 없이 `set architecture`를 실행해 gdb가 이해하는 아키텍처 목록을 보면 된다.
 
+```bash
+gdb -nx -batch -ex 'set architecture'
+```
+
 ```text
-$ gdb -nx -batch -ex 'set architecture'
 Requires an argument. Valid arguments are ARC600, ..., i386, i386:x86-64, # [!hl]
 ..., aarch64, aarch64:llp64, ..., riscv, riscv:rv64, riscv:rv32, ..., auto.
 ```
@@ -49,8 +52,11 @@ Requires an argument. Valid arguments are ARC600, ..., i386, i386:x86-64, # [!hl
 
 크로스 gdb는 대상 아키텍처 이름이 접두사로 붙은 별도 바이너리다.
 
+```bash
+command -v gdb gdb-multiarch aarch64-linux-gnu-gdb riscv64-linux-gnu-gdb
+```
+
 ```text
-$ command -v gdb gdb-multiarch aarch64-linux-gnu-gdb riscv64-linux-gnu-gdb
 /usr/bin/gdb
                           # gdb-multiarch: 없음 (Arch에는 패키지 자체가 없다)
 /usr/bin/aarch64-linux-gnu-gdb
@@ -93,12 +99,15 @@ source ~/pwndbg/gdbinit.py
 
 **lx-\*는** 따로 설치할 게 없다. `CONFIG_GDB_SCRIPTS=y`로 빌드하면 커널 빌드 디렉토리에 `vmlinux-gdb.py` 심볼릭 링크가 생기고, **호스트 gdb가 그 `vmlinux`를 로드할 때** 자동으로 딸려 온다. 단 빌드 디렉토리가 gdb의 auto-load 안전 경로 안에 있어야 한다. pwndbg를 로드하면 pwndbg가 `set auto-load safe-path /`로 이 제한을 풀어 줘서 `gdb vmlinux`만으로 lx-*가 딸려 오고, 안전 경로를 건드리지 않은 순정 gdb에서는, 안전 경로를 직접 허용하거나(방법 1) 그냥 연 뒤 gdb 콘솔에서 `vmlinux-gdb.py`를 직접 `source`하면 된다(방법 2).
 
-```text
+```bash
 # 방법 1: 안전 경로를 미리 허용하면 vmlinux 로드 시 lx-*가 자동으로 딸려 온다 (pwndbg면 불필요)
-$ gdb -iex 'add-auto-load-safe-path /path/to/linux/kernel' ./vmlinux
+gdb -iex 'add-auto-load-safe-path /path/to/linux/kernel' ./vmlinux
 
 # 방법 2: 안전 경로와 무관하게, 연 다음 gdb 콘솔에서 직접 읽는다
-$ gdb ./vmlinux
+gdb ./vmlinux
+```
+
+```text
 (gdb) source /path/to/linux/kernel/vmlinux-gdb.py
 ```
 
