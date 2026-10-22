@@ -2,7 +2,7 @@
 
 gdb로 커널을 디버깅한다는 것은, `호스트`의 gdb가 QEMU에 내장된 gdbstub에 원격으로 접속해, GDB 원격 시리얼 프로토콜(RSP)로 `vmlinux`의 심볼을 써서 VM으로 띄운 커널의 메모리와 실행을 들여다보고 제어하는 것이다.
 
-이 글의 모든 명령 출력은 stable 6.12.92 버전의 x86_64, arm64, riscv64 세 아키텍처의 커널과 최신의 x86_64 mainline(7.1-rc) 커널을 QEMU에 올린 환경에서 실제로 실행한 결과이다. 각 커널은 `CONFIG_DEBUG_INFO_DWARF5`, `CONFIG_GDB_SCRIPTS`, `CONFIG_KALLSYMS_ALL`로 빌드되어 있고, 디버깅에 쓰는 호스트 OS 환경은 7.0.1 버전 커널의 Arch Linux이고, 디버거는 gdb 17.2에 pwndbg 플러그인을 얹은 것이다. 부팅 런처는 기본적으로 CPU를 정지(`-S`)시킨 채 gdb 접속을 기다린다.
+이 글의 모든 명령 출력은 v6.18.58 커널을 x86_64, arm64, riscv64 세 아키텍처로 빌드해 QEMU에 올린 환경에서 실제로 실행한 결과이다. 각 커널은 defconfig에 `CONFIG_DEBUG_INFO_DWARF5`, `CONFIG_GDB_SCRIPTS`, `CONFIG_KALLSYMS_ALL`을 더해 빌드했다. 디버깅에 쓰는 호스트는 7.2.11 커널의 Arch Linux이고, 디버거는 gdb 18.1에 pwndbg 2026.09.15를 얹은 것이다. QEMU는 기본적으로 CPU를 정지(`-S`)시킨 채 gdb 접속을 기다리게 띄운다.
 
 ```bash
 # 게스트: QEMU를 -S로 정지시킨 채 gdbstub에서 gdb 접속을 기다린다 (포트는 예시로 1234)
@@ -148,7 +148,7 @@ $1 = "swapper\000\000\000\000\000\000\000\000"
 - **초기에는 idle 상태에 디버거가 멈춤**: 초기에 디버거가 멈추면 보통 `current`가 `swapper`이다. 따라서, 유의미한 지점에 중단점과 게스트 트리거를 설정해야 정보를 얻을 수 있다.
 - **`continue` 중에는 콘솔이 멈춤**: 디버깅 대상이 실행 중이면 gdb는 다음 정지(중단점, 워치포인트 적중)까지 입력을 받지 않는다. 중단점이 안 잡히는데 다시 명령을 내려야 하면 `Ctrl-C`로 실행 중인 커널을 인터럽트한다. 그러면 처음 붙을 때처럼 그 순간의 위치(보통 idle)에서 멈추고 프롬프트가 돌아온다. gdb를 스크립트나 백그라운드로 돌려 그 콘솔에 직접 `Ctrl-C`를 칠 수 없는 경우에는, 다른 터미널에서 `kill -INT <gdb의 PID>`(gdb가 하나뿐이면 `pkill -INT -x gdb`)로 그 gdb 프로세스에 `SIGINT`를 보내면 된다.
 - **자주 사용되는 함수에 중단점을 걸면 폭주**: `__schedule`처럼 자주 불리는 함수에 중단점을 걸면 끊임없이 적중한다. 조건부 중단점(`if`)이나 멈추지 않는 디버깅 방식(파이썬 `stop()`)을 활용해야 한다.
-- **detach하면 즉시 재개**: gdb를 끊으면 커널은 멈췄던 자리에서 곧바로 다시 실행된다.
+- **detach하면 즉시 재개**: gdb를 `detach`로 끊으면 커널은 멈췄던 자리에서 곧바로 다시 실행된다. 반면 gdb가 `detach` 없이 죽거나 연결만 끊기면, 이 글의 QEMU 11.1은 VM을 멈춘 채로 둔다.
 - **단일 스텝 중 인터럽트 유입**: 한 줄씩 밟는 동안 타이머 같은 인터럽트가 끼어들면 스텝이 인터럽트 핸들러로 빨려 들어갈 수 있다. 한편 KVM에서 오래 멈췄다 재개하면 멈춘 시간만큼 앞서 나간 TSC를 커널이 알아채 clocksource 경고를 낸다.
 - **멀티코어 디버깅**: 코어가 여럿이면 `current`와 per-cpu 상태가 선택한 코어마다 다르고, 코어들이 병렬로 도는 동안 실행 흐름이 매 실행 달라진다(arm64 TCG의 MTTCG에서도 마찬가지다). 같은 흐름을 반복 재현하려면 `-smp 1`로 코어 간 비결정성을 줄이고, 더 엄격하게는 `-icount`까지 쓴다.
 - **모듈 심볼 Lazy 로딩**: `lx-symbols`를 한 번 실행해 두면 `do_init_module`에 내부 중단점을 심어 두므로, 이후 `insmod`되는 모듈의 심볼은 자동으로 로드된다.
@@ -167,7 +167,7 @@ break, brea, bre, br, b # [!hl]
 Set breakpoint at specified location.
 ```
 
-`b`는 그냥 `break`의 별칭이다(`br`, `bre`, `brea`도 마찬가지). 즉 `b`와 `break`는 완전히 같은 명령이며, **소프트웨어 중단점**을 건다. 위치를 생략하고 `b`만 치면 지금 선택된 스택 프레임의 현재 실행 지점에 중단점이 걸린다. 위치는 함수 이름 말고도 여러 형태로 줄 수 있다. 파일과 줄(`b kernel/sched/core.c:4143`), 그리고 주소 앞에 `*`를 붙인 정확한 주소(`break *0xffff8000800fc9a0`, `b *try_to_wake_up+8`, `b *$pc`)도 받는다. **참고로 pwndbg의 `bp`는 `*` 없이 주소를 받는다(`bp <주소>`)**.
+`b`는 그냥 `break`의 별칭이다(`br`, `bre`, `brea`도 마찬가지). 즉 `b`와 `break`는 완전히 같은 명령이며, **소프트웨어 중단점**을 건다. 위치를 생략하고 `b`만 치면 지금 선택된 스택 프레임의 현재 실행 지점에 중단점이 걸린다. 위치는 함수 이름 말고도 여러 형태로 줄 수 있다. 파일과 줄(`b kernel/sched/core.c:4160`), 그리고 주소 앞에 `*`를 붙인 정확한 주소(`break *0xffff80008012fb68`, `b *try_to_wake_up+8`, `b *$pc`)도 받는다. **참고로 pwndbg의 `bp`는 `*` 없이 주소를 받는다(`bp <주소>`)**.
 
 gdb는 `Note: breakpoint N also set at pc ...`로 같은 자리에 이미 중단점이 있음을 알려 준다. gdb는 한 주소에 중단점 여러 개를 허용하므로(조건을 달리해 여럿 거는 것이 정당한 쓰임이다) 에러는 아니지만, 무심코 생긴 중복이라면 정리하면 된다.
 
@@ -604,7 +604,7 @@ $3 = 1                   # TASK_INTERRUPTIBLE로 바뀜
 
 커널 메모리에 그대로 써지므로, 이대로 `continue`하면 커널이 바뀐 값으로 진행한다. 그만큼 위험하니 무엇을 바꾸는지 알고 써야 한다.
 
-커널 패닉을 유발할 수도 있다. gdb는 변수든 레지스터든 커널 메모리를 그대로 쓸 수 있어서, 중요한 값 하나만 쓰레기값으로 바꿔도 패닉이 난다. 아래는 arm64 v6.12 커널을 VM으로 띄워 gdb로 실제 패닉을 유발한 것이다. 먼저 `set var`로 커널의 `panic_on_oops`를 1로 켜 oops가 곧 패닉이 되게 하고, `try_to_wake_up` 진입점에서 깨우려는 태스크 포인터 `p`(`x0`)를 NULL로 강제한다.
+커널 패닉을 유발할 수도 있다. gdb는 변수든 레지스터든 커널 메모리를 그대로 쓸 수 있어서, 중요한 값 하나만 쓰레기값으로 바꿔도 패닉이 난다. 아래는 arm64 v6.18 커널을 로그인 프롬프트까지 부팅한 뒤 gdb로 붙어 실제 패닉을 유발한 것이다. 부팅을 먼저 끝내는 데는 이유가 있다. 콘솔 드라이버가 등록되기 전에 패닉이 나면 메시지가 로그 버퍼에만 남고 콘솔에는 찍히지 않는다. 먼저 `set var`로 커널의 `panic_on_oops`를 1로 켜 oops가 곧 패닉이 되게 하고, `try_to_wake_up` 진입점에서 깨우려는 태스크 포인터 `p`(`x0`)를 NULL로 강제한다. 마지막 `continue` 전에는 `delete`로 중단점을 지운다. 그대로 두면 Oops 메시지가 다 찍히기 전에 다른 `try_to_wake_up` 호출에서 다시 멈춘다.
 
 ```text
 (gdb) set var panic_on_oops = 1      # oops를 즉시 패닉으로 승격
@@ -621,7 +621,7 @@ Breakpoint 1, try_to_wake_up (p=0xffff0000045a1200, state=state@entry=3, wake_fl
 Continuing.
 ```
 
-재개하는 순간 `try_to_wake_up`은 `p->pi_lock`을 잠그려 하는데, `p`가 0이라 주소 `0x89c`(= `p`가 0일 때 `pi_lock`의 오프셋)를 역참조해 NULL 포인터 역참조 Oops가 난다. `panic_on_oops`를 켜 두었으므로 Oops는 그대로 패닉으로 이어진다(마침 PID 1 문맥이라 켜 두지 않았어도 패닉했을 것이다). 게스트 콘솔에 찍힌 실제 출력이다.
+재개하는 순간 `try_to_wake_up`은 `p->pi_lock`을 잠그려 하는데, `p`가 0이라 주소 `0x7dc`(= `p`가 0일 때 `pi_lock`의 오프셋)를 역참조해 NULL 포인터 역참조 Oops가 난다. 이번에 멈춘 호출은 타이머 softirq가 `process_timeout()`에서 부른 것이라, Oops도 인터럽트 문맥에서 났다. arm64의 `die()`는 인터럽트 문맥의 Oops를 `panic_on_oops`보다 먼저 패닉으로 넘기므로(`Fatal exception in interrupt`), 여기서는 켜 두지 않았어도 패닉했을 것이다. 게스트 콘솔에 찍힌 실제 출력이다.
 
 ```text
 [    8.404602] Unable to handle kernel NULL pointer dereference at virtual address 00000000000007dc
@@ -639,7 +639,7 @@ Continuing.
 [    8.412282] ---[ end Kernel panic - not syncing: Oops: Fatal exception in interrupt ]---
 ```
 
-`pc`가 `_raw_spin_lock_irqsave`이고 콜 트레이스가 `try_to_wake_up+0x64`인 것이 핵심이다. `p`를 NULL로 만든 탓에 `try_to_wake_up`이 `p->pi_lock`을 잠그려다 폴트가 났다는 뜻이다. `-snapshot`으로 띄웠으므로 디스크 이미지나 VM 설정에는 아무 변화가 없고, 패닉은 이 일회용 게스트 런타임에서만 일어난다. QEMU를 다시 띄우면 멀쩡하다.
+`pc`가 `_raw_spin_lock_irqsave`이고 `lr`이 `try_to_wake_up+0x64`인 것이 핵심이다. `p`를 NULL로 만든 탓에 `try_to_wake_up`이 `p->pi_lock`을 잠그려다 폴트가 났다는 뜻이다. `-snapshot`으로 띄웠으므로 디스크 이미지나 VM 설정에는 아무 변화가 없고, 패닉은 이 일회용 게스트 런타임에서만 일어난다. QEMU를 다시 띄우면 멀쩡하다.
 
 이 명령들(`disassemble`, `nearpc`, `x`, `step`/`next`, `set var`)은 gdb/pwndbg의 기본 기능이라 아키텍처에 중립적이다. x86_64, arm64, riscv64에서도 그대로 동작하며, 디스어셈블 출력만 아키텍처별로 달라진다(x86은 `mov`/`push`/`call`, arm64는 `mov`/`paciasp`/`bl` 등 ...).
 
@@ -716,7 +716,7 @@ break-range -- Set a breakpoint for an address range.
 커널은 유저 프로그램과 다른 점이 여럿 있다. 실제로 마주치는 증상 위주로 정리한다.
 
 - **detach가 곧 실행 재개**: `-S`로 정지시킨 커널에 한 번 붙었다가 끊으면, 다음에 붙을 때는 이미 부팅이 끝나 있다. `start_kernel` 같은 일회성 지점은 매번 새로 부팅해서 잡아야 한다.
-- **심볼/버전 불일치**: 구조체 레이아웃마저 커널 버전 사이에서 바뀐다. 예컨대 `struct file`의 첫 멤버는 6.12에서 `atomic_long_t f_count`이지만 7.1에서는 `spinlock_t f_lock`으로 재배치되었다.
+- **심볼/버전 불일치**: 구조체 레이아웃마저 커널 버전 사이에서 바뀐다. 예컨대 런큐 `struct rq`의 첫 멤버는 v6.18에서 `raw_spinlock_t __lock`이지만, 7.3 mainline에서는 `unsigned int nr_running`이다. 실행 중인 커널과 다른 빌드의 `vmlinux`로 붙으면 gdb는 엉뚱한 오프셋에서 값을 읽는다.
 
 ### gdb가 멈춘 시간을 게스트 VM 타이머에서 제외하기
 
@@ -728,11 +728,11 @@ break-range -- Set a breakpoint for an address range.
 clocksource: Long readout interval, skipping watchdog check: cs_nsec: 45531619916 wd_nsec: 504049081
 ```
 
-clocksource 워치독이 감시하는 TSC(`cs_nsec`)는 45.77초가 흘렀는데, 기준으로 삼는 `kvm-clock`(`wd_nsec`)은 0.5초만 흘렀다. 측정 구간이 너무 길어 워치독이 이번 검사를 건너뛰었다는 경고이며, TSC가 불안정(unstable)으로 표시되지는 않는다. 게스트 시계도 도약하지 않았으므로 RCU stall이나 soft lockup으로 번지지 않는다.
+clocksource 워치독이 감시하는 TSC(`cs_nsec`)는 45.53초가 흘렀는데, 기준으로 삼는 `kvm-clock`(`wd_nsec`)은 0.5초만 흘렀다. 측정 구간이 너무 길어 워치독이 이번 검사를 건너뛰었다는 경고이며, TSC가 불안정(unstable)으로 표시되지는 않는다. 게스트 시계도 도약하지 않았으므로 RCU stall이나 soft lockup으로 번지지 않는다.
 
 TSC까지 포함해 이 시간을 게스트 계산에서 완전히 제외하는 길은 두 가지다.
 
-첫째, **KVM 대신 TCG(전체 에뮬레이션)로 구동한다.** TCG에서는 QEMU의 가상 클럭(`QEMU_CLOCK_VIRTUAL`)이 vCPU가 멈추면 같이 멈춘다. gdb로 붙잡고 있는 동안 게스트 시간도 정지하므로 재개해도 시간 도약이 없다. x86 호스트 머신에서 arm64 아키텍처 기반의 v6.12 커널을 QEMU에서 가상화할 때에는 TCG가 기본값이다.
+첫째, **KVM 대신 TCG(전체 에뮬레이션)로 구동한다.** TCG에서는 QEMU의 가상 클럭(`QEMU_CLOCK_VIRTUAL`)이 vCPU가 멈추면 같이 멈춘다. gdb로 붙잡고 있는 동안 게스트 시간도 정지하므로 재개해도 시간 도약이 없다. x86 호스트 머신에서 arm64 아키텍처 기반의 v6.18 커널을 QEMU에서 가상화할 때에는 TCG가 기본값이다.
 
 둘째, **`-icount`로 게스트 시간을 실행한 명령 수에 묶어 더 엄격하게 만든다.** 평범한 TCG의 가상 클럭이 실행 중에 호스트 속도를 느슨하게 계산하고 에뮬레이션이 밀리면 시간을 건너뛰어 따라잡는 데 비해(게스트 VM에서 top 명령어를 보면 uptime 시간이 초당 2초씩 증가하는 현상도 관측된다), `-icount shift=N`은 게스트 시간을 실행한 명령(retired instruction) 수에 못 박는다. 그래서 실행 중에도 호스트 부하와 무관하게 시간이 흐른다. 실행을 매번 똑같이 재현하려면 고정 `shift=N`에 `sleep=off`를 함께 준다(`shift=auto`와는 함께 쓸 수 없다). 단 `-icount`는 TCG 전용이라 KVM과 함께 쓸 수 없고, 단일 스레드라 느리다.
 
@@ -758,7 +758,7 @@ qemu-system-aarch64 -accel tcg -icount shift=auto -cpu cortex-a72  ...  -gdb tcp
   2    Thread 1.2 (CPU#1 [halted ]) cpu_do_idle () at arch/arm64/kernel/idle.c:32
 ```
 
-중단점이 걸린 `CPU#0`만이 아니라 다른 코어 `CPU#1`까지 그 순간 함께 멈췄다(all-stop). 그리고 45초를 붙잡고 있어도 게스트의 `jiffies_64`는 한 틱도 늘지 않는다.
+중단점이 걸린 `CPU#0`만이 아니라 다른 코어 `CPU#1`까지 그 순간 함께 멈췄다(all-stop). 그리고 45초를 붙잡고 있어도 게스트의 `jiffies_64`는 그만큼 늘지 않는다. HZ=250에서 45초는 11250틱이지만, 재개 후 다음 적중까지 늘어난 것은 8틱이다.
 
 ```text
 (gdb) p jiffies_64        # 멈춘 직후
@@ -796,7 +796,7 @@ corresponding physical address: 0x56000000
 slide = 0xffffffff9ee00000 - 0xffffffff81000000 = 0x1de00000
 ```
 
-베이스를 찾으면 `kbase -r`로 코드 심볼의 어긋남을 바로잡는다. 내부적으로는 방금 찾은 런타임 베이스로 `add-symbol-file vmlinux <런타임 베이스>`를 실행해, `vmlinux`의 심볼 파일을 슬라이드된 주소에 다시 로드한다. 그러면 멈춘 주소가 함수 이름으로 풀려 `?? ()`가 사라지고 백트레이스가 제대로 나온다. 다만 `p jiffies_64` 같은 변수 접근은 여전히 링크 시점 주소를 읽으므로, 심볼을 그대로 쓰려면 `nokaslr`가 확실하다. 아니면 애초에 부팅 커맨드라인에 `nokaslr`를 줘서 슬라이드를 0으로 만들어도 된다. 기본적으로 `nokaslr`로 부팅하므로 정적 심볼이 그대로 들어맞고, 위 결과는 일부러 `nokaslr`를 빼고 부팅해 슬라이드를 만든 경우다.
+베이스를 찾으면 `kbase -r`로 코드 심볼의 어긋남을 바로잡는다. 내부적으로는 방금 찾은 런타임 베이스로 `add-symbol-file vmlinux <런타임 베이스>`를 실행해, `vmlinux`의 심볼 파일을 슬라이드된 주소에 다시 로드한다. KASLR로 부팅한 x86_64 게스트에서 실제로 해 보면 다음과 같다.
 
 ```text
 pwndbg> kbase -r
@@ -806,6 +806,8 @@ pwndbg> bt 1
     at arch/x86/kernel/paravirt.c:82
 (More stack frames follow...)
 ```
+
+멈춘 주소가 함수 이름으로 풀려 `?? ()`가 사라지고 백트레이스가 제대로 나온다. 다만 `p jiffies_64` 같은 변수 접근은 여전히 링크 시점 주소를 읽으므로, 심볼을 그대로 쓰려면 `nokaslr`가 확실하다. 아니면 애초에 부팅 커맨드라인에 `nokaslr`를 줘서 슬라이드를 0으로 만들어도 된다. 기본적으로 `nokaslr`로 부팅하므로 정적 심볼이 그대로 들어맞고, 위 결과는 일부러 `nokaslr`를 빼고 부팅해 슬라이드를 만든 경우다.
 
 ## pwndbg로 더 편리하게
 
@@ -822,7 +824,7 @@ pwndbg는 본래 유저스페이스 익스플로잇용 도구이지만, 주소�
 
 ### context로 멈춘 지점을 한 화면에 보기
 
-pwndbg를 로드하면 멈출 때마다 레지스터, 디스어셈블, 소스, 스택, 콜 스택을 한 화면에 자동으로 그려 준다. 멈춤 직후 자동으로 뜨는 이 화면이 디버깅에 유용하다. arm64 v6.12 커널에서 `try_to_wake_up`에 멈췄을 때의 실제 모습은 다음과 같다.
+pwndbg를 로드하면 멈출 때마다 레지스터, 디스어셈블, 소스, 스택, 콜 스택을 한 화면에 자동으로 그려 준다. 멈춤 직후 자동으로 뜨는 이 화면이 디버깅에 유용하다. arm64 v6.18 커널에서 `try_to_wake_up`에 멈췄을 때의 실제 모습은 다음과 같다.
 
 <pre class="dbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
@@ -860,12 +862,12 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 <span class="ansi-blue">────────────────────────────────────────────────────────────────────────────────</span>
 </pre>
 
-한 번 멈추면 레지스터(`REGISTERS`), 현재 위치의 디스어셈블(`DISASM`), C 소스(`SOURCE`), 스택(`STACK`), 콜 스택(`BACKTRACE`)이 한 화면에 자동 정렬되어 뜬다. 각 레지스터는 가리키는 대상까지 따라가 `X19 —▸ … ◂— 'pool_workqueue_release'`처럼 참조 관계를 해석해 주고, `BACKTRACE`는 `try_to_wake_up`에서 `wake_up_process`, `__kthread_create_on_node`, `__kthread_create_worker`로 이어지는 kthread 생성 경로를 그대로 보여 준다. 플러그인이 없는 순수한 gdb라면 `info registers`, `x/i $pc`, `list`, `backtrace`를 일일이 실행해야 모을 수 있는 정보들을 한 번에 볼 수 있다.
+한 번 멈추면 레지스터(`REGISTERS`), 현재 위치의 디스어셈블(`DISASM`), C 소스(`SOURCE`), 스택(`STACK`), 콜 스택(`BACKTRACE`)이 한 화면에 자동 정렬되어 뜬다. 각 레지스터는 가리키는 대상까지 따라가 `X19 —▸ … ◂— 'pool_workqueue_release'`처럼 참조 관계를 해석해 주고, `BACKTRACE`는 `try_to_wake_up`에서 `wake_up_process`, `__kthread_create_on_node`, `kthread_create_worker_on_node`로 이어지는 kthread 생성 경로를 그대로 보여 준다. 플러그인이 없는 순수한 gdb라면 `info registers`, `x/i $pc`, `list`, `backtrace`를 일일이 실행해야 모을 수 있는 정보들을 한 번에 볼 수 있다.
 
 이 화면을 읽는 데 필요한 기호는 몇 개뿐이다.
 
 - `—▸`(오른쪽 화살표)는 "가리킨다", 즉 포인터를 따라간다. `A —▸ B`는 `A` 주소에서 8바이트만큼 차지하는 값의 실제 내용이 `B`라는 뜻으로, C로 비유하자면 `*(void **)A == B`다. pwndbg는 이렇게 나온 주소를 다시 역참조하며 재귀적으로 따라간다(telescope).
-- `◂—`(왼쪽 화살표)는 "여기 든 값 그 자체"다. 더 따라갈 주소가 아닌 최종 값(리터럴, 문자열, 또는 그 자리가 코드면 그 명령어)에서 체인이 끝난다. `◂— ...`는 사슬이 더 이어지지만 표시 깊이 한계에서 잘렸다는 표시다.
+- `◂—`(왼쪽 화살표)는 "여기 든 값 그 자체"다. 더 따라갈 주소가 아닌 최종 값(리터럴, 문자열, 또는 그 자리가 코드면 그 명령어)에서 체인이 끝난다. `—▸ ...`는 사슬이 더 이어지지만 표시 깊이 한계에서 잘렸다는 표시다.
 - `=>`와 `<=`는 역참조가 아니라 *에뮬레이션 예측*(`set emulate on`)이다. 현재 명령이 실행되면 레지스터가 받을 값은 `X9 => 0x...`처럼 `=>`로, 메모리에 써질 값은 `[주소] <= 0x...`처럼 `<=`로 미리 보여 준다(아직 실행 전이다).
 - 레지스터 앞의 `*`는 직전 정지 이후 값이 바뀐 레지스터, `DISASM`의 `►`는 지금 실행할 명령(PC), `b►`는 거기에 중단점도 걸려 있다는 표시다.
 
@@ -882,10 +884,11 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 | 토큰 | 의미 |
 |---|---|
 | `*X29` | 직전 정지 이후 값이 바뀐 레지스터(`*`). `X29`는 프레임 포인터 |
-| `0xffff800083fcbc30` | `X29`가 담은 주소. 사슬의 시작 |
-| `—▸ 0xffff800083fcbc90` | `*(void **)0xffff800083fcbc30`. 한 번 역참조한 값 |
-| `—▸ 0xffff800083fcbcd0` | `*(void **)0xffff800083fcbc90`. 다시 역참조한 값 |
-| `◂— ...` | 사슬이 더 이어지지만 표시 깊이에서 잘림 |
+| `0xffff800082e9bc70` | `X29`가 담은 주소. 사슬의 시작 |
+| `—▸ 0xffff800082e9bcd0` | `*(void **)0xffff800082e9bc70`. 한 번 역참조한 값 |
+| `—▸ 0xffff800082e9bd80` | `*(void **)0xffff800082e9bcd0`. 다시 역참조한 값 |
+| `—▸ 0xffff800082e9bdf0 —▸ 0xffff800082e9be40` | 같은 식으로 두 번 더 역참조한 값 |
+| `—▸ ...` | 사슬이 더 이어지지만 표시 깊이에서 잘림 |
 
 ```canvas
 {
@@ -920,9 +923,10 @@ b► 0xffff80008012fb68 <try_to_wake_up>  mov  x9, x30  X9 => 0xffff800080130208
 | 토큰 | 의미 |
 |---|---|
 | `b►` | 지금 실행할 명령(PC)이자 같은 자리에 중단점이 걸려 있음 |
-| `0xffff8000800fc9a0 <try_to_wake_up>` | 그 명령의 주소와 심볼(`try_to_wake_up`의 첫 명령) |
+| `0xffff80008012fb68 <try_to_wake_up>` | 그 명령의 주소와 심볼(`try_to_wake_up`의 첫 명령) |
 | `mov x9, x30` | 실제로 실행할 명령 |
-| `X9 => 0xffff8000800fd120 (wake_up_process+32)` | 이 명령을 실행하면 `x9`가 받을 값(에뮬레이션 예측). `x30`은 LR로 복귀 주소를 담는다 |
+| `X9 => 0xffff800080130208 (wake_up_process+32)` | 이 명령을 실행하면 `x9`가 받을 값(에뮬레이션 예측). `x30`은 LR로 복귀 주소를 담는다 |
+| `◂— ldp x29, x30, [sp], #0x10` | 그 값이 가리키는 코드 주소에 있는 명령 |
 
 `=>`는 메모리를 따라가는 `—▸`가 아니라, 명령 실행 후 레지스터가 받을 값을 미리 보여 주는 예측이다(아직 실행 전이다).
 
@@ -937,12 +941,12 @@ b► 0xffff80008012fb68 <try_to_wake_up>  mov  x9, x30  X9 => 0xffff800080130208
 | `01` | telescope 행 번호 |
 | `0008` | 사슬 시작에서의 바이트 오프셋 |
 | `+008` | 프레임 포인터(`x29`)로부터의 오프셋. 여기서는 프롤로그 전이라 `x29 == sp`다 |
-| `0xffff800083fcbc38` | 이 슬롯의 주소 |
-| `—▸ 0xffff8000800e31ec` | `*(void **)0xffff800083fcbc38`. 슬롯에 담긴 값(복귀 주소) |
-| `(__kthread_create_on_node+244)` | 그 값이 가리키는 코드 주소의 심볼 |
+| `0xffff800082e9bc78` | 이 슬롯의 주소 |
+| `—▸ 0xffff800080113494` | `*(void **)0xffff800082e9bc78`. 슬롯에 담긴 값(복귀 주소) |
+| `(__kthread_create_on_node+228)` | 그 값이 가리키는 코드 주소의 심볼 |
 | `◂— add x0, sp, #0x28` | 그 코드 주소에 박힌 4바이트 명령(디스어셈블) |
 
-마지막 `add x0, sp, #0x28`은 스택에 든 값이 아니다. 슬롯에 담긴 값은 복귀 주소 `0xffff8000800e31ec`이고, 그 주소가 실행 가능한 코드 영역이라 pwndbg가 그 자리의 4바이트 기계어 워드(AArch64 명령어는 고정 4바이트다)를 숫자 대신 디스어셈블해 보여 준 것이다. 즉 명령은 `.text`에 있지 스택에 있지 않다. `x/i 0xffff8000800e31ec`로 같은 디스어셈블을, `x/4xb 0xffff8000800e31ec`로 그 원시 바이트를 직접 확인할 수 있다.
+마지막 `add x0, sp, #0x28`은 스택에 든 값이 아니다. 슬롯에 담긴 값은 복귀 주소 `0xffff800080113494`이고, 그 주소가 실행 가능한 코드 영역이라 pwndbg가 그 자리의 4바이트 기계어 워드(AArch64 명령어는 고정 4바이트다)를 숫자 대신 디스어셈블해 보여 준 것이다. 즉 명령은 `.text`에 있지 스택에 있지 않다. `x/i 0xffff800080113494`로 같은 디스어셈블을, `x/4xb 0xffff800080113494`로 그 원시 바이트를 직접 확인할 수 있다.
 
 ```canvas
 {
@@ -963,7 +967,7 @@ b► 0xffff80008012fb68 <try_to_wake_up>  mov  x9, x30  X9 => 0xffff800080130208
 }
 ```
 
-이 화면은 멈출 때마다 자동으로 뜨지만, `context`를 직접 입력하면 언제든 다시 그릴 수 있다. pwndbg는 이를 `ctx`로 줄여 받는다. 다른 명령을 여러 번 실행해 화면이 위로 밀렸을 때 `ctx` 한 줄로 현재 문맥을 되살린다. 같은 화면을 부팅 첫 명령에서 직접 부른 예가 아래다. arm64 v6.12 커널을 `start_kernel`에 멈춘 직후다.
+이 화면은 멈출 때마다 자동으로 뜨지만, `context`를 직접 입력하면 언제든 다시 그릴 수 있다. pwndbg는 이를 `ctx`로 줄여 받는다. 다른 명령을 여러 번 실행해 화면이 위로 밀렸을 때 `ctx` 한 줄로 현재 문맥을 되살린다. 같은 화면을 부팅 첫 명령에서 직접 부른 예가 아래다. arm64 v6.18 커널을 `start_kernel`에 멈춘 직후다.
 
 <pre class="dbg-context">
 LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</span> | <span class="ansi-red">CODE</span> | <span class="ansi-magenta">DATA</span> | <span class="ansi-u ansi-red">WX</span> | RODATA
@@ -1009,9 +1013,9 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 <span class="ansi-blue">────────────────────────────────────────────────────────────────────────────────</span>
 </pre>
 
-`DISASM`을 보면 `adrp x0, ...`와 `add x0, x0, #0x900`이 짝을 이뤄 `init_task`의 주소를 만든다. `adrp`는 4KB 페이지 베이스만 싣기 때문에 단독으로는 무관한 심볼(`vlan_packet_offloads+64`) 근처를 가리키고, 뒤이은 `add #0x900`이 정확히 `init_task`에 닿는다. 이는 `SOURCE`의 첫 문장 `set_task_stack_end_magic(&init_task)`와 그대로 연결된다.
+`DISASM`을 보면 `adrp x0, ...`와 `add x0, x0, #0xc0`이 짝을 이뤄 `init_task`의 주소를 만든다. `adrp`는 4KB 페이지 베이스만 싣기 때문에 단독으로는 무관한 심볼(`root_mountflags`)을 가리키고, 뒤이은 `add #0xc0`이 정확히 `init_task`에 닿는다. 이는 `SOURCE`의 첫 문장 `set_task_stack_end_magic(&init_task)`와 그대로 연결된다.
 
-부팅 진입점이라 상태가 단출하다. `X29`와 `SP`는 `init_thread_union`, 곧 부팅 CPU의 초기 커널 스택을 가리키고, `STACK`은 갓 잡힌 스택이라 거의 0이다. `BACKTRACE`도 `start_kernel`과 이를 호출한 어셈블리 진입점 `__primary_switched` 두 칸뿐이다. `SOURCE`의 `__noreturn`이 말해 주듯 `start_kernel`은 반환하지 않으며, `LR`이 가리키는 `__primary_switched+128`이 `brk` 명령인 것도 이 때문이다. `THREADS (4 TOTAL)`은 vCPU가 넷임을 보여 주는데, 1번만 `start_kernel`에 있고 2·3·4번은 `0`이다. 보조 CPU가 아직 올라오지 않은 SMP 부팅 이전 상태다.
+부팅 진입점이라 상태가 단출하다. `X29`와 `SP`는 `init_thread_union`, 곧 부팅 CPU의 초기 커널 스택을 가리키고, `STACK`은 갓 잡힌 스택이라 거의 0이다. `BACKTRACE`도 `start_kernel`과 이를 호출한 어셈블리 진입점 `__primary_switched` 두 칸뿐이다. `SOURCE`의 `__noreturn`이 말해 주듯 `start_kernel`은 반환하지 않으며, `LR`이 가리키는 `__primary_switched+136`이 `brk` 명령인 것도 이 때문이다. `THREADS (4 TOTAL)`은 vCPU가 넷임을 보여 주는데, 1번만 `start_kernel`에 있고 2·3·4번은 `0`이다. 보조 CPU가 아직 올라오지 않은 SMP 부팅 이전 상태다.
 
 ### telescope로 포인터 참조관계 확인하기
 
@@ -1026,7 +1030,7 @@ pwndbg> telescope $sp 6
 05:0028│+028    0xffff800082e9bc98 ◂— 0xffffffd8
 ```
 
-`telescope $sp 6`은 `sp`에서 8바이트씩 여섯 슬롯을 찍되, 각 슬롯의 값을 다시 역참조해 사슬로 풀어 준다. C로 보면 각 행은 `*(void **)(sp + 오프셋)`을 구하고, 그 결과가 또 주소이면 거기에 `*`를 거듭 적용해 더는 주소가 아닌 값에 닿을 때까지 따라가는 것이다. 그래서 화살표가 여러 개인 한 행은 시작 주소에 역참조를 그 개수만큼 거듭한 것과 같다. `A —▸ B —▸ C —▸ D ◂— ...`에서 `B == *(void **)A`, `C == *(void **)B`, `D == *(void **)C`이므로 `D`는 `A`를 세 번 역참조한 값, 즉 개념적으로 `***A`다(엄밀히는 매 단계에서 읽은 8바이트를 다시 포인터로 해석하므로 `*(void **)`를 세 번 포갠 꼴이다). 한 행은 이 다중 역참조의 최종 값만이 아니라 중간 단계(`*A`, `**A`, ...)까지 함께 찍어 준다. 끝의 `◂—`는 거기서 한 번 더 따라간 값이 포인터가 아니거나 표시 깊이에 걸려 사슬이 멈췄다는 표시다.
+`telescope $sp 6`은 `sp`에서 8바이트씩 여섯 슬롯을 찍되, 각 슬롯의 값을 다시 역참조해 사슬로 풀어 준다. C로 보면 각 행은 `*(void **)(sp + 오프셋)`을 구하고, 그 결과가 또 주소이면 거기에 `*`를 거듭 적용해 더는 주소가 아닌 값에 닿을 때까지 따라가는 것이다. 그래서 화살표가 여러 개인 한 행은 시작 주소에 역참조를 그 개수만큼 거듭한 것과 같다. `A —▸ B —▸ C —▸ D —▸ ...`에서 `B == *(void **)A`, `C == *(void **)B`, `D == *(void **)C`이므로 `D`는 `A`를 세 번 역참조한 값, 즉 개념적으로 `***A`다(엄밀히는 매 단계에서 읽은 8바이트를 다시 포인터로 해석하므로 `*(void **)`를 세 번 포갠 꼴이다). 한 행은 이 다중 역참조의 최종 값만이 아니라 중간 단계(`*A`, `**A`, ...)까지 함께 찍어 준다. 끝이 `◂— 값`이면 거기서 한 번 더 따라간 값이 포인터가 아니라서 사슬이 멈춘 것이고, `—▸ ...`이면 표시 깊이에 걸려 잘린 것이다.
 
 ### vmmap으로 메모리 맵 분석하기
 
@@ -1043,11 +1047,11 @@ pwndbg> vmmap
 ...
 ```
 
-`.text`는 `r-xp`(실행), `.bss`/`.data`는 `rw-p`로 갈려, 어떤 주소가 코드인지 데이터인지와 권한(W+X 위반 여부)을 한눈에 본다. 맨 위 `.text` 시작 주소 `0xffff800080010000`이 곧 `kbase`다(앞쪽 저주소 물리 RAM 영역은 생략했다).
+`.text`는 `r-xp`(실행), `.bss`/`.data`는 `rw-p`로 갈려, 어떤 주소가 코드인지 데이터인지와 권한(W+X 위반 여부)을 한눈에 본다. 첫 `kernel [.text]` 행의 시작 주소 `0xffff800080010000`이 곧 `kbase`다. 그 위의 `physmap`, `vmalloc` 행은 물리 메모리 선형 매핑과 vmalloc 영역이다.
 
 ### hexdump로 메모리 덤프하기
 
-`hexdump <주소> [바이트 수]`는 주어진 주소부터 지정한 바이트 수만큼 메모리를 16진과 ASCII로 나란히 펼친다. 바이트 수를 생략하면 기본 64바이트다. 읽는 법을 보기 좋은 예로 커널 버전 문자열 `linux_banner`를 `0x60`(96)바이트만큼 덤프한다. 아래는 arm64 v6.12에서 직접 돌린 결과다.
+`hexdump <주소> [바이트 수]`는 주어진 주소부터 지정한 바이트 수만큼 메모리를 16진과 ASCII로 나란히 펼친다. 바이트 수를 생략하면 기본 64바이트다. 읽는 법을 보기 좋은 예로 커널 버전 문자열 `linux_banner`를 `0x60`(96)바이트만큼 덤프한다. 아래는 arm64 v6.18에서 직접 돌린 결과다.
 
 ```text
 pwndbg> p linux_banner
@@ -1066,7 +1070,7 @@ pwndbg> hexdump linux_banner 0x60
 | 열 | 의미 |
 |---|---|
 | `+0000`, `+0010` | 덤프 시작 주소로부터의 상대 오프셋(16진). 행마다 `0x10`씩 증가한다 |
-| `0xffff800081ac2698` | 그 행의 절대 주소 |
+| `0xffff800081b96718` | 그 행의 절대 주소 |
 | 가운데 `4c 69 6e ...` | 그 16바이트의 값(16진). 8바이트씩 두 묶음으로 끊어 보여 준다 |
 | `│Linux.ve│rsion.6.│` | 같은 16바이트의 ASCII 표현. 출력 가능한 문자는 그대로, 그 외(제어문자나 공백)는 `.`으로 찍는다 |
 
@@ -1079,7 +1083,7 @@ pwndbg> hexdump &jiffies_64 0x10
 +0000 0xffff8000827089c0  0f db fe ff 00 00 00 00  00 00 00 00 00 00 00 00  │........│........│
 ```
 
-ASCII 칸이 전부 `.`인 것은 바이트 값이 출력 가능한 문자 범위를 벗어났기 때문이다. 값을 읽을 때는 엔디언에 주의한다. arm64는 리틀엔디언이라 낮은 주소의 바이트가 하위 바이트다. 따라서 `16 db fe ff 00 00 00 00`은 64비트 정수로 모으면 `0x00000000fffedb16`이고 `16`이 최하위 바이트다. 같은 8바이트를 `x/1xg &jiffies_64`로 읽으면 이 값을 한 덩어리로 보여 준다. 바이트 배치를 그대로 보고 싶을 때는 `hexdump`, 정수 값으로 보고 싶을 때는 `x`가 편하다.
+ASCII 칸이 전부 `.`인 것은 바이트 값이 출력 가능한 문자 범위를 벗어났기 때문이다. 값을 읽을 때는 엔디언에 주의한다. arm64는 리틀엔디언이라 낮은 주소의 바이트가 하위 바이트다. 따라서 `0f db fe ff 00 00 00 00`은 64비트 정수로 모으면 `0x00000000fffedb0f`이고 `0f`가 최하위 바이트다. 같은 8바이트를 `x/1xg &jiffies_64`로 읽으면 이 값을 한 덩어리로 보여 준다. 바이트 배치를 그대로 보고 싶을 때는 `hexdump`, 정수 값으로 보고 싶을 때는 `x`가 편하다.
 
 인자를 모두 생략하고 `hexdump`만 입력하면 기본값이 적용된다. `help hexdump`가 알려 주듯 주소는 `$sp`, 바이트 수는 64다. 즉 정지한 지점의 스택 최상단 64바이트(4행)를 덤프한다.
 
@@ -1093,7 +1097,7 @@ pwndbg> hexdump
 +0030 0xffff800082e9bca0  40 2a 48 03 00 00 ff ff  00 00 00 00 00 00 00 00  │@*H.....│........│
 ```
 
-맨 앞 8바이트 `90 bc fc 83 00 80 ff ff`를 리틀엔디언으로 모으면 `0xffff800083fcbc90`이고, 이는 앞서 `telescope $sp`가 첫 칸에서 보여 준 값(`0xffff800083fcbc30 —▸ 0xffff800083fcbc90`)과 같다. 둘 다 같은 `$sp`를 가리키니 당연한 일치다. 인자 없이 다시 `hexdump`를 불러도 기준이 `$sp`라 같은 구간이 나오고, 자동으로 다음 구간으로 넘어가지는 않는다.
+맨 앞 8바이트 `d0 bc e9 82 00 80 ff ff`를 리틀엔디언으로 모으면 `0xffff800082e9bcd0`이고, 이는 앞서 `telescope $sp`가 첫 칸에서 보여 준 값(`0xffff800082e9bc70 —▸ 0xffff800082e9bcd0`)과 같다. 둘 다 같은 `$sp`를 가리키니 당연한 일치다. 인자 없이 다시 `hexdump`를 불러도 기준이 `$sp`라 같은 구간이 나오고, 자동으로 다음 구간으로 넘어가지는 않는다.
 
 ### 리눅스 커널 전용 pwndbg 기능
 
@@ -1137,7 +1141,7 @@ L3 @ 0xffff000003062000[278] —▸ L3e: 0xf8000042916703 [ UNX PNX ap:00 ]
 pagewalk result: 0xffff0000029160c0 [phys: 0x429160c0]
 ```
 
-커널 전용 명령은 그 밖에도 여러 가지가 있다. 다음은 arm64 v6.12 QEMU에서 직접 돌린 결과다. `kbase`는 커널 텍스트 베이스(KASLR 슬라이드 탐지의 기준)를, `ktask`/`kcurrent`는 태스크 목록과 현재 태스크를, `kmod`는 적재된 모듈을, `kdmesg`는 printk 링 버퍼를 보여 준다.
+커널 전용 명령은 그 밖에도 여러 가지가 있다. 다음은 arm64 v6.18 QEMU에서 직접 돌린 결과다. `kbase`는 커널 텍스트 베이스(KASLR 슬라이드 탐지의 기준)를, `ktask`/`kcurrent`는 태스크 목록과 현재 태스크를, `kmod`는 적재된 모듈을, `kdmesg`는 printk 링 버퍼를 보여 준다.
 
 ```text
 pwndbg> kbase
@@ -1278,7 +1282,7 @@ sizeof(struct task_struct) = 4608
 hello-kernel: sizeof(struct task_struct) = 4608
 ```
 
-gdb 17.2는 Python 3.14.5를 내장하므로 표준 파이썬 문법과 라이브러리를 그대로 쓸 수 있다.
+gdb 18.1은 Python 3.14.8을 내장하므로 표준 파이썬 문법과 라이브러리를 그대로 쓸 수 있다.
 
 `Breakpoint`를 상속해 `stop()`을 재정의할 수 있다. `stop()`이 `False`를 반환하면 멈추지 않고 지나가므로, ftrace나 eBPF처럼 "멈추지 않는 추적기"를 만들 수 있다.
 
@@ -1296,7 +1300,7 @@ class WakeTracer(gdb.Breakpoint):
         return self.n >= self.maxn   # True를 반환할 때만 실제로 멈춘다
 ```
 
-이 클래스를 gdb 콘솔에 정의하고 attach해 걸면, 커널이 부팅 중 깨우는 태스크들이 그대로 잡힌다. 아래는 arm64 v6.12에서 직접 돌린 콘솔 입출력이다.
+이 클래스를 gdb 콘솔에 정의하고 attach해 걸면, 커널이 부팅 중 깨우는 태스크들이 그대로 잡힌다. 아래는 arm64 v6.18에서 직접 돌린 콘솔 입출력이다.
 
 ```text
 (gdb) target remote :1234            # 게스트 gdbstub에 attach
@@ -1396,7 +1400,7 @@ pid=1 comm=swapper/0
 | `vmmap` | 메모리 매핑 표 | `vmmap` |
 | `hexdump` | 메모리 16진 덤프 | `hexdump &init_task` |
 | `regs` | 레지스터를 한눈에 | `regs` |
-| `bp` | 주소에 중단점 | `bp 0xffff800080412cd8` |
+| `bp` | 주소에 중단점 | `bp 0xffff80008012fb68` |
 
 **pwndbg 커널 전용 기능 (QEMU 커널 디버깅 중에만)**
 
