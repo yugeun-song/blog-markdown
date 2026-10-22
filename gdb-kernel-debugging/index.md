@@ -840,16 +840,26 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
 | `—▸ 0xffff800083fcbcd0` | `*(void **)0xffff800083fcbc90`. 다시 역참조한 값 |
 | `◂— ...` | 사슬이 더 이어지지만 표시 깊이에서 잘림 |
 
-```memory-layout
+```canvas
 {
   "id": "frame-chain",
   "label": "스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다",
-  "regions": [
-    {"id": "outer", "word": "truncated", "sub": "(caller's caller)", "start": "0xffff800083fcbcd0"},
-    {"gap": true},
-    {"id": "caller", "value": "0xffff800083fcbcd0", "sub": "(caller frame)", "start": "0xffff800083fcbc90", "to": "outer"},
-    {"gap": true},
-    {"id": "current", "value": "0xffff800083fcbc90", "sub": "(current frame)", "start": "0xffff800083fcbc30", "marker": "X29 = sp", "to": "caller"}
+  "items": [
+    {"column": "stack", "x": 300, "y": 0, "w": 230, "cells": [
+      {"h": 56, "label": ["0xffff800082e9bdf0", "(caller's caller)"], "id": "outer"},
+      {"h": 40, "label": "...", "fill": "gap"},
+      {"h": 56, "label": ["0xffff800082e9bd80", "(caller frame)"], "id": "caller"},
+      {"h": 40, "label": "...", "fill": "gap"},
+      {"h": 56, "label": ["0xffff800082e9bcd0", "(current frame)"], "id": "current"}
+    ]},
+    {"text": "0xffff800082e9bd80", "x": 272, "y": 56, "anchor": "end", "role": "note"},
+    {"line": [[280, 56], "stack|1.left"]},
+    {"text": "0xffff800082e9bcd0", "x": 272, "y": 152, "anchor": "end", "role": "note"},
+    {"line": [[280, 152], "stack|3.left"]},
+    {"text": ["x29 = sp", "0xffff800082e9bc70"], "x": 266, "y": 248, "anchor": "end", "tone": "red", "id": "fp"},
+    {"arrow": ["fp.right", "stack|5.left"], "tone": "red"},
+    {"arrow": ["current.right", [562, 220], [562, 152], "stack|3.right"]},
+    {"arrow": ["caller.right", [562, 124], [562, 56], "stack|1.right"]}
   ]
 }
 ```
@@ -887,14 +897,21 @@ b► 0xffff8000800fc9a0 <try_to_wake_up>  mov x9, x30  X9 => 0xffff8000800fd120 
 
 마지막 `add x0, sp, #0x28`은 스택에 든 값이 아니다. 슬롯에 담긴 값은 복귀 주소 `0xffff8000800e31ec`이고, 그 주소가 실행 가능한 코드 영역이라 pwndbg가 그 자리의 4바이트 기계어 워드(AArch64 명령어는 고정 4바이트다)를 숫자 대신 디스어셈블해 보여 준 것이다. 즉 명령은 `.text`에 있지 스택에 있지 않다. `x/i 0xffff8000800e31ec`로 같은 디스어셈블을, `x/4xb 0xffff8000800e31ec`로 그 원시 바이트를 직접 확인할 수 있다.
 
-```memory-layout
+```canvas
 {
   "id": "return-address",
   "label": "커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다",
-  "regions": [
-    {"id": "slot", "value": "0xffff8000800e31ec", "sub": "(kernel stack)", "start": "0xffff800083fcbc38", "to": "code"},
-    {"gap": true, "h": 1.1},
-    {"id": "code", "value": "add  x0, sp, #0x28", "sub": "(.text)", "start": "0xffff8000800e31ec", "h": 1.2}
+  "items": [
+    {"column": "va", "x": 300, "y": 0, "w": 230, "cells": [
+      {"h": 56, "label": ["0xffff800080113494", "(kernel stack)"], "id": "slot"},
+      {"h": 48, "label": "...", "fill": "gap"},
+      {"h": 56, "label": ["add  x0, sp, #0x28", "(.text)"], "id": "code"}
+    ]},
+    {"text": "0xffff800082e9bc78", "x": 272, "y": 56, "anchor": "end", "role": "note"},
+    {"line": [[280, 56], "va|1.left"]},
+    {"text": "0xffff800080113494", "x": 272, "y": 160, "anchor": "end", "role": "note"},
+    {"line": [[280, 160], "va|3.left"]},
+    {"arrow": ["slot.right", [562, 28], [562, 160], "va|3.right"]}
   ]
 }
 ```

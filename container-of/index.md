@@ -72,19 +72,37 @@ MODULE_DESCRIPTION("container_of over a list_head list");
 
 `container_of(pos, struct user_info, list)`는 `pos`에서 구조체 멤버 `list`의 오프셋인 `offsetof(struct user_info, list)`, 즉 0x100을 빼서 `list`를 포함하는 `user_info`의 시작 주소를 구한다. `list_for_each`가 `pos`에 넣어 주는 값은 각 `user_info` 안에 든 `list` 멤버, 즉 `struct list_head`의 주소이다. 다이어그램 1은 `users[0]`에서 이 계산을 표현한 것이다. `struct user_info`는 총 280바이트이고, 맨 뒤에 7바이트 패딩이 붙는다.
 
-```memory-layout
+```canvas
 {
   "id": "container-of-user-info",
-  "label": "container_of(pos, struct user_info, list)의 계산: users[0]은 0xffffffffc0203020에서 시작하고, ptr인 pos는 list를 가리키며, offsetof는 0x100이고, 결과 user는 users[0]의 시작을 가리킨다. users[1](bob)은 그 다음 주소 0xffffffffc0203138에서 시작한다",
-  "regions": [
-    {"word": "...", "sub": "(users[1], bob)", "start": "0xffffffffc0203138"},
-    {"id": "pad", "word": "00 00 00 00 00 00 00", "sub": "(padding, +0x111)", "start": "0xffffffffc0203131", "fill": "gap"},
-    {"value": "0x14", "sub": "(age, +0x110)", "start": "0xffffffffc0203130"},
-    {"id": "prev", "value": "0xffffffffc0203370", "sub": "(list.prev, +0x108)", "start": "0xffffffffc0203128", "fill": "purple"},
-    {"id": "next", "value": "0xffffffffc0203238", "sub": "(list.next, +0x100)", "start": "0xffffffffc0203120", "marker": "ptr: pos", "tone": "red", "fill": "purple"},
-    {"id": "name", "word": "\"alice\"", "sub": "(username, +0x000)", "start": "0xffffffffc0203020", "h": 2, "marker": "user == &users[0]", "tone": "blue"}
-  ],
-  "spans": [{"from": "name", "to": "name", "label": "offsetof", "sub": "= 0x100", "tone": "blue"}]
+  "label": "container_of(pos, struct user_info, list)의 계산: users[0]은 0xffffffffc0203020에서 시작하고, ptr인 pos는 list를 가리키며, offsetof는 0x100이고, 결과 user는 users[0]의 시작을 가리킨다. struct user_info는 280바이트이므로 users[1](bob)은 그 다음 주소 0xffffffffc0203138에서 시작한다",
+  "items": [
+    {"column": "u0", "x": 300, "y": 0, "w": 200, "cells": [
+      {"h": 52, "label": ["users[1]", "\"bob\""], "line": "dashed"},
+      {"h": 52, "label": ["padding", "+0x111"], "fill": "gap"},
+      {"h": 52, "label": ["age", "+0x110"]},
+      {"h": 52, "label": ["list.prev", "+0x108"], "fill": "purple"},
+      {"h": 52, "label": ["list.next", "+0x100"], "fill": "purple"},
+      {"h": 140, "label": ["username", "\"alice\"", "+0x000"]}
+    ]},
+    {"text": "0xffffffffc0203138", "x": 272, "y": 52, "anchor": "end", "role": "note"},
+    {"line": [[280, 52], "u0|1.left"]},
+    {"text": "0xffffffffc0203131", "x": 272, "y": 104, "anchor": "end", "role": "note"},
+    {"line": [[280, 104], "u0|2.left"]},
+    {"text": "0xffffffffc0203130", "x": 272, "y": 156, "anchor": "end", "role": "note"},
+    {"line": [[280, 156], "u0|3.left"]},
+    {"text": "0xffffffffc0203128", "x": 272, "y": 208, "anchor": "end", "role": "note"},
+    {"line": [[280, 208], "u0|4.left"]},
+    {"text": ["pos", "0xffffffffc0203120"], "x": 266, "y": 260, "anchor": "end", "tone": "red", "id": "pos"},
+    {"arrow": ["pos.right", "u0|5.left"], "tone": "red"},
+    {"text": ["user", "0xffffffffc0203020"], "x": 266, "y": 400, "anchor": "end", "tone": "blue", "id": "user"},
+    {"arrow": ["user.right", "u0|6.left"], "tone": "blue"},
+    {"line": ["u0|5.right", [542, 260]]},
+    {"line": ["u0|1.right", [662, 52]]},
+    {"line": ["u0|6.right", [662, 400]]},
+    {"dimension": [[530, 260], [530, 400]], "label": ["offsetof", "= 0x100"], "tone": "blue"},
+    {"dimension": [[650, 52], [650, 400]], "label": ["sizeof", "= 280"]}
+  ]
 }
 ```
 
@@ -103,19 +121,55 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
 
 다이어그램 2는 예제 모듈의 리스트 전체를 그린 것이다. `list_for_each`는 `next`를 따라 `list_head`만 옮겨 다니고, 각 `list_head`를 포함하는 상위 구조체는 `container_of`가 `offsetof`만큼 거슬러 올라가 구한다.
 
-```struct-chain
+```canvas
 {
   "id": "user-info-list",
   "label": "user_info_list에서 시작한 list_for_each가 각 list 멤버의 next만 따라 users[0], users[1], users[2]를 거쳐 user_info_list로 돌아온다. 각 노드의 구조체 시작은 pos에서 offsetof 0x100을 뺀 container_of 결과이다",
-  "fields": [["username", 256], ["list", 16], ["age", 1], {"pad": 7}],
-  "link": {"field": "list", "cells": ["next", "prev"]},
-  "head": {"name": "user_info_list", "sub": "(head)"},
-  "nodes": [
-    {"name": "users[0]", "values": {"username": "\"alice\"", "age": "20"}},
-    {"name": "users[1]", "values": {"username": "\"bob\"", "age": "30"}},
-    {"name": "users[2]", "values": {"username": "\"carol\"", "age": "40"}}
-  ],
-  "tones": {"link": "purple", "walk": "red", "offset": "blue"}
+  "items": [
+    {"column": "n0", "x": 168, "y": 0, "w": 120, "cells": [
+      {"h": 72, "label": ["username", "\"alice\""]},
+      {"h": 40, "label": "next", "fill": "purple", "id": "next0"},
+      {"h": 40, "label": "prev", "fill": "purple"},
+      {"h": 52, "label": ["age", "20"]},
+      {"h": 32, "label": "padding", "fill": "gap"}
+    ]},
+    {"text": "users[0]", "x": 228, "y": -22, "anchor": "middle"},
+    {"line": ["n0.top@0", [140, 0]]},
+    {"line": ["n0|1.left", [140, 72]]},
+    {"dimension": [[152, 0], [152, 72]], "tone": "blue", "label": ["offsetof", "= 0x100"], "side": "left"},
+    {"column": "n1", "x": 364, "y": 0, "w": 120, "cells": [
+      {"h": 72, "label": ["username", "\"bob\""]},
+      {"h": 40, "label": "next", "fill": "purple", "id": "next1"},
+      {"h": 40, "label": "prev", "fill": "purple"},
+      {"h": 52, "label": ["age", "30"]},
+      {"h": 32, "label": "padding", "fill": "gap"}
+    ]},
+    {"text": "users[1]", "x": 424, "y": -22, "anchor": "middle"},
+    {"line": ["n1.top@0", [336, 0]]},
+    {"line": ["n1|1.left", [336, 72]]},
+    {"dimension": [[348, 0], [348, 72]], "tone": "blue"},
+    {"column": "n2", "x": 560, "y": 0, "w": 120, "cells": [
+      {"h": 72, "label": ["username", "\"carol\""]},
+      {"h": 40, "label": "next", "fill": "purple", "id": "next2"},
+      {"h": 40, "label": "prev", "fill": "purple"},
+      {"h": 52, "label": ["age", "40"]},
+      {"h": 32, "label": "padding", "fill": "gap"}
+    ]},
+    {"text": "users[2]", "x": 620, "y": -22, "anchor": "middle"},
+    {"line": ["n2.top@0", [532, 0]]},
+    {"line": ["n2|1.left", [532, 72]]},
+    {"dimension": [[544, 0], [544, 72]], "tone": "blue"},
+    {"column": "head", "x": 12, "y": 72, "w": 96, "cells": [
+      {"h": 40, "label": "next", "fill": "purple", "id": "hnext"},
+      {"h": 40, "label": "prev", "fill": "purple"}
+    ]},
+    {"text": "user_info_list", "x": 60, "y": 172, "anchor": "middle"},
+    {"text": "(head)", "x": 60, "y": 194, "anchor": "middle", "role": "note"},
+    {"arrow": ["hnext.right", "next0.left"], "tone": "red"},
+    {"arrow": ["next0.right", "next1.left"], "tone": "red"},
+    {"arrow": ["next1.right", "next2.left"], "tone": "red"},
+    {"arrow": ["next2.right", [700, 92], [700, 272], [-12, 272], [-12, 92], "hnext.left"], "tone": "red"}
+  ]
 }
 ```
 
