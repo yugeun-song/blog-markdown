@@ -9,6 +9,7 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
 - Paragraphs: one meaningful unit of context per paragraph, as in the ftrace and gdb posts, usually three to six sentences. A claim, its reasons and its example stay together, and a sentence that introduces a code block, list or figure ends the paragraph it belongs to. Never split a unit with blank lines. A paragraph stands alone short only as a section opener, between two code blocks, or for parallel cases.
 - When editing a post, act like a formatter: fix grammar and spacing, and regroup the paragraphs this way, in every post alike.
 - `# Title` must equal `meta.json.title` character for character, because the page `<h1>` comes from `meta.json`. Do not add `readTime`.
+- A new post, or a change to its title, date or tags, needs a new link preview: run `npm run og -- ../blog-markdown/<slug>` in the engine after a build or preview, since it reads the built CSS, and commit the `og.png` it writes. Until then the post shows the site's default image.
 - Images are centered by default. Add a lossless WebP twin with the engine's `build/encode-webp.py`.
 
 ## Code
