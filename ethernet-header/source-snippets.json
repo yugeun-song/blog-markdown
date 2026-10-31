@@ -1,0 +1,140 @@
+{
+  "schema": "source-snippets/2",
+  "blocks": {
+    "if_ether": {
+      "path": "include/uapi/linux/if_ether.h",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.18",
+      "versions": {
+        "6.18": {
+          "ref": "v6.18.60",
+          "commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 27,
+              "code": "/*\n *\tIEEE 802.3 Ethernet magic constants.  The frame sizes omit the preamble /* [!hl] */\n *\tand FCS/CRC (frame check sequence). /* [!hl] */\n */\n\n#define ETH_ALEN\t6\t\t/* Octets in one ethernet addr\t */\n#define ETH_TLEN\t2\t\t/* Octets in ethernet type field */\n#define ETH_HLEN\t14\t\t/* Total octets in header.\t */ /* [!hl] */\n#define ETH_ZLEN\t60\t\t/* Min. octets in frame sans FCS */\n#define ETH_DATA_LEN\t1500\t\t/* Max. octets in payload\t */\n#define ETH_FRAME_LEN\t1514\t\t/* Max. octets in frame sans FCS */\n#define ETH_FCS_LEN\t4\t\t/* Octets in the FCS\t\t */"
+            },
+            {
+              "startLine": 123,
+              "code": "#define ETH_P_802_3_MIN\t0x0600\t\t/* If the value in the ethernet type is more than this value\n\t\t\t\t\t * then the frame is Ethernet II. Else it is 802.3 */"
+            },
+            {
+              "startLine": 163,
+              "code": "/*\n *\tThis is an Ethernet frame header. /* [!hl] */\n */"
+            },
+            {
+              "startLine": 173,
+              "code": "struct ethhdr {\n\tunsigned char\th_dest[ETH_ALEN];\t/* destination eth addr\t*/\n\tunsigned char\th_source[ETH_ALEN];\t/* source ether addr\t*/\n\t__be16\t\th_proto;\t\t/* packet type ID field\t*/\n} __attribute__((packed));"
+            }
+          ]
+        }
+      }
+    },
+    "etherdevice": {
+      "path": "include/linux/etherdevice.h",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.18",
+      "versions": {
+        "6.18": {
+          "ref": "v6.18.60",
+          "commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 123,
+              "code": "/**\n * is_multicast_ether_addr - Determine if the Ethernet address is a multicast.\n * @addr: Pointer to a six-byte array containing the Ethernet address\n *\n * Return: true if the address is a multicast address.\n * By definition the broadcast address is also a multicast address.\n */\nstatic inline bool is_multicast_ether_addr(const u8 *addr)\n{\n#if defined(CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS)\n\tu32 a = *(const u32 *)addr;\n#else\n\tu16 a = *(const u16 *)addr;\n#endif\n#ifdef __BIG_ENDIAN\n\treturn 0x01 & (a >> ((sizeof(a) * 8) - 8)); /* [!hl] */\n#else\n\treturn 0x01 & a; /* [!hl] */\n#endif\n}"
+            },
+            {
+              "startLine": 157,
+              "code": "/**\n * is_local_ether_addr - Determine if the Ethernet address is locally-assigned one (IEEE 802).\n * @addr: Pointer to a six-byte array containing the Ethernet address\n *\n * Return: true if the address is a local address.\n */\nstatic inline bool is_local_ether_addr(const u8 *addr)\n{\n\treturn 0x02 & addr[0]; /* [!hl] */\n}"
+            }
+          ]
+        }
+      }
+    },
+    "ice_set_features": {
+      "path": "drivers/net/ethernet/intel/ice/ice_main.c",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.18",
+      "versions": {
+        "6.18": {
+          "ref": "v6.18.60",
+          "commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 6508,
+              "code": "static int\nice_set_features(struct net_device *netdev, netdev_features_t features)\n{\n\tnetdev_features_t changed = netdev->features ^ features;"
+            },
+            {
+              "startLine": 6541,
+              "code": "\t/* Turn on receive of FCS aka CRC, and after setting this\n\t * flag the packet data will have the 4 byte CRC appended\n\t */\n\tif (changed & NETIF_F_RXFCS) {\n\t\tif ((features & NETIF_F_RXFCS) &&\n\t\t    (features & NETIF_VLAN_STRIPPING_FEATURES)) {\n\t\t\tdev_err(ice_pf_to_dev(vsi->back),\n\t\t\t\t\"To disable FCS/CRC stripping, you must first disable VLAN stripping\\n\");\n\t\t\treturn -EIO;\n\t\t}\n\n\t\tice_vsi_cfg_crc_strip(vsi, !!(features & NETIF_F_RXFCS)); /* [!hl] */\n\t\tret = ice_down_up(vsi);\n\t\tif (ret)\n\t\t\treturn ret;\n\t}"
+            }
+          ]
+        }
+      }
+    },
+    "ice_setup_rx_ctx": {
+      "path": "drivers/net/ethernet/intel/ice/ice_base.c",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.18",
+      "versions": {
+        "6.18": {
+          "ref": "v6.18.60",
+          "commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 473,
+              "code": "static int ice_setup_rx_ctx(struct ice_rx_ring *ring)\n{"
+            },
+            {
+              "startLine": 507,
+              "code": "\t/* Strip the Ethernet CRC bytes before the packet is posted to host\n\t * memory.\n\t */\n\trlan_ctx.crcstrip = !(ring->flags & ICE_RX_FLAGS_CRC_STRIP_DIS); /* [!hl] */"
+            },
+            {
+              "startLine": 568,
+              "code": "\t/* Absolute queue number out of 2K needs to be passed */\n\terr = ice_write_rxq_ctx(hw, &rlan_ctx, pf_q); /* [!hl] */"
+            }
+          ]
+        }
+      }
+    },
+    "ice_write_rxq_ctx": {
+      "path": "drivers/net/ethernet/intel/ice/ice_common.c",
+      "symbol": "",
+      "lang": "c",
+      "default": "6.18",
+      "versions": {
+        "6.18": {
+          "ref": "v6.18.60",
+          "commit": "f45ed76d6791cf72ff1265ee93511175bbbc2f18",
+          "tree": "stable",
+          "segments": [
+            {
+              "startLine": 1385,
+              "code": "static void ice_copy_rxq_ctx_to_hw(struct ice_hw *hw,\n\t\t\t\t   const ice_rxq_ctx_buf_t *rxq_ctx,\n\t\t\t\t   u32 rxq_index)\n{\n\t/* Copy each dword separately to HW */\n\tfor (int i = 0; i < ICE_RXQ_CTX_SIZE_DWORDS; i++) {\n\t\tu32 ctx = ((const u32 *)rxq_ctx)[i];\n\n\t\twr32(hw, QRX_CONTEXT(i, rxq_index), ctx); /* [!hl] */\n\n\t\tice_debug(hw, ICE_DBG_QCTX, \"qrxdata[%d]: %08X\\n\", i, ctx);\n\t}\n}"
+            },
+            {
+              "startLine": 1422,
+              "code": "/* LAN Rx Queue Context */\nstatic const struct packed_field_u8 ice_rlan_ctx_fields[] = {\n\t\t\t\t /* Field\t\tWidth\tLSB */"
+            },
+            {
+              "startLine": 1433,
+              "code": "\tICE_CTX_STORE(ice_rlan_ctx, crcstrip,\t\t1,\t117), /* [!hl] */"
+            },
+            {
+              "startLine": 1488,
+              "code": "int ice_write_rxq_ctx(struct ice_hw *hw, struct ice_rlan_ctx *rlan_ctx,\n\t\t      u32 rxq_index)\n{\n\tice_rxq_ctx_buf_t buf = {};\n\n\tif (rxq_index > QRX_CTRL_MAX_INDEX)\n\t\treturn -EINVAL;\n\n\tice_pack_rxq_ctx(rlan_ctx, &buf);\n\tice_copy_rxq_ctx_to_hw(hw, &buf, rxq_index);\n\n\treturn 0;\n}"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
