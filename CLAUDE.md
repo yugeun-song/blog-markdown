@@ -45,6 +45,8 @@ Inline `$…$`, display `$$…$$`, rendered at build time. Inside table cells wr
 
 Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels in one style inside every box (a second line keeps the size and color), boxes about 2.3 times as wide as tall with the longest label filling about 60 to 70 % of the width, triangle arrowheads on pointers, open arrowheads on dimension lines, radius-12 bends on arrows while boxes keep square corners, and dashes for partial or virtual regions. Labels render at the size of code text. Strokes join without seams, notches or hairline gaps, and where a mark such as a bracket meets a reference line such as an extension line, the reference line stays in front; the kit's `lintJoins` checks the JSON forms. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
 
+Color comes from one rainbow of pale washes, kept for diagrams and tables: `red` (a crimson), `orange`, `yellow`, `green`, `blue`, `indigo` and `purple`, all at one lightness and chroma per theme. A tone fill such as `"fill": "purple"` draws its wash; the hex values per theme are under "Rainbow washes" in the engine's `docs/palette.md`. Give a tone only to what the figure is about.
+
 ### Mermaid
 
 Choose the type that avoids collisions by construction:
@@ -62,7 +64,7 @@ Choose the type that avoids collisions by construction:
 
 ### Memory tables
 
-For struct layouts, packet headers and register bitfields, write a ` ```memory-table ` fence with one JSON object: `label` (the aria-label), `unit` (`"byte"` or `"bit"`), `fields` in order from the lowest offset (`["name (type)", size]`, `{"pad": n}`, `{"other": "text", "size": n}`), and optional `cols`, `order`, `base`. The build computes the rows, spans and offsets and draws the table as a memory diagram. A raw `<table class="mem-layout">` still works when an `aria-label` or a `<caption>` names it. Each column must fit its number: up to 36 bit columns, and about 24 byte columns.
+For struct layouts, packet headers and register bitfields, write a ` ```memory-table ` fence with one JSON object: `label` (the aria-label), `unit` (`"byte"` or `"bit"`), `fields` in order from the lowest offset (`["name (type)", size]`, `["name", size, tone]` for a field in a rainbow wash, `{"pad": n}`, `{"other": "text", "size": n}`), and optional `cols`, `order`, `base`. The build computes the rows, spans and offsets and draws the table as a memory diagram. A raw `<table class="mem-layout">` still works when an `aria-label` or a `<caption>` names it. Each column must fit its number: up to 36 bit columns, and about 24 byte columns.
 
 ### Memory layouts
 
