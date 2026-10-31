@@ -21,6 +21,8 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
   2. Code the user supplied (their module or driver, or a cited third party): keep it exactly as given.
   3. Examples Claude writes, kernel-module-like ones included: 4-space indent and no tabs, braces on every control body, K&R braces for control flow, function brace on its own line.
 - Kernel source in several versions comes from the engine's `resolve_kernel.py` into `source-snippets.json`, not by hand. Cite each version at `latest`, its newest stable tag. The tool stores the full commit hash, and the page shows the version as `v6.12` and the first 6 characters of the hash, linked to git.kernel.org.
+- Code from any other source, an open git repository or the user's own file, takes an inline `<!-- source-ref -->` marker over its fence with only the attributes it has (`repo`, `project`, `path`, `version`, `commit`, `start`), as the glibc quote in `ethernet-header/index.md` does. The header shows only those parts, and `header` picks them or turns the bar `off`. The engine's `docs/source-excerpts.md` lists every attribute and forge.
+- Describe kernel behavior in terms that hold on every architecture, and quote code without architecture- or endian-specific branches where a portable part says the same.
 
 ## Captions
 
