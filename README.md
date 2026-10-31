@@ -21,8 +21,8 @@ One directory per post. Its kebab-case ASCII name is the URL slug: `ftrace-usage
 | `date` | string | yes | `YYYY-MM-DD`; sort key |
 | `tags` | string[] | yes | lowercase ASCII |
 | `excerpt` | string | yes | card text and search snippet |
-| `series` | string | no | `category/subcategory` such as `linux-kernel/net`; one tier (`bash`) is fine. The URL replaces `/` with `-`. |
-| `seriesOrder` | number | no | 1-based topical order (prerequisites first), not chronological |
+| `series` | string or string[] | no | `category/subcategory` such as `linux-kernel/net`; one tier (`bash`) is fine. The URL replaces `/` with `-`. A list puts the post in each series. |
+| `seriesOrder` | number or number[] | no | 1-based topical order (prerequisites first), not chronological. With a `series` list, a list of the same length: one order per series, in the same position. |
 
 Tags and series are separate namespaces. Writing rules: [CLAUDE.md](CLAUDE.md).
 
