@@ -1,0 +1,8 @@
+{
+  "title": "Ethernet Header 분석",
+  "date": "2026-10-30",
+  "tags": ["linux", "kernel", "networking", "ethernet"],
+  "series": "linux-kernel/net",
+  "seriesOrder": 1,
+  "excerpt": "Ethernet 프레임과 헤더 필드 분석"
+}
