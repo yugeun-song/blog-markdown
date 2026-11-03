@@ -9,7 +9,7 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
 - Paragraphs: one meaningful unit of context per paragraph, as in the ftrace and gdb posts, usually three to six sentences. A claim, its reasons and its example stay together, and a sentence that introduces a code block, list or figure ends the paragraph it belongs to. Never split a unit with blank lines. A paragraph stands alone short only as a section opener, between two code blocks, or for parallel cases.
 - When editing a post, act like a formatter: fix grammar and spacing, and regroup the paragraphs this way, in every post alike.
 - `# Title` must equal `meta.json.title` character for character, because the page `<h1>` comes from `meta.json`. Do not add `readTime`.
-- For now every page shows the engine's `static/og-default.png`, because its `POST_OG_IMAGES` is off, so a post needs no `og.png`. With the flag on, a new post, or a change to its title, date or tags, needs a new link preview: run `npm run og -- ../blog-markdown/<slug>` in the engine after a build or preview, since it reads the built CSS, and commit the `og.png` it writes. Until then the post shows the site's default image.
+- Every page shows the engine's `static/og-default.png` as its link preview, so a post needs no image of its own for it.
 - Images are centered by default. Add a lossless WebP twin with the engine's `build/encode-webp.py`.
 
 ## Code
@@ -35,7 +35,7 @@ Posts for vmfault.dev, rendered by the private `blog` repo, which mounts this on
 
 ## Captions
 
-The build puts a numbered caption under each object, counted per kind in document order: 인용 for `source-ref` excerpts, 예제 for code fences, 사진 for an image alone in its paragraph, 표 for tables and ` ```text-table ` figures, 다이어그램 for Mermaid, memory and struct-chain diagrams and raw `<svg>`. Shell, log and `text` fences get no number. To change a kind, put `<!-- caption kind="graph" -->` on the line right before the object; the kinds are `citation`, `example`, `photo`, `graph`, `table`, `diagram` and `none`. Writing an object's caption in the prose, as in 다이어그램 2는 or 표 1과, links the mention to that object. A counter after the number (표 2개, 사진 3장) keeps it plain text. The build cannot tell when an object added above shifts the numbers, so recheck every mention after inserting one.
+The build puts a numbered caption under each object, counted per kind in document order: 인용 for `source-ref` excerpts, 예제 for code fences, 사진 for an image alone in its paragraph, 표 for tables and ` ```text-table ` figures, 다이어그램 for memory and struct-chain diagrams and raw `<svg>`. Shell, log and `text` fences get no number. To change a kind, put `<!-- caption kind="graph" -->` on the line right before the object; the kinds are `citation`, `example`, `photo`, `graph`, `table`, `diagram` and `none`. Writing an object's caption in the prose, as in 다이어그램 2는 or 표 1과, links the mention to that object. A counter after the number (표 2개, 사진 3장) keeps it plain text. The build cannot tell when an object added above shifts the numbers, so recheck every mention after inserting one.
 
 ## Math
 
@@ -43,24 +43,9 @@ Inline `$…$`, display `$$…$$`, rendered at build time. Inside table cells wr
 
 ## Diagrams
 
-Structured data never goes into ASCII art. Use a table, Mermaid or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels in one style inside every box (a second line keeps the size and color), boxes about 2.3 times as wide as tall with the longest label filling about 60 to 70 % of the width, triangle arrowheads on pointers, open arrowheads on dimension lines, radius-12 bends on arrows while boxes keep square corners, and dashes for partial or virtual regions. Labels render at the size of code text. Strokes join without seams, notches or hairline gaps, and where a mark such as a bracket meets a reference line such as an extension line, the reference line stays in front; the kit's `lintJoins` checks the JSON forms. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
+Structured data never goes into ASCII art. Use a table or a memory diagram. Every diagram follows the memory-layout figure in `gdb-kernel-debugging/index.md`: ink strokes, opaque area and gap fills, bold code-font labels in one style inside every box (a second line keeps the size and color), boxes about 2.3 times as wide as tall with the longest label filling about 60 to 70 % of the width, triangle arrowheads on pointers, open arrowheads on dimension lines, radius-12 bends on arrows while boxes keep square corners, and dashes for partial or virtual regions. Labels render at the size of code text. Strokes join without seams, notches or hairline gaps, and where a mark such as a bracket meets a reference line such as an extension line, the reference line stays in front; the kit's `lintJoins` checks the JSON forms. The generators and their prompts live in the diagram-design.md repo (the engine's `diagrams/` submodule).
 
 Color comes from one rainbow of pale washes, kept for diagrams and tables: `red` (a crimson), `orange`, `yellow`, `green`, `blue`, `indigo` and `purple`, all at one lightness and chroma per theme. A tone fill such as `"fill": "purple"` draws its wash; the hex values per theme are under "Rainbow washes" in the engine's `docs/palette.md`. Give a tone only to what the figure is about.
-
-### Mermaid
-
-Choose the type that avoids collisions by construction:
-
-1. `sequenceDiagram` for ordered interactions: syscall traces, packet flow, handshakes, RPC, lifecycles.
-2. `flowchart TD` / `LR` with one direction and no cycles for pipelines and decision trees.
-3. `flowchart TD` with `subgraph` rank pinning for cycles and state machines, instead of `stateDiagram-v2`.
-
-- A node label is by default a function name on one line, with the Korean explanation in the prose. Use a longer or Korean label only when nothing shorter is accurate, then check phone width in every theme. Long labels break phone layouts.
-- Edge labels sit on the arrow. Keep them to 1–3 words. `-->` is the main path; `-.->` draws a dashed edge for an optional or asynchronous one.
-- The renderer routes every flowchart edge: straight when the two boxes line up, otherwise one bend between ranks into a third of the box. Do not steer edges with invisible links or spacer nodes.
-- Node classes mark roles, one per node: `:::accent` the result or the point, `:::muted` something off the main path, `:::danger` an error. Every label uses the code font.
-- Add no `%%{init}%%`, `classDef` or `style` lines. Prefer one language per diagram.
-- The engine draws every figure before deployment, so the page runs no Mermaid. After adding or changing a fence, run `npm run mermaid -- ../blog-markdown/<slug>` in the engine, after any build or preview since it reads the built CSS, and commit the `mermaid.json` it writes beside `index.md` with the post. The Cloudflare build cannot draw and fails on a figure missing from that file. The preview draws into its own cache and warns when the file is stale.
 
 ### Memory tables
 
