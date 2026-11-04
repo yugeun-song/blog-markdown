@@ -28,4 +28,4 @@ Single branch `main`; roll back with `git revert`.
 
 ## License
 
-Posts and their example code are under [0BSD](LICENSE). Source quoted from other projects stays under the license of the file it comes from, as [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) states. That covers `source-snippets.json` and every quoted code block, such as a fence after a `source-ref` marker.
+Posts and their example code are under [0BSD](LICENSE). Source quoted from other projects stays under the license of the file it comes from, as [THIRD-PARTY-NOTICES](THIRD-PARTY-NOTICES) states. That covers `source-snippets.json` and every quoted code block, such as a fence after a `source-ref` marker. The file has a section for each quoted project, with `Project:` (the name a quote resolves to), `Licenses:`, its source, copyright and thanks, and the full texts of those licenses; the blog build copies the sections of the projects the posts quote into the site's notices, and stops on a quote of a project without one.
