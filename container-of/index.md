@@ -81,8 +81,8 @@ MODULE_DESCRIPTION("container_of over a list_head list");
       {"h": 52, "label": ["users[1]", "\"bob\""], "line": "dashed"},
       {"h": 52, "label": ["padding", "+0x111"], "fill": "gap"},
       {"h": 52, "label": ["age", "+0x110"]},
-      {"h": 52, "label": ["list.prev", "+0x108"], "fill": "purple"},
-      {"h": 52, "label": ["list.next", "+0x100"], "fill": "purple"},
+      {"h": 52, "label": ["list.prev", "+0x108"], "fill": "area"},
+      {"h": 52, "label": ["list.next", "+0x100"], "fill": "area"},
       {"h": 140, "label": ["username", "\"alice\"", "+0x000"]}
     ]},
     {"text": "0xffffffffc0201138", "x": 272, "y": 52, "anchor": "end", "role": "note"},
@@ -128,8 +128,8 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
   "items": [
     {"column": "n0", "x": 168, "y": 0, "w": 120, "cells": [
       {"h": 72, "label": ["username", "\"alice\""]},
-      {"h": 40, "label": "next", "fill": "purple", "id": "next0"},
-      {"h": 40, "label": "prev", "fill": "purple"},
+      {"h": 40, "label": "next", "fill": "area", "id": "next0"},
+      {"h": 40, "label": "prev", "fill": "area"},
       {"h": 52, "label": ["age", "20"]},
       {"h": 32, "label": "padding", "fill": "gap"}
     ]},
@@ -139,8 +139,8 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
     {"dimension": [[152, 0], [152, 72]], "tone": "blue", "label": ["offsetof", "= 0x100"], "side": "left"},
     {"column": "n1", "x": 364, "y": 0, "w": 120, "cells": [
       {"h": 72, "label": ["username", "\"bob\""]},
-      {"h": 40, "label": "next", "fill": "purple", "id": "next1"},
-      {"h": 40, "label": "prev", "fill": "purple"},
+      {"h": 40, "label": "next", "fill": "area", "id": "next1"},
+      {"h": 40, "label": "prev", "fill": "area"},
       {"h": 52, "label": ["age", "30"]},
       {"h": 32, "label": "padding", "fill": "gap"}
     ]},
@@ -150,8 +150,8 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
     {"dimension": [[348, 0], [348, 72]], "tone": "blue"},
     {"column": "n2", "x": 560, "y": 0, "w": 120, "cells": [
       {"h": 72, "label": ["username", "\"carol\""]},
-      {"h": 40, "label": "next", "fill": "purple", "id": "next2"},
-      {"h": 40, "label": "prev", "fill": "purple"},
+      {"h": 40, "label": "next", "fill": "area", "id": "next2"},
+      {"h": 40, "label": "prev", "fill": "area"},
       {"h": 52, "label": ["age", "40"]},
       {"h": 32, "label": "padding", "fill": "gap"}
     ]},
@@ -160,8 +160,8 @@ $T$와 $m$은 각각 `container_of`의 `type`과 `member`이고, 절대 주소�
     {"line": ["n2|1.left", [532, 72]]},
     {"dimension": [[544, 0], [544, 72]], "tone": "blue"},
     {"column": "head", "x": 12, "y": 72, "w": 96, "cells": [
-      {"h": 40, "label": "next", "fill": "purple", "id": "hnext"},
-      {"h": 40, "label": "prev", "fill": "purple"}
+      {"h": 40, "label": "next", "fill": "area", "id": "hnext"},
+      {"h": 40, "label": "prev", "fill": "area"}
     ]},
     {"text": "user_info_list", "x": 60, "y": 172, "anchor": "middle"},
     {"text": "(head)", "x": 60, "y": 194, "anchor": "middle", "role": "note"},
@@ -482,7 +482,7 @@ struct pci_dev {
     {"line": [[0, 168], [0, 0], [540, 0], [540, 224], [182, 224]]},
     {"line": [[0, 56], [326, 56], [326, 224]]},
     {"line": [[0, 112], [236, 112], [236, 224]]},
-    {"box": "sock", "x": 0, "y": 168, "w": 182, "h": 56, "label": ["struct sock", "sk"], "fill": "purple"},
+    {"box": "sock", "x": 0, "y": 168, "w": 182, "h": 56, "label": ["struct sock", "sk"], "fill": "area"},
     {"text": "struct tcp_sock", "x": 270, "y": 28, "anchor": "middle"},
     {"text": ["struct inet_connection_sock", "inet_conn"], "x": 163, "y": 84, "anchor": "middle"},
     {"text": ["struct inet_sock", "icsk_inet"], "x": 118, "y": 140, "anchor": "middle"},

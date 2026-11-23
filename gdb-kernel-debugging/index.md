@@ -905,11 +905,11 @@ LEGEND: <span class="ansi-yellow">STACK</span> | <span class="ansi-blue">HEAP</s
   "label": "스택 컬럼: 저장된 프레임 포인터 연결 리스트가 스택을 거슬러 오른다",
   "items": [
     {"column": "stack", "x": 300, "y": 0, "w": 230, "cells": [
-      {"h": 56, "label": ["0xffff800082e9bdf0", "(caller's caller)"], "id": "outer"},
+      {"h": 56, "label": ["0xffff800082e9bdf0", "(caller's caller)"], "id": "outer", "fill": "area"},
       {"h": 40, "label": "...", "fill": "gap"},
-      {"h": 56, "label": ["0xffff800082e9bd80", "(caller frame)"], "id": "caller"},
+      {"h": 56, "label": ["0xffff800082e9bd80", "(caller frame)"], "id": "caller", "fill": "area"},
       {"h": 40, "label": "...", "fill": "gap"},
-      {"h": 56, "label": ["0xffff800082e9bcd0", "(current frame)"], "id": "current"}
+      {"h": 56, "label": ["0xffff800082e9bcd0", "(current frame)"], "id": "current", "fill": "area"}
     ]},
     {"text": "0xffff800082e9bd80", "x": 272, "y": 56, "anchor": "end", "role": "note"},
     {"line": [[280, 56], "stack|1.left"]},
@@ -963,9 +963,9 @@ b► 0xffff80008012fb68 <try_to_wake_up>  mov  x9, x30  X9 => 0xffff800080130208
   "label": "커널 가상 주소 공간 컬럼: 스택 슬롯의 복귀 주소를 역참조하면 .text 영역의 명령에 닿는다",
   "items": [
     {"column": "va", "x": 300, "y": 0, "w": 230, "cells": [
-      {"h": 56, "label": ["0xffff800080113494", "(kernel stack)"], "id": "slot"},
+      {"h": 56, "label": ["0xffff800080113494", "(kernel stack)"], "id": "slot", "fill": "area"},
       {"h": 48, "label": "...", "fill": "gap"},
-      {"h": 56, "label": ["add  x0, sp, #0x28", "(.text)"], "id": "code"}
+      {"h": 56, "label": ["add  x0, sp, #0x28", "(.text)"], "id": "code", "fill": "area"}
     ]},
     {"text": "0xffff800082e9bc78", "x": 272, "y": 56, "anchor": "end", "role": "note"},
     {"line": [[280, 56], "va|1.left"]},
