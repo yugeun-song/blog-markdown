@@ -155,7 +155,7 @@ ini_skip_space (const char *s)
   return n;
 }
 
-static size_t count_sections(const char *const text)
+static size_t count_sections(const char *text)
 {
     size_t count = 0;
 
@@ -198,7 +198,7 @@ src/
 ```c
 #include <stddef.h>
 
-static size_t count_sections(const char *const text)
+static size_t count_sections(const char *text)
 {
     size_t count = 0;
 
@@ -227,9 +227,9 @@ static size_t count_sections(const char *const text)
 틀린 예:
 
 ```c
-static long sum_clamped(size_t *clipped, const int *v, int n, int lo, int hi)
+static long long sum_clamped(size_t *clipped, const int *v, int n, int lo, int hi)
 {
-    long sum;
+    long long sum;
 
     for (sum = *clipped = 0; n-- > 0; ++v)
         sum += *v < lo ? (++*clipped, lo) : *v > hi ? (++*clipped, hi) : *v;
@@ -237,15 +237,15 @@ static long sum_clamped(size_t *clipped, const int *v, int n, int lo, int hi)
 }
 ```
 
-이 함수는 `v`가 가리키는 원소 `n`개를 `lo` 이상 `hi` 이하로 잘라 더하고, 잘린 원소의 수를 `*clipped`에 남긴다. 이 코드는 C89부터 지금의 표준까지 문법상 올바르다. undefined behavior도 없다. 결과도 아래 올바른 예와 같다. 그러나 한 줄 안에서 원소 읽기, 비교 두 번, 증가, 더하기가 쉼표 연산자와 중첩된 삼항 연산자로 얽혀 있다. 읽는 사람은 삼항 연산자가 어느 쪽으로 묶이는지, `n--`와 `++v`가 언제 실행되는지, `sum = *clipped = 0`이 어떤 순서로 할당되는지 하나씩 따져 봐야 한다. 이처럼 문법상 문제가 없더라도 생각할 거리를 늘려 읽고 고치는 시간을 낭비하게 만드는 코드는 쓰지 않는다.
+이 함수는 `v`가 가리키는 원소 `n`개를 `lo` 이상 `hi` 이하로 잘라 더하고, 잘린 원소의 수를 `*clipped`에 남긴다. 이 코드는 C99부터 지금의 표준까지 문법상 올바르다. undefined behavior도 없다. 결과도 아래 올바른 예와 같다. 그러나 한 줄 안에서 원소 읽기, 비교 두 번, 증가, 더하기가 쉼표 연산자와 중첩된 삼항 연산자로 얽혀 있다. 읽는 사람은 삼항 연산자가 어느 쪽으로 묶이는지, `n--`와 `++v`가 언제 실행되는지, `sum = *clipped = 0`이 어떤 순서로 할당되는지 하나씩 따져 봐야 한다. 이처럼 문법상 문제가 없더라도 생각할 거리를 늘려 읽고 고치는 시간을 낭비하게 만드는 코드는 쓰지 않는다.
 
 올바른 예:
 
 ```c
-static long sum_clamped(size_t *const mut_clipped, const int *const samples, size_t count,
-                        int low, int high)
+static long long sum_clamped(size_t *mut_clipped, const int *samples, size_t count,
+                             int low, int high)
 {
-    long sum = 0;
+    long long sum = 0;
     size_t clipped = 0;
 
     for (size_t i = 0; i < count; ++i) {
@@ -269,7 +269,7 @@ static long sum_clamped(size_t *const mut_clipped, const int *const samples, siz
 
 각 줄은 읽기, 비교, 할당, 증가 가운데 한 가지만 하므로 어셈블리 명령 몇 개에 바로 대응한다. 틀린 예에서 바꾼 점은 다음과 같다.
 
-- 포인터 매개변수를 옮기며 읽지 않고, 첨자 `samples[i]`로 원소를 읽는다. 포인터 매개변수 자체는 `*const`로 고정한다.
+- 포인터 매개변수를 옮기며 읽지 않고, 첨자 `samples[i]`로 원소를 읽는다. 포인터 매개변수 자체는 바꾸지 않는다.
 - 원소 수는 `size_t`로 받는다. 반복 변수 `i`는 `for` 문의 초기식에서 선언하고 증감식에서만 바꾼다. 조건식에서는 `n--`처럼 값을 바꾸지 않는다.
 - 쉼표 연산자와 중첩된 삼항 연산자를 `if`와 `else if`로 풀어, 한 줄에서 한 가지 일만 한다.
 - 연쇄 할당 `sum = *clipped = 0`을 변수마다 선언과 초기화로 나눈다.
@@ -292,7 +292,7 @@ static const char *gs_last_error = nullptr;
 ```c
 #include <string.h>
 
-static size_t strlcpy(char *const mut_dst, const char *const src, size_t dst_size) // [!hl]
+static size_t strlcpy(char *mut_dst, const char *src, size_t dst_size) // [!hl]
 {
     size_t length = strlen(src);
 
@@ -317,7 +317,7 @@ static const char *gs_last_error = NULL;
 ```c
 #include <string.h>
 
-static size_t copy_string(char *const mut_dst, const char *const src, size_t dst_size) // [!hl]
+static size_t copy_string(char *mut_dst, const char *src, size_t dst_size) // [!hl]
 {
     size_t length = strlen(src);
 
@@ -337,12 +337,12 @@ static size_t copy_string(char *const mut_dst, const char *const src, size_t dst
 
 ### 언어 표준
 
-기본 표준은 C99이다. 프로젝트는 필요하면 다른 표준이나 GNU 방언을 골라도 된다. 고른 표준은 빌드 설정에 명시한다. 컴파일러 기본값에 의존하지 않고 명시적인 설정을 한다.
+기본 표준은 리눅스 커널과 동일한 GNU11(`-std=gnu11`, C11 표준과 GNU 확장)이다. 프로젝트는 필요하면 다른 표준이나 순수 ISO 표준 모드를 골라도 무방하다. 고른 표준은 빌드 설정에 명시한다. 컴파일러 기본값에 의존하지 않고 명시적인 설정을 한다.
 
-- GCC와 Clang에서는 `-std`로 고른다(`-std=c99`, `-std=c11`, `-std=c17`, `-std=c23`, `-std=gnu99`).
-- MSVC에는 C99 모드가 없다. `/std`를 주지 않은 기본 모드는 C89에 Microsoft 확장을 더한 것이다. 그 확장 가운데 일부가 C99 기능이다. C11 이상은 `/std:c11`, `/std:c17`, `/std:clatest`로 고른다. 기본 모드에서는 traditional preprocessor가 동작한다. C99에 맞는 preprocessor는 `/Zc:preprocessor`로 고른다. `/std:c11`이나 `/std:c17`을 주면 이 preprocessor가 함께 켜진다.
+- GCC와 Clang에서는 `-std`로 고른다(`-std=gnu11`, `-std=c11`, `-std=c99`, `-std=c17`, `-std=c23`, `-std=gnu99`).
+- MSVC에는 C99 모드가 없다. `/std`를 주지 않은 기본 모드는 C89에 Microsoft 확장을 더한 것이다. 그 확장 가운데 일부가 C99 기능이다. C11 이상은 `/std:c11`, `/std:c17`, `/std:clatest`(`clang-cl`에서는 `/clang:-std=gnu11`)로 고른다. 기본 모드에서는 traditional preprocessor가 동작한다. 표준에 맞는 preprocessor는 `/Zc:preprocessor`로 고른다. `/std:c11`이나 `/std:c17`을 주면 이 preprocessor가 함께 켜진다.
 - Visual Studio 프로젝트에서는 `LanguageStandard_C`(`stdc11`, `stdc17`, `stdclatest`)와 `UseStandardPreprocessor` 속성으로 고른다.
-- CMake에서는 `CMAKE_C_STANDARD`로 고른다. MSVC 19.27 이상에서는 `CMAKE_C_STANDARD`가 99이면 CMake가 표준 옵션을 넘기지 않는다. 따라서, 기본 모드로 빌드된다.
+- CMake에서는 `CMAKE_C_STANDARD`와 `CMAKE_C_EXTENSIONS`로 고른다.
 
 표준 문서와 WG14 공개 초안은 다음과 같다. 대응 관계는 [WG14 프로젝트 페이지](https://www.open-std.org/jtc1/sc22/wg14/www/projects)를 따른다.
 
@@ -360,7 +360,7 @@ CFLAGS += -Wall -Wextra -pedantic -Wshadow
 올바른 예(GCC/Clang):
 
 ```make
-CFLAGS += -std=c99 -Wall -Wextra -pedantic -Wshadow
+CFLAGS += -std=gnu11 -Wall -Wextra -pedantic -Wshadow
 ```
 
 올바른 예(MSVC에서 C11을 고르는 경우):
@@ -373,9 +373,9 @@ cl /std:c11 /W4 /c main.c
 올바른 예(CMake):
 
 ```cmake
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_C_EXTENSIONS ON)
 ```
 
 ### 플랫폼 API
@@ -472,7 +472,7 @@ static void record_hit(void)
 선택한 언어 표준 밖의 기능은 드러나게 쓴다.
 
 - GNU 확장 문법은 `__extension__`으로 감싼다.
-- 확장 키워드는 `__asm__`, `__typeof__`처럼 밑줄 철자로 쓴다. `-std=c99` 같은 ISO 표준 모드에서 `asm`은 키워드가 아니고, `typeof`는 C23 표준부터 키워드로 예약된다. 따라서, 그런 모드에서는 밑줄 없는 철자가 컴파일되지 않는다.
+- 확장 키워드는 `__asm__`, `__typeof__`처럼 밑줄 철자로 쓴다. `-std=c11` 같은 ISO 표준 모드에서 `asm`은 키워드가 아니고, `typeof`는 C23 표준부터 키워드로 예약된다. 따라서, 그런 모드에서는 밑줄 없는 철자가 컴파일되지 않는다.
 
 틀린 예:
 
@@ -536,9 +536,11 @@ struct dns_header {
     uint16_t flags;
     uint16_t question_count;
     uint16_t answer_count;
+    uint16_t authority_count;
+    uint16_t additional_count;
 };
 
-static void read_dns_header(struct dns_header *const mut_header, const unsigned char *const packet)
+static void read_dns_header(struct dns_header *mut_header, const unsigned char *packet)
 {
     memcpy(mut_header, packet, sizeof(*mut_header));
 }
@@ -554,26 +556,30 @@ struct dns_header {
     uint16_t flags;
     uint16_t question_count;
     uint16_t answer_count;
+    uint16_t authority_count;
+    uint16_t additional_count;
 };
 
-static uint16_t decode_be16(const unsigned char *const bytes)
+static uint16_t decode_be16(const unsigned char *bytes)
 {
-    return (uint16_t)((bytes[0] << 8) | bytes[1]);
+    return (uint16_t)(((unsigned int)bytes[0] << 8) | bytes[1]);
 }
 
-static void read_dns_header(struct dns_header *const mut_header, const unsigned char *const packet)
+static void read_dns_header(struct dns_header *mut_header, const unsigned char *packet)
 {
     mut_header->id = decode_be16(packet);
     mut_header->flags = decode_be16(packet + 2);
     mut_header->question_count = decode_be16(packet + 4);
     mut_header->answer_count = decode_be16(packet + 6);
+    mut_header->authority_count = decode_be16(packet + 8);
+    mut_header->additional_count = decode_be16(packet + 10);
 }
 ```
 
 올바른 예(의존하는 동작을 주석으로 밝힌 경우):
 
 ```c
-static int save_counter_cache(FILE *const mut_file, const uint64_t *const counters, size_t count)
+static int save_counter_cache(FILE *mut_file, const uint64_t *counters, size_t count)
 {
     /* written in host byte order; only the host that wrote the cache reads it back */
     if (fwrite(counters, sizeof(*counters), count, mut_file) != count) {
@@ -591,8 +597,8 @@ struct sensor_sample {
     uint16_t humidity;
 };
 
-static void read_sensor_sample(struct sensor_sample *const mut_sample,
-                               const unsigned char *const bytes)
+static void read_sensor_sample(struct sensor_sample *mut_sample,
+                               const unsigned char *bytes)
 {
     memcpy(mut_sample, bytes, sizeof(*mut_sample));
 }
@@ -612,11 +618,11 @@ struct field_job {
     size_t field_count;
 };
 
-static void *count_fields(void *const mut_arg)
+static void *count_fields(void *mut_arg)
 {
-    struct field_job *const job = mut_arg;
+    struct field_job *job = mut_arg;
 
-    for (char *field = strtok(job->line, ","); field != NULL; field = strtok(NULL, ",")) {
+    for (const char *field = strtok(job->line, ","); field != NULL; field = strtok(NULL, ",")) {
         ++job->field_count;
     }
 
@@ -627,7 +633,7 @@ static void *count_fields(void *const mut_arg)
 지양하는 예:
 
 ```c
-static void join_words(char *const mut_dst, size_t dst_size, const char *const *const words,
+static void join_words(char *mut_dst, size_t dst_size, const char *const *words,
                        size_t count)
 {
     if (dst_size == 0) {
@@ -650,31 +656,31 @@ struct field_job {
     size_t field_count;
 };
 
-static char *take_field(char **const mut_cursor)
+static char *take_field(char **mut_cursor)
 {
-    char *const field = *mut_cursor;
+    char *field = *mut_cursor + strspn(*mut_cursor, ",");
 
-    if (field == NULL) {
+    if (*field == '\0') {
         return NULL;
     }
 
-    char *const comma = strchr(field, ',');
-    if (comma != NULL) {
-        *comma = '\0';
-        *mut_cursor = comma + 1;
+    char *end = field + strcspn(field, ",");
+    if (*end != '\0') {
+        *end = '\0';
+        *mut_cursor = end + 1;
     } else {
-        *mut_cursor = NULL;
+        *mut_cursor = end;
     }
 
     return field;
 }
 
-static void *count_fields(void *const mut_arg)
+static void *count_fields(void *mut_arg)
 {
-    struct field_job *const job = mut_arg;
+    struct field_job *job = mut_arg;
     char *cursor = job->line;
 
-    for (char *field = take_field(&cursor); field != NULL; field = take_field(&cursor)) {
+    for (const char *field = take_field(&cursor); field != NULL; field = take_field(&cursor)) {
         ++job->field_count;
     }
 
@@ -683,7 +689,7 @@ static void *count_fields(void *const mut_arg)
 ```
 
 ```c
-static void join_words(char *const mut_dst, size_t dst_size, const char *const *const words,
+static void join_words(char *mut_dst, size_t dst_size, const char *const *words,
                        size_t count)
 {
     if (dst_size == 0) {
@@ -714,7 +720,7 @@ static void join_words(char *const mut_dst, size_t dst_size, const char *const *
 틀린 예:
 
 ```c
-static int read_command(char *const mut_line)
+static int read_command(char *mut_line)
 {
     if (gets(mut_line) == NULL) {
         return -1;
@@ -727,15 +733,33 @@ static int read_command(char *const mut_line)
 올바른 예:
 
 ```c
-static int read_command(char *const mut_line, size_t line_size)
+static int read_command(char *mut_line, size_t line_size)
 {
+    if (line_size < 2 || line_size > INT_MAX) {
+        return -1;
+    }
+
     if (fgets(mut_line, (int)line_size, stdin) == NULL) {
         return -1;
     }
 
-    return 0;
+    char *newline = strchr(mut_line, '\n');
+    if (newline != NULL) {
+        *newline = '\0';
+        return 0;
+    }
+
+    int result = 0;
+
+    for (int next = getchar(); next != '\n' && next != EOF; next = getchar()) {
+        result = -1;
+    }
+
+    return result;
 }
 ```
+
+`fgets`는 개행 문자를 버퍼에 남긴다. 또 버퍼에 들어가지 않는 줄의 나머지는 스트림에 남긴다. 따라서, 올바른 예는 `gets`처럼 개행 문자를 지운다. 버퍼에 들어가지 않는 줄은 나머지를 건너뛰고 실패로 처리한다.
 
 ## 파일
 
@@ -779,7 +803,7 @@ printer.c
 
 ### 인코딩과 줄 끝
 
-파일은 BOM 없는 UTF-8로 인코딩하고, 줄 끝에는 LF를 쓴다. Visual Studio 프로젝트 파일(`.sln`, `.slnx`, `.vcxproj`, `.vcxproj.filters`, `.props`, `.targets`)에만 CRLF를 쓴다. `.gitattributes`와 `.editorconfig`로 이 규칙을 강제할 수 있다.
+파일은 BOM 없는 UTF-8로 인코딩하고, 줄 끝에는 LF를 쓴다. Windows 전용 스크립트(`.bat`, `.ps1`)와 Visual Studio 프로젝트 파일(`.sln`, `.slnx`, `.vcxproj`, `.vcxproj.filters`, `.props`, `.targets`)에만 CRLF를 쓴다. `.gitattributes`와 `.editorconfig`로 이 규칙을 강제할 수 있다.
 
 Git의 `core.autocrlf`는 쓰지 않는다. `core.autocrlf`는 사람마다 다르게 둘 수 있는 로컬 설정이다. 따라서, 이 설정으로는 프로젝트의 줄 끝을 고정할 수 없다. 줄 끝은 프로젝트에 함께 들어가는 `.gitattributes`로 정한다. `.gitattributes`에서 `eol`을 정한 파일은 `core.autocrlf` 값과 상관없이 그 줄 끝으로 checkout된다.
 
@@ -815,6 +839,8 @@ word_count.c: C source, ASCII text
 
 ```gitattributes
 * text eol=lf
+*.bat text eol=crlf
+*.ps1 text eol=crlf
 *.sln text eol=crlf
 *.slnx text eol=crlf
 *.vcxproj text eol=crlf
@@ -832,11 +858,11 @@ word_count.c: C source, ASCII text
 
 ```c
 /* returns the power of 1024 for unit (B → 0, KiB → 1, MiB → 2), or -1 if unknown */
-int parse_unit(const char *const unit);
+int parse_unit(const char *unit);
 ```
 
 ```c
-static void report_unknown_unit(const char *const program_name, const char *const unit)
+static void report_unknown_unit(const char *program_name, const char *unit)
 {
     fprintf(stderr, "%s: unknown unit ‘%s’\n", program_name, unit); // [!hl]
 }
@@ -846,11 +872,11 @@ static void report_unknown_unit(const char *const program_name, const char *cons
 
 ```c
 /* returns the power of 1024 for unit (B -> 0, KiB -> 1, MiB -> 2), or -1 if unknown */
-int parse_unit(const char *const unit);
+int parse_unit(const char *unit);
 ```
 
 ```c
-static void report_unknown_unit(const char *const program_name, const char *const unit)
+static void report_unknown_unit(const char *program_name, const char *unit)
 {
     fprintf(stderr, "%s: unknown unit '%s'\n", program_name, unit); // [!hl]
 }
@@ -899,7 +925,7 @@ $ tail -c 2 word_count.c | od -c
 
 ```text
 $ cat -A word_count.c
-static int is_all_spaces(const char *const text)  $
+static int is_all_spaces(const char *text)  $
 {$
 ^Ifor (size_t i = 0; text[i] != '\0'; ++i) {$
 ^I^Iif (text[i] != ' ') {$
@@ -916,7 +942,7 @@ static int is_all_spaces(const char *const text)  $
 
 ```text
 $ cat -A word_count.c
-static int is_all_spaces(const char *const text)$
+static int is_all_spaces(const char *text)$
 {$
     for (size_t i = 0; text[i] != '\0'; ++i) {$
         if (text[i] != ' ') {$
@@ -980,13 +1006,13 @@ struct player {
 static struct player gs_players[MAX_PLAYERS];
 static size_t gs_player_count;
 
-static int add_player(const char *const name, int score)
+static int add_player(const char *name, int score)
 {
     if (gs_player_count == MAX_PLAYERS) {
         return -1;
     }
 
-    struct player *const player = &gs_players[gs_player_count];
+    struct player *player = &gs_players[gs_player_count];
     size_t length = strnlen(name, MAX_NAME_LEN - 1);
 
     memcpy(player->name, name, length);
@@ -1029,7 +1055,7 @@ POSIX나 glibc 기능을 쓰는 파일에서는 feature test macro로 그 기능
 
 - `_POSIX_C_SOURCE`: POSIX 인터페이스를 쓸 때 정의한다. 기본값으로 POSIX.1-2008의 `200809L`을 쓴다. POSIX.1-2024의 값은 `202405L`이다.
 - `_XOPEN_SOURCE`: POSIX의 XSI 확장까지 쓸 때 정의한다. POSIX.1-2008의 값은 `700`, POSIX.1-2024의 값은 `800`이다.
-- `_DEFAULT_SOURCE`: glibc의 기본 기능 집합을 쓸 때 정의한다. 이 집합에는 그 glibc가 지원하는 가장 높은 수준의 POSIX 기능과 BSD, SVID 기능 일부가 들어 있다. 다른 feature test macro를 정의하거나 `-std=c99` 같은 ISO 표준 모드로 컴파일하면 glibc는 이 집합을 끈다.
+- `_DEFAULT_SOURCE`: glibc의 기본 기능 집합을 쓸 때 정의한다. 이 집합에는 그 glibc가 지원하는 가장 높은 수준의 POSIX 기능과 BSD, SVID 기능 일부가 들어 있다. 다른 feature test macro를 정의하거나 `-std=c11` 같은 ISO 표준 모드로 컴파일하면 glibc는 이 집합을 끈다.
 - `_GNU_SOURCE`: 정의하면 glibc의 모든 기능과 GNU 확장이 켜진다. `_POSIX_C_SOURCE`와 `_XOPEN_SOURCE`도 그 glibc가 지원하는 가장 높은 값으로 함께 정의된다. glibc 2.44에서는 `202405L`과 `800`이다. Linux 전용 파일에서만 쓴다.
 - `WIN32_LEAN_AND_MEAN`, `_WIN32_WINNT`: feature test macro는 아니지만 같은 자리에 둔다. `WIN32_LEAN_AND_MEAN`을 정의하면 `<windows.h>`에서 Cryptography, DDE, RPC, Shell, Windows Sockets 같은 API가 빠진다. `_WIN32_WINNT`는 지원할 가장 낮은 Windows 버전으로 정의한다. Windows 10의 값은 `0x0A00`이다.
 
@@ -1039,7 +1065,7 @@ POSIX나 glibc 기능을 쓰는 파일에서는 feature test macro로 그 기능
 #include <stdio.h>
 #include <stdlib.h>
 
-static size_t count_lines(FILE *const mut_input)
+static int count_lines(size_t *mut_count, FILE *mut_input)
 {
     char *line = NULL;
     size_t capacity = 0;
@@ -1051,7 +1077,12 @@ static size_t count_lines(FILE *const mut_input)
 
     free(line);
     line = NULL;
-    return count;
+    if (ferror(mut_input) != 0) {
+        return -1;
+    }
+
+    *mut_count = count;
+    return 0;
 }
 ```
 
@@ -1060,7 +1091,7 @@ static size_t count_lines(FILE *const mut_input)
 #define _POSIX_C_SOURCE 200809L // [!hl]
 #include <stdlib.h>
 
-static size_t count_lines(FILE *const mut_input)
+static int count_lines(size_t *mut_count, FILE *mut_input)
 {
     char *line = NULL;
     size_t capacity = 0;
@@ -1072,7 +1103,12 @@ static size_t count_lines(FILE *const mut_input)
 
     free(line);
     line = NULL;
-    return count;
+    if (ferror(mut_input) != 0) {
+        return -1;
+    }
+
+    *mut_count = count;
+    return 0;
 }
 ```
 
@@ -1084,7 +1120,7 @@ static size_t count_lines(FILE *const mut_input)
 
 #include <stdio.h>
 
-size_t count_lines(FILE *const mut_input);
+int count_lines(size_t *mut_count, FILE *mut_input);
 
 #endif /* TEXT_LINES_H */
 ```
@@ -1095,7 +1131,7 @@ size_t count_lines(FILE *const mut_input);
 #include <stdio.h>
 #include <stdlib.h>
 
-static size_t count_lines(FILE *const mut_input)
+static int count_lines(size_t *mut_count, FILE *mut_input)
 {
     char *line = NULL;
     size_t capacity = 0;
@@ -1107,7 +1143,12 @@ static size_t count_lines(FILE *const mut_input)
 
     free(line);
     line = NULL;
-    return count;
+    if (ferror(mut_input) != 0) {
+        return -1;
+    }
+
+    *mut_count = count;
+    return 0;
 }
 ```
 
@@ -1130,7 +1171,7 @@ static void print_total(long total)
 #include <stdio.h>
 #include <stdlib.h>
 
-static size_t count_lines(FILE *const mut_input)
+static int count_lines(size_t *mut_count, FILE *mut_input)
 {
     char *line = NULL;
     size_t capacity = 0;
@@ -1142,7 +1183,12 @@ static size_t count_lines(FILE *const mut_input)
 
     free(line);
     line = NULL;
-    return count;
+    if (ferror(mut_input) != 0) {
+        return -1;
+    }
+
+    *mut_count = count;
+    return 0;
 }
 ```
 
@@ -1154,7 +1200,7 @@ static size_t count_lines(FILE *const mut_input)
 
 #include <stdio.h>
 
-size_t count_lines(FILE *const mut_input);
+int count_lines(size_t *mut_count, FILE *mut_input);
 
 #endif /* TEXT_LINES_H */
 ```
@@ -1166,12 +1212,16 @@ size_t count_lines(FILE *const mut_input);
 
 #include <time.h>
 
-static int parse_date(struct tm *const mut_date, const char *const text)
+static int parse_date(struct tm *mut_date, const char *text)
 {
-    if (strptime(text, "%Y-%m-%d", mut_date) == NULL) {
+    struct tm date = { 0 };
+    const char *end = strptime(text, "%Y-%m-%d", &date);
+
+    if (end == NULL || *end != '\0') {
         return -1;
     }
 
+    *mut_date = date;
     return 0;
 }
 ```
@@ -1183,9 +1233,13 @@ static int parse_date(struct tm *const mut_date, const char *const text)
 
 #include <stdlib.h>
 
-static int grow_scores(int **const mut_scores, size_t count)
+static int grow_scores(int **mut_scores, size_t count)
 {
-    int *const scores = reallocarray(*mut_scores, count, sizeof(**mut_scores));
+    if (count == 0) {
+        return -1;
+    }
+
+    int *scores = reallocarray(*mut_scores, count, sizeof(**mut_scores));
     if (scores == NULL) {
         return -1;
     }
@@ -1202,7 +1256,7 @@ static int grow_scores(int **const mut_scores, size_t count)
 
 #include <string.h>
 
-static size_t measure_key(const char *const entry)
+static size_t measure_key(const char *entry)
 {
     return (size_t)(strchrnul(entry, '=') - entry);
 }
@@ -1292,7 +1346,7 @@ static void print_total(long total)
 
 #include <stddef.h>
 
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 
 #endif /* TEXT_H */
 ```
@@ -1302,7 +1356,7 @@ size_t count_words(const char *const text);
 
 #include <stddef.h>
 
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 ```
 
 ```c
@@ -1311,7 +1365,7 @@ size_t count_words(const char *const text);
 
 #include <stddef.h>
 
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 
 #endif // [!hl]
 ```
@@ -1322,7 +1376,7 @@ size_t count_words(const char *const text);
 
 #include <stddef.h>
 
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 
 #endif /* _UTIL_TEXT_H */
 ```
@@ -1335,7 +1389,7 @@ size_t count_words(const char *const text);
 
 #include <stddef.h>
 
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 
 #endif /* UTIL_TEXT_H */ // [!hl]
 ```
@@ -1368,12 +1422,12 @@ struct item {
 size_t g_low_stock_limit = 5;
 static size_t gs_item_count;
 
-static int is_low_stock(const struct item *const item)
+static int is_low_stock(const struct item *item)
 {
     return item->quantity < g_low_stock_limit;
 }
 
-extern int add_item(const char *const name, size_t quantity);
+extern int add_item(const char *name, size_t quantity);
 
 #endif /* STORE_INVENTORY_H */
 ```
@@ -1395,12 +1449,12 @@ struct item {
 
 extern size_t g_low_stock_limit;
 
-static inline int is_low_stock(const struct item *const item)
+static inline int is_low_stock(const struct item *item)
 {
     return item->quantity < g_low_stock_limit;
 }
 
-int add_item(const char *const name, size_t quantity);
+int add_item(const char *name, size_t quantity);
 
 #endif /* STORE_INVENTORY_H */
 ```
@@ -1419,14 +1473,14 @@ size_t g_low_stock_limit = 5;
 static struct item gs_items[MAX_ITEMS];
 static size_t gs_item_count;
 
-int add_item(const char *const name, size_t quantity)
+int add_item(const char *name, size_t quantity)
 {
     size_t length = strlen(name);
     if (gs_item_count == MAX_ITEMS || length >= MAX_ITEM_NAME_LEN) {
         return -1;
     }
 
-    struct item *const item = &gs_items[gs_item_count];
+    struct item *item = &gs_items[gs_item_count];
 
     memcpy(item->name, name, length + 1);
     item->quantity = quantity;
@@ -1478,7 +1532,7 @@ static const char *describe_temperature(int celsius)
 틀린 예:
 
 ```c
-static void print_order_summary(const char *const customer, size_t item_count, unsigned long total_cents, unsigned int delivery_days)
+static void print_order_summary(const char *customer, size_t item_count, unsigned long total_cents, unsigned int delivery_days)
 {
     printf("order for %s: %zu items, total %lu.%02lu, delivery in %u business days\n", customer, item_count, total_cents / 100, total_cents % 100, delivery_days);
 }
@@ -1487,7 +1541,7 @@ static void print_order_summary(const char *const customer, size_t item_count, u
 올바른 예:
 
 ```c
-static void print_order_summary(const char *const customer, size_t item_count,
+static void print_order_summary(const char *customer, size_t item_count,
                                 unsigned long total_cents, unsigned int delivery_days)
 {
     printf("order for %s: %zu items, total %lu.%02lu, delivery in %u business days\n", customer,
@@ -1507,7 +1561,7 @@ static void print_order_summary(const char *const customer, size_t item_count,
 틀린 예:
 
 ```c
-static int format_location(char *const mut_buffer, size_t buffer_size, const char *const file_name,
+static int format_location(char *mut_buffer, size_t buffer_size, const char *file_name,
                            int line_number, int column_number)
 {
     int written = snprintf(mut_buffer, buffer_size, "%s:%d:%d: unexpected token\n", file_name,
@@ -1518,7 +1572,7 @@ static int format_location(char *const mut_buffer, size_t buffer_size, const cha
 ```
 
 ```c
-static int format_location(char *const mut_buffer, size_t buffer_size, const char *const file_name,
+static int format_location(char *mut_buffer, size_t buffer_size, const char *file_name,
                            int line_number, int column_number)
 {
     int written =
@@ -1544,7 +1598,7 @@ static size_t sum_section_bytes(size_t metadata_bytes, size_t thumbnail_bytes, s
 올바른 예:
 
 ```c
-static int format_location(char *const mut_buffer, size_t buffer_size, const char *const file_name,
+static int format_location(char *mut_buffer, size_t buffer_size, const char *file_name,
                            int line_number, int column_number)
 {
     int written = snprintf(mut_buffer, buffer_size, "%s:%d:%d: unexpected token\n", file_name,
@@ -1604,10 +1658,10 @@ static unsigned long report_remaining_time(unsigned long first_job, unsigned lon
 틀린 예:
 
 ```c
-static void report_missing_value(const char *const key, int line_number)
+static void report_missing_value(const char *key, int line_number)
 {
     fprintf(stderr, "settings: key '%s' on line %d has no value, "
-                    "expected key=value\n",
+                    "expected a line of the form key=value\n",
             key, line_number);
 }
 ```
@@ -1615,14 +1669,15 @@ static void report_missing_value(const char *const key, int line_number)
 올바른 예:
 
 ```c
-static void report_missing_value(const char *const key, int line_number)
+static void report_missing_value(const char *key, int line_number)
 {
-    fprintf(stderr, "settings: key '%s' on line %d has no value, expected key=value\n", key, line_number);
+    fprintf(stderr, "settings: key '%s' on line %d has no value, expected a line of the form key=value\n",
+            key, line_number);
 }
 ```
 
 ```c
-static void show_help(const char *const program_name)
+static void show_help(const char *program_name)
 {
     printf("usage: %s [options] <file>\n"
            "  -c  count characters\n"
@@ -1652,9 +1707,9 @@ clamp_channel(int value)
 ```
 
 ```c
-static void blend_rows(uint8_t *const restrict mut_dst, const uint8_t *const restrict src, size_t count, unsigned int alpha)
+static void blend_image_rows(uint8_t *mut_dst, const uint8_t *src, size_t pixel_count, uint8_t alpha)
 {
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < pixel_count; ++i) {
         mut_dst[i] = (uint8_t)((src[i] * alpha + mut_dst[i] * (255U - alpha)) / 255U);
     }
 }
@@ -1676,10 +1731,10 @@ static int clamp_channel(int value)
 ```
 
 ```c
-static void blend_rows(uint8_t *const restrict mut_dst, const uint8_t *const restrict src,
-                       size_t count, unsigned int alpha)
+static void blend_image_rows(uint8_t *mut_dst, const uint8_t *src,
+                             size_t pixel_count, uint8_t alpha)
 {
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < pixel_count; ++i) {
         mut_dst[i] = (uint8_t)((src[i] * alpha + mut_dst[i] * (255U - alpha)) / 255U);
     }
 }
@@ -1715,7 +1770,7 @@ static int is_leap_year(int year)
 틀린 예:
 
 ```c
-static int adjust_level(int level, const int *const history, size_t count)
+static int adjust_level(int level, const unsigned char *history, size_t count)
 {
     if (level < 0)
     {
@@ -1730,7 +1785,7 @@ static int adjust_level(int level, const int *const history, size_t count)
         level += 1;
     }
 
-    for (size_t i = 0; i < count; ++i)
+    for (size_t i = 0; i < count && level <= 100; ++i)
     {
         level += history[i];
     }
@@ -1762,7 +1817,7 @@ static int adjust_level(int level, const int *const history, size_t count)
 올바른 예:
 
 ```c
-static int adjust_level(int level, const int *const history, size_t count)
+static int adjust_level(int level, const unsigned char *history, size_t count)
 {
     if (level < 0) {
         level = 0;
@@ -1772,7 +1827,7 @@ static int adjust_level(int level, const int *const history, size_t count)
         level += 1;
     }
 
-    for (size_t i = 0; i < count; ++i) {
+    for (size_t i = 0; i < count && level <= 100; ++i) {
         level += history[i];
     }
 
@@ -1806,7 +1861,7 @@ static int adjust_level(int level, const int *const history, size_t count)
 
 ```c
 void stop_motor(void);
-void log_event(const char *const message);
+void log_event(const char *message);
 
 static void check_motor(int temperature, int limit)
 {
@@ -1817,17 +1872,17 @@ static void check_motor(int temperature, int limit)
 ```
 
 ```c
-static int compute_absolute_value(int value)
+static long long compute_absolute_value(int value)
 {
     if (value < 0)
-        return -value;
+        return -(long long)value;
     else
         return value;
 }
 
-static long sum_values(const int *const values, size_t count)
+static long long sum_values(const int *values, size_t count)
 {
-    long sum = 0;
+    long long sum = 0;
 
     for (size_t i = 0; i < count; ++i)
         sum += values[i];
@@ -1835,7 +1890,7 @@ static long sum_values(const int *const values, size_t count)
     return sum;
 }
 
-static size_t skip_spaces(const char *const text)
+static size_t skip_spaces(const char *text)
 {
     size_t i = 0;
 
@@ -1845,9 +1900,9 @@ static size_t skip_spaces(const char *const text)
     return i;
 }
 
-static long find_next_power_of_ten(long value)
+static unsigned long long find_next_power_of_ten(unsigned int value)
 {
-    long scale = 1;
+    unsigned long long scale = 1;
 
     do
         scale *= 10;
@@ -1861,7 +1916,7 @@ static long find_next_power_of_ten(long value)
 
 ```c
 void stop_motor(void);
-void log_event(const char *const message);
+void log_event(const char *message);
 
 static void check_motor(int temperature, int limit)
 {
@@ -1873,18 +1928,18 @@ static void check_motor(int temperature, int limit)
 ```
 
 ```c
-static int compute_absolute_value(int value)
+static long long compute_absolute_value(int value)
 {
     if (value < 0) {
-        return -value;
+        return -(long long)value;
     } else {
         return value;
     }
 }
 
-static long sum_values(const int *const values, size_t count)
+static long long sum_values(const int *values, size_t count)
 {
-    long sum = 0;
+    long long sum = 0;
 
     for (size_t i = 0; i < count; ++i) {
         sum += values[i];
@@ -1893,7 +1948,7 @@ static long sum_values(const int *const values, size_t count)
     return sum;
 }
 
-static size_t skip_spaces(const char *const text)
+static size_t skip_spaces(const char *text)
 {
     size_t i = 0;
 
@@ -1904,9 +1959,9 @@ static size_t skip_spaces(const char *const text)
     return i;
 }
 
-static long find_next_power_of_ten(long value)
+static unsigned long long find_next_power_of_ten(unsigned int value)
 {
-    long scale = 1;
+    unsigned long long scale = 1;
 
     do {
         scale *= 10;
@@ -2133,7 +2188,7 @@ struct session {
     int *scores;
 };
 
-static int open_session(struct session *const mut_session, const char *const log_path)
+static int open_session(struct session *mut_session, const char *log_path)
 {
     mut_session->log = fopen(log_path, "a");
     if (mut_session->log == NULL) {
@@ -2171,7 +2226,7 @@ struct session {
     int *scores;
 };
 
-static int open_session(struct session *const mut_session, const char *const log_path)
+static int open_session(struct session *mut_session, const char *log_path)
 {
     mut_session->log = fopen(log_path, "a");
     if (mut_session->log == NULL) {
@@ -2201,7 +2256,7 @@ handle_buffer_alloc:
 ```
 
 ```c
-static size_t count_rows_without_zero(const int *const cells, size_t row_count, size_t column_count)
+static size_t count_rows_without_zero(const int *cells, size_t row_count, size_t column_count)
 {
     size_t count = 0;
 
@@ -2234,20 +2289,20 @@ static size_t count_rows_without_zero(const int *const cells, size_t row_count, 
 
 ```c
 struct point {
-    int x;
-    int y;
+    short x;
+    short y;
 };
 
-static int sum_distances(const struct point *const points, size_t count, bool is_closed)
+static int sum_distances(const struct point *points, size_t count, bool is_closed)
 {
-    long total = 0;
+    long long total = 0;
 
     for(size_t i = 1; i<count; ++ i) {
         total+=abs (points[i] . x-points[i - 1] . x)+abs( points[i].y - points[i - 1].y );
     }
 
     if(! is_closed && count>0) {
-        const struct point *const last = & points[count - 1];
+        const struct point *last = & points[count - 1];
 
         total -= abs(last -> x - points[0].x);
     }
@@ -2274,20 +2329,20 @@ static int sum_distances(const struct point *const points, size_t count, bool is
 
 ```c
 struct point {
-    int x;
-    int y;
+    short x;
+    short y;
 };
 
-static int sum_distances(const struct point *const points, size_t count, bool is_closed)
+static int sum_distances(const struct point *points, size_t count, bool is_closed)
 {
-    long total = 0;
+    long long total = 0;
 
     for (size_t i = 1; i < count; ++i) {
         total += abs(points[i].x - points[i - 1].x) + abs(points[i].y - points[i - 1].y);
     }
 
     if (!is_closed && count > 0) {
-        const struct point *const last = &points[count - 1];
+        const struct point *last = &points[count - 1];
 
         total -= abs(last->x - points[0].x);
     }
@@ -2319,8 +2374,8 @@ static int sum_distances(const struct point *const points, size_t count, bool is
 ```c
 struct menu;
 
-const char* find_label(const struct menu* const menu, int id);
-char* copy_label(const char* const label);
+const char* find_label(const struct menu* menu, int id);
+char* copy_label(const char* label);
 ```
 
 올바른 예:
@@ -2328,8 +2383,8 @@ char* copy_label(const char* const label);
 ```c
 struct menu;
 
-const char *find_label(const struct menu *const menu, int id);
-char *copy_label(const char *const label);
+const char *find_label(const struct menu *menu, int id);
+char *copy_label(const char *label);
 ```
 
 ### 한 줄에는 가능한 한 문장만
@@ -2344,7 +2399,7 @@ struct size {
     int height;
 };
 
-static void reset_size(struct size *const mut_size)
+static void reset_size(struct size *mut_size)
 {
     mut_size->width = 0; mut_size->height = 0;
 }
@@ -2358,7 +2413,7 @@ struct size {
     int height;
 };
 
-static void reset_size(struct size *const mut_size)
+static void reset_size(struct size *mut_size)
 {
     mut_size->width = 0;
     mut_size->height = 0;
@@ -2372,7 +2427,7 @@ static void reset_size(struct size *const mut_size)
 올바른 예:
 
 ```c
-static long count_long_lines(const char *const path, size_t limit)
+static long count_long_lines(const char *path, size_t limit)
 {
     FILE *file = fopen(path, "r");
     if (file == NULL) {
@@ -2392,6 +2447,12 @@ static long count_long_lines(const char *const path, size_t limit)
             ++count;
         }
         length = 0;
+    }
+
+    if (ferror(file) != 0) {
+        count = -1;
+    } else if (length > limit) {
+        ++count;
     }
 
     fclose(file);
@@ -2418,7 +2479,7 @@ struct account {
     double interest_rate;  /* per year */
 };
 
-static void open_account(struct account *const mut_account)
+static void open_account(struct account *mut_account)
 {
     mut_account->balance       = 0;
     mut_account->interest_rate = 0.015;
@@ -2445,7 +2506,7 @@ struct account {
     double interest_rate; /* per year */
 };
 
-static void open_account(struct account *const mut_account)
+static void open_account(struct account *mut_account)
 {
     mut_account->balance = 0;
     mut_account->interest_rate = 0.015;
@@ -2463,12 +2524,10 @@ static void open_account(struct account *const mut_account)
 ### preprocessing directive
 
 - preprocessing directive의 `#`은 늘 줄의 맨 앞에 둔다. 함수나 다른 중괄호 블록 안에 있는 directive도 같다.
-- 조건부 컴파일 블록 안에 있는 directive는 `#`과 directive 이름 사이에 중첩 깊이만큼 공백을 둔다. 깊이 1이면 1칸, 깊이 2이면 2칸, 깊이 3이면 3칸이다.
-- `#elif`, `#else`, `#endif`는 짝이 되는 `#if`, `#ifdef`, `#ifndef`와 같은 깊이에 둔다.
-- include guard는 중첩 깊이에 포함하지 않는다.
-- 조건부 컴파일 블록 안의 C 코드는 directive의 깊이와 상관없이, directive가 없을 때와 같은 들여쓰기를 따른다.
+- 중첩된 조건부 컴파일 블록 안에서도 directive를 들여쓰지 않는다. `#`과 directive 이름 사이에 공백을 두지 않고 모든 directive를 줄의 맨 앞에 붙인다.
+- 조건부 컴파일 블록 안의 C 코드는 directive의 중첩과 상관없이, directive가 없을 때와 같은 들여쓰기를 따른다.
 
-`#`이 늘 줄의 맨 앞에 있으면 directive가 코드와 구별된다. 또 `#` 뒤의 공백 수를 보면 중첩 깊이를 알 수 있다.
+모든 directive를 1열에 붙이면 전처리기 구문이 일반 C 코드의 들여쓰기와 분명히 구별된다. 또한 바깥에 `#if`를 덧붙이거나 뺄 때 안쪽 directive 줄의 공백이 바뀌지 않아 diff가 깔끔하게 유지된다.
 
 틀린 예:
 
@@ -2497,13 +2556,13 @@ static char get_path_separator(void)
 
 ```c
 #if defined(__linux__)
-#if defined(__GLIBC__)
-#define LIBC_NAME "glibc"
+# if defined(__GLIBC__)
+#  define LIBC_NAME "glibc"
+# else
+#  define LIBC_NAME "other libc"
+# endif
 #else
-#define LIBC_NAME "other libc"
-#endif
-#else
-#define LIBC_NAME "unknown"
+# define LIBC_NAME "unknown"
 #endif
 ```
 
@@ -2522,13 +2581,13 @@ static char get_path_separator(void)
 
 ```c
 #if defined(__linux__)
-# if defined(__GLIBC__)
-#  define LIBC_NAME "glibc"
-# else
-#  define LIBC_NAME "other libc"
-# endif
+#if defined(__GLIBC__)
+#define LIBC_NAME "glibc"
 #else
-# define LIBC_NAME "unknown"
+#define LIBC_NAME "other libc"
+#endif
+#else
+#define LIBC_NAME "unknown"
 #endif
 ```
 
@@ -2539,9 +2598,9 @@ static char get_path_separator(void)
 #define PLATFORM_PATHS_H
 
 #if defined(_WIN32)
-# define PATH_SEPARATOR '\\'
+#define PATH_SEPARATOR '\\'
 #else
-# define PATH_SEPARATOR '/'
+#define PATH_SEPARATOR '/'
 #endif
 
 #endif /* PLATFORM_PATHS_H */
@@ -2563,7 +2622,7 @@ static inline uint32_t read_max_cpuid_leaf(void)
     __asm__ volatile("xorl %%eax, %%eax; cpuid"
                      : "=a"(leaf)
                      :
-                     : "ebx", "ecx", "edx");
+                     : "ebx", "ecx", "edx", "cc");
     return leaf;
 }
 ```
@@ -2579,7 +2638,7 @@ static inline uint32_t read_max_cpuid_leaf(void)
                      "cpuid"
                      : "=a"(leaf)
                      :
-                     : "ebx", "ecx", "edx");
+                     : "ebx", "ecx", "edx", "cc");
     return leaf;
 }
 ```
@@ -2609,12 +2668,12 @@ enum CartState {
     CART_STATE_PAID,
 };
 
-static int AddItem(struct GroceryList *const pList, long PriceCents)
+static int AddItem(struct GroceryList *pList, long PriceCents)
 {
     int Result = -1;
 
     pthread_mutex_lock(&pList->lock);
-    if (PriceCents < 0) {
+    if (PriceCents < 0 || PriceCents > LONG_MAX - pList->totalCents) {
         goto OutUnlock;
     }
 
@@ -2647,12 +2706,12 @@ enum cart_state {
     CART_STATE_PAID,
 };
 
-static int add_item(struct grocery_list *const mut_list, long price_cents)
+static int add_item(struct grocery_list *mut_list, long price_cents)
 {
     int result = -1;
 
     pthread_mutex_lock(&mut_list->lock);
-    if (price_cents < 0) {
+    if (price_cents < 0 || price_cents > LONG_MAX - mut_list->total_cents) {
         goto out_unlock;
     }
 
@@ -2757,8 +2816,12 @@ struct reading {
     int celsius;
 };
 
-static int avgtmp(const struct reading *const pReadings, size_t nCount)
+static int avgtmp(const struct reading *pReadings, size_t nCount)
 {
+    if (nCount == 0) {
+        return 0;
+    }
+
     long l = 0;
     size_t L = 0;
 
@@ -2778,8 +2841,12 @@ struct reading {
     int celsius;
 };
 
-static int compute_average_celsius(const struct reading *const readings, size_t count)
+static int compute_average_celsius(const struct reading *readings, size_t count)
 {
+    if (count == 0) {
+        return 0;
+    }
+
     long sum = 0;
 
     for (size_t i = 0; i < count; ++i) {
@@ -2791,7 +2858,7 @@ static int compute_average_celsius(const struct reading *const readings, size_t 
 ```
 
 ```c
-static void fill_bytes(unsigned char *const mut_buffer, size_t size, unsigned char value)
+static void fill_bytes(unsigned char *mut_buffer, size_t size, unsigned char value)
 {
     for (size_t i = 0; i < size; ++i) {
         mut_buffer[i] = value;
@@ -2811,9 +2878,9 @@ struct rect {
     double height;
 };
 
-double perimeter(const struct rect *const rect);
-unsigned int checksum(const unsigned char *const bytes, size_t count);
-int cart_item_add(const char *const name);
+double perimeter(const struct rect *rect);
+unsigned int checksum(const unsigned char *bytes, size_t count);
+int cart_item_add(const char *name);
 ```
 
 올바른 예:
@@ -2824,9 +2891,9 @@ struct rect {
     double height;
 };
 
-double compute_perimeter(const struct rect *const rect);
-unsigned int calculate_checksum(const unsigned char *const bytes, size_t count);
-int cart_add_item(const char *const name);
+double compute_perimeter(const struct rect *rect);
+unsigned int calculate_checksum(const unsigned char *bytes, size_t count);
+int cart_add_item(const char *name);
 ```
 
 ### 참 거짓을 나타내는 이름
@@ -2846,27 +2913,29 @@ struct download {
     int retry;
 };
 
-bool palindrome(const char *const text);
-bool check_key(const char *const key);
-bool find_name(const char *const *const names, size_t count, const char *const name);
+bool palindrome(const char *text);
+bool check_key(const char *key);
+bool find_name(const char *const *names, size_t count, const char *name);
 ```
 
 ```c
-static size_t count_code_lines(const char *const *const lines, size_t count)
+static size_t count_code_lines(const char *const *lines, size_t count)
 {
     size_t code_lines = 0;
     int inside_comment = 0;
 
     for (size_t i = 0; i < count; ++i) {
-        if (strncmp(lines[i], "/*", 2) == 0) {
+        const char *text = lines[i] + strspn(lines[i], " \t");
+
+        if (strncmp(text, "/*", 2) == 0) {
             inside_comment = 1;
         }
 
-        if (inside_comment == 0) {
+        if (inside_comment == 0 && text[0] != '\0') {
             ++code_lines;
         }
 
-        if (strstr(lines[i], "*/") != NULL) {
+        if (strstr(text, "*/") != NULL) {
             inside_comment = 0;
         }
     }
@@ -2876,7 +2945,7 @@ static size_t count_code_lines(const char *const *const lines, size_t count)
 ```
 
 ```c
-static void report_negative(const int *const values, size_t count)
+static void report_negative(const int *values, size_t count)
 {
     bool found = false;
 
@@ -2901,27 +2970,29 @@ struct download {
     int can_retry;
 };
 
-bool is_palindrome(const char *const text);
-bool is_valid_key(const char *const key);
-bool contains_name(const char *const *const names, size_t count, const char *const name);
+bool is_palindrome(const char *text);
+bool is_valid_key(const char *key);
+bool contains_name(const char *const *names, size_t count, const char *name);
 ```
 
 ```c
-static size_t count_code_lines(const char *const *const lines, size_t count)
+static size_t count_code_lines(const char *const *lines, size_t count)
 {
     size_t code_lines = 0;
     int is_inside_comment = 0;
 
     for (size_t i = 0; i < count; ++i) {
-        if (strncmp(lines[i], "/*", 2) == 0) {
+        const char *text = lines[i] + strspn(lines[i], " \t");
+
+        if (strncmp(text, "/*", 2) == 0) {
             is_inside_comment = 1;
         }
 
-        if (is_inside_comment == 0) {
+        if (is_inside_comment == 0 && text[0] != '\0') {
             ++code_lines;
         }
 
-        if (strstr(lines[i], "*/") != NULL) {
+        if (strstr(text, "*/") != NULL) {
             is_inside_comment = 0;
         }
     }
@@ -2931,7 +3002,7 @@ static size_t count_code_lines(const char *const *const lines, size_t count)
 ```
 
 ```c
-static void report_negative(const int *const values, size_t count)
+static void report_negative(const int *values, size_t count)
 {
     bool has_found = false;
 
@@ -3029,9 +3100,9 @@ static enum fan_speed gs_fan_speed = FAN_SPEED_HIGH;
 
 ```c
 typedef struct audio_device audio_device;
-typedef void (*sample_callback)(const float *const samples, size_t count);
+typedef void (*sample_callback)(const float *samples, size_t count);
 
-audio_device *open_audio_device(const char *const name, const sample_callback on_samples);
+audio_device *open_audio_device(const char *name, sample_callback on_samples);
 ```
 
 ### 예약된 식별자
@@ -3105,13 +3176,13 @@ static size_t gs_buffer_size;
 
 typedef HANDLE log_handle;
 
-static log_handle OpenLogFileW(const wchar_t *const pszPath)
+static log_handle OpenLogFileW(const wchar_t *pszPath)
 {
-    return CreateFileW(pszPath, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
+    return CreateFileW(pszPath, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
                        FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
-static void CloseLogFile(const log_handle hFile)
+static void CloseLogFile(log_handle hFile)
 {
     close_log(hFile);
 }
@@ -3122,13 +3193,13 @@ static void CloseLogFile(const log_handle hFile)
 ```c
 #include <windows.h>
 
-static HANDLE open_log_file(const wchar_t *const path)
+static HANDLE open_log_file(const wchar_t *path)
 {
-    return CreateFileW(path, GENERIC_WRITE, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
+    return CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ, NULL, OPEN_ALWAYS,
                        FILE_ATTRIBUTE_NORMAL, NULL);
 }
 
-static void close_log_file(const HANDLE file)
+static void close_log_file(HANDLE file)
 {
     CloseHandle(file);
 }
@@ -3143,15 +3214,16 @@ static void close_log_file(const HANDLE file)
 틀린 예:
 
 ```c
-static void print_space_positions(const char *const text)
+static void print_space_positions(const char *text)
 {
-    const char *const first_space = strchr(text, ' '), *const last_space = strrchr(text, ' ');
-    size_t first_index = 0, last_index = 0;
+    const char *first_space = strchr(text, ' '), *last_space = strrchr(text, ' ');
 
-    if (first_space != NULL) {
-        first_index = (size_t)(first_space - text);
-        last_index = (size_t)(last_space - text);
+    if (first_space == NULL) {
+        puts("no spaces");
+        return;
     }
+
+    size_t first_index = (size_t)(first_space - text), last_index = (size_t)(last_space - text);
 
     printf("spaces at %zu and %zu\n", first_index, last_index);
 }
@@ -3160,17 +3232,18 @@ static void print_space_positions(const char *const text)
 올바른 예:
 
 ```c
-static void print_space_positions(const char *const text)
+static void print_space_positions(const char *text)
 {
-    const char *const first_space = strchr(text, ' ');
-    const char *const last_space = strrchr(text, ' ');
-    size_t first_index = 0;
-    size_t last_index = 0;
+    const char *first_space = strchr(text, ' ');
+    const char *last_space = strrchr(text, ' ');
 
-    if (first_space != NULL) {
-        first_index = (size_t)(first_space - text);
-        last_index = (size_t)(last_space - text);
+    if (first_space == NULL) {
+        puts("no spaces");
+        return;
     }
+
+    size_t first_index = (size_t)(first_space - text);
+    size_t last_index = (size_t)(last_space - text);
 
     printf("spaces at %zu and %zu\n", first_index, last_index);
 }
@@ -3188,7 +3261,7 @@ struct order {
     int is_paid;
 };
 
-static long sum_unpaid(const struct order *const orders, size_t count)
+static long sum_unpaid(const struct order *orders, size_t count)
 {
     size_t i;
     long total;
@@ -3214,12 +3287,12 @@ struct order {
     int is_paid;
 };
 
-static long sum_unpaid(const struct order *const orders, size_t count)
+static long sum_unpaid(const struct order *orders, size_t count)
 {
     long total = 0;
 
     for (size_t i = 0; i < count; ++i) {
-        const struct order *const order = &orders[i];
+        const struct order *order = &orders[i];
 
         if (order->is_paid == 0) {
             total += order->amount_cents;
@@ -3240,13 +3313,13 @@ struct order {
     int is_paid;
 };
 
-static long sum_unpaid(const struct order *const orders, size_t count)
+static long sum_unpaid(const struct order *orders, size_t count)
 {
     long total = 0;
     size_t i;
 
     for (i = 0; i < count; ++i) {
-        const struct order *const order = &orders[i];
+        const struct order *order = &orders[i];
 
         if (order->is_paid == 0) {
             total += order->amount_cents;
@@ -3271,7 +3344,7 @@ static long sum_unpaid(const struct order *const orders, size_t count)
 size_t total_errors;
 char error_text[128];
 
-size_t count_errors(const int *const codes, size_t count)
+size_t count_errors(const int *codes, size_t count)
 {
     size_t total_errors = 0;
 
@@ -3292,7 +3365,7 @@ size_t count_errors(const int *const codes, size_t count)
 ```c
 static size_t gs_total_errors;
 
-static size_t count_errors(const int *const codes, size_t count)
+static size_t count_errors(const int *codes, size_t count)
 {
     size_t errors = 0;
 
@@ -3324,13 +3397,17 @@ struct word_scanner {
     size_t word_count;
 };
 
-void scan_words(struct word_scanner *const mut_scanner);
+void scan_words(struct word_scanner *mut_scanner);
 
-static int scan_next_line(struct word_scanner *const mut_scanner, FILE *const mut_input)
+static int scan_next_line(struct word_scanner *mut_scanner, FILE *mut_input)
 {
     char line[128];
 
     if (fgets(line, sizeof(line), mut_input) == NULL) {
+        return -1;
+    }
+
+    if (strchr(line, '\n') == NULL && feof(mut_input) == 0) {
         return -1;
     }
 
@@ -3341,7 +3418,7 @@ static int scan_next_line(struct word_scanner *const mut_scanner, FILE *const mu
 ```
 
 ```c
-static void print_greeting(const char *const name, bool is_formal)
+static void print_greeting(const char *name, bool is_formal)
 {
     const char *greeting = "hi";
 
@@ -3350,6 +3427,8 @@ static void print_greeting(const char *const name, bool is_formal)
 
         snprintf(formal, sizeof(formal), "good evening, %s", name);
         greeting = formal;
+        puts(greeting);
+    } else {
         puts(greeting);
     }
 
@@ -3365,13 +3444,17 @@ struct word_scanner {
     size_t word_count;
 };
 
-void scan_words(struct word_scanner *const mut_scanner);
+void scan_words(struct word_scanner *mut_scanner);
 
-static int scan_next_line(struct word_scanner *const mut_scanner, FILE *const mut_input)
+static int scan_next_line(struct word_scanner *mut_scanner, FILE *mut_input)
 {
     char line[128];
 
     if (fgets(line, sizeof(line), mut_input) == NULL) {
+        return -1;
+    }
+
+    if (strchr(line, '\n') == NULL && feof(mut_input) == 0) {
         return -1;
     }
 
@@ -3383,7 +3466,7 @@ static int scan_next_line(struct word_scanner *const mut_scanner, FILE *const mu
 ```
 
 ```c
-static void print_greeting(const char *const name, bool is_formal)
+static void print_greeting(const char *name, bool is_formal)
 {
     const char *greeting = "hi";
 
@@ -3394,6 +3477,8 @@ static void print_greeting(const char *const name, bool is_formal)
         greeting = formal;
         puts(greeting);
         greeting = NULL;
+    } else {
+        puts(greeting);
     }
 
     printf("greeted %s\n", name);
@@ -3410,7 +3495,7 @@ static void print_greeting(const char *const name, bool is_formal)
 틀린 예:
 
 ```c
-static unsigned int sum_bytes(const char *const data, int length)
+static unsigned int sum_bytes(const char *data, int length)
 {
     unsigned int sum = 0;
 
@@ -3430,7 +3515,7 @@ static int is_inside(int offset, size_t length)
 올바른 예:
 
 ```c
-static uint32_t sum_bytes(const unsigned char *const data, size_t length)
+static uint32_t sum_bytes(const unsigned char *data, size_t length)
 {
     uint32_t sum = 0;
 
@@ -3450,12 +3535,16 @@ static int is_inside(int offset, size_t length)
 올바른 예(POSIX API의 타입을 따르는 경우):
 
 ```c
-static int read_exactly(int fd, unsigned char *const mut_buffer, size_t size)
+static int read_exactly(int fd, unsigned char *mut_buffer, size_t size)
 {
     size_t done = 0;
 
     while (done < size) {
         ssize_t count = read(fd, mut_buffer + done, size - done);
+
+        if (count < 0 && errno == EINTR) {
+            continue;
+        }
 
         if (count <= 0) {
             return -1;
@@ -3547,6 +3636,8 @@ static int gs_is_running = 1;
 
 enum의 첫 enumeration constant에는 반드시 값을 명시한다. 첫 값은 생략해도 0이 되지만(C99 §6.7.2.2 ¶3), 값을 명시하면 0에서 시작한다는 의도가 선언에 드러난다.
 
+C에서 `static const` 객체는 정수 상수식이 아니다(C99 §6.6 ¶6). 따라서, 배열 크기, `case` 레이블, enumeration constant의 값처럼 정수 상수식이 필요한 자리에는 `#define`이나 enum으로 정의한 상수를 쓴다.
+
 틀린 예:
 
 ```c
@@ -3595,17 +3686,15 @@ static long long convert_days_to_ms(int days)
 
 ### const
 
-- 기본 타입 변수를 포함해 포인터가 아닌 변수와 값 매개변수에는 `const`를 강제하지 않는다.
-- 포인터 변수는 `const T *const name` 형식을 기본으로 한다. 이 형식을 지키기 어려울 때만 `const`를 하나씩 뺀다. 대상을 바꿔야 하면 앞의 `const`를 빼고(`T *const name`), 포인터 자체를 바꿔야 하면 뒤의 `const`를 뺀다(`const T *name`). `free`나 `fclose`를 부른 뒤 `NULL`을 할당하는 포인터도 포인터 자체를 바꾸는 경우이다.
-- 뒤의 `const`는 선언과 초기화가 동시에 이뤄질 때만 쓸 수 있다. 포인터에 값을 할당하는 시기가 선언과 다르면 뒤의 `const`를 뺀다. 다만 선언하면서 초기화할 수 있는 구조가 있으면 그 구조를 골라 `*const` 형식을 최대한 유지한다.
-- typedef로 정의한 포인터 타입은 이름만 보면 포인터가 아닌 것 같아도 포인터로 다룬다. 이런 타입의 변수와 매개변수는 `const`를 타입 앞에 붙여 선언한다(`const HANDLE file`, `const sample_callback on_samples`). 이 `const`는 포인터 자체에 붙으므로 뒤의 `const`와 같다.
-- 문자열 리터럴을 가리키는 포인터는 대상을 바꿀 수 없으므로 앞의 `const`를 빼지 않는다.
+- 지역 변수나 포인터 변수 자체에는 `const`를 강제하지 않는다(`*const`와 typedef로 정의한 포인터 타입 앞의 `const` 포함). 매개변수 자체에는 `const`를 붙이지 않는다([10.3절](#포인터-매개변수)).
+- 포인터가 가리키는 대상을 바꾸지 않으면 `const T *name`으로 선언한다. 문자열 리터럴을 가리키는 포인터는 대상을 바꿀 수 없으므로 반드시 `const char *`로 선언한다.
+- 읽기 전용으로 쓰는 정적 포인터 배열(`static const char *const table[]`)처럼 테이블 자체가 바뀌지 않는 경우에는 배열 원소에도 `const`를 붙여 읽기 전용 영역에 배치한다.
 - 값으로 돌려주는 반환형에는 `const`를 붙이지 않는다.
 
 틀린 예:
 
 ```c
-static char *const gs_default_unit = "cm";
+static char *gs_default_unit = "cm";
 
 const double compute_ratio(double part, double whole);
 ```
@@ -3613,7 +3702,8 @@ const double compute_ratio(double part, double whole);
 올바른 예:
 
 ```c
-static const char *const gs_default_unit = "cm";
+static const char *gs_default_unit = "cm";
+static const char *const gs_units[] = { "mm", "cm", "m" };
 
 double compute_ratio(double part, double whole);
 ```
@@ -3627,12 +3717,12 @@ static double convert_to_inches(double centimeters)
 }
 ```
 
-틀린 예(바꾸지 않는 포인터 변수):
+틀린 예(대상을 바꾸지 않는 포인터 변수):
 
 ```c
-static void print_extension(const char *const path)
+static void print_extension(const char *file_name)
 {
-    char *dot = strrchr(path, '.'); // [!hl]
+    char *dot = strrchr(file_name, '.'); // [!hl]
 
     if (dot != NULL) {
         printf("extension: %s\n", dot + 1);
@@ -3640,83 +3730,16 @@ static void print_extension(const char *const path)
 }
 ```
 
-올바른 예(바꾸지 않는 포인터 변수):
+올바른 예(대상을 바꾸지 않는 포인터 변수):
 
 ```c
-static void print_extension(const char *const path)
+static void print_extension(const char *file_name)
 {
-    const char *const dot = strrchr(path, '.'); // [!hl]
+    const char *dot = strrchr(file_name, '.'); // [!hl]
 
     if (dot != NULL) {
         printf("extension: %s\n", dot + 1);
     }
-}
-```
-
-지양하는 예(선언한 뒤 분기마다 할당하는 경우):
-
-```c
-static void print_item_count(size_t count)
-{
-    const char *noun;
-
-    if (count == 1) {
-        noun = "item";
-    } else {
-        noun = "items";
-    }
-
-    printf("%zu %s\n", count, noun);
-}
-```
-
-올바른 예(선언하면서 초기화하는 경우):
-
-```c
-static void print_item_count(size_t count)
-{
-    const char *const noun = (count == 1) ? "item" : "items";
-
-    printf("%zu %s\n", count, noun);
-}
-```
-
-올바른 예(선언과 초기화를 함께 할 수 없는 경우):
-
-```c
-static int parse_percent(long *const mut_percent, const char *const text)
-{
-    char *end;
-    long value = strtol(text, &end, 10);
-
-    if (end == text || *end != '\0' || value < 0 || value > 100) {
-        return -1;
-    }
-
-    *mut_percent = value;
-    return 0;
-}
-```
-
-틀린 예(typedef로 정의한 포인터 타입):
-
-```c
-typedef int (*compare_callback)(const void *const left, const void *const right);
-
-static void sort_scores(int *const mut_scores, size_t count, compare_callback compare) // [!hl]
-{
-    qsort(mut_scores, count, sizeof(*mut_scores), compare);
-}
-```
-
-올바른 예(typedef로 정의한 포인터 타입):
-
-```c
-typedef int (*compare_callback)(const void *const left, const void *const right);
-
-static void sort_scores(int *const mut_scores, size_t count, const compare_callback compare) // [!hl]
-{
-    qsort(mut_scores, count, sizeof(*mut_scores), compare);
 }
 ```
 
@@ -3744,7 +3767,7 @@ static void publish_result(int value)
     gs_has_result = 1;
 }
 
-static int read_result(int *const mut_value)
+static int read_result(int *mut_value)
 {
     if (gs_has_result == 0) {
         return -1;
@@ -3770,7 +3793,7 @@ static void publish_result(int value)
     pthread_mutex_unlock(&gs_result_lock);
 }
 
-static int read_result(int *const mut_value)
+static int read_result(int *mut_value)
 {
     int ret = -1;
 
@@ -3825,15 +3848,15 @@ static uint32_t read_timer(void)
 올바른 예(`setjmp` 이후에 읽는 지역 변수):
 
 ```c
-static jmp_buf gs_retry_point;
+jmp_buf g_retry_point;
 
-int parse_or_jump(const char *const text);
+int parse_or_jump(const char *text);
 
-static int parse_with_retry(const char *const text)
+static int parse_with_retry(const char *text)
 {
     volatile size_t attempt_count = 0;
 
-    if (setjmp(gs_retry_point) != 0) {
+    if (setjmp(g_retry_point) != 0) {
         if (attempt_count >= 3) {
             return -1;
         }
@@ -3849,9 +3872,9 @@ static int parse_with_retry(const char *const text)
 ```c
 static volatile unsigned long gs_sink;
 
-unsigned long hash_word(const char *const word);
+unsigned long hash_word(const char *word);
 
-static void run_hash_benchmark(const char *const *const words, size_t count)
+static void run_hash_benchmark(const char *const *words, size_t count)
 {
     for (size_t i = 0; i < count; ++i) {
         gs_sink = hash_word(words[i]);
@@ -3862,13 +3885,15 @@ static void run_hash_benchmark(const char *const *const words, size_t count)
 올바른 예(인라인 어셈블리):
 
 ```c
-static inline int read_hardware_random(uint64_t *const mut_value)
+static inline int read_hardware_random(uint64_t *mut_value)
 {
     unsigned char is_ok;
 
     __asm__ volatile("rdrand %0\n\t"
                      "setc %1"
-                     : "=r"(*mut_value), "=qm"(is_ok));
+                     : "=&r"(*mut_value), "=qm"(is_ok)
+                     :
+                     : "cc");
     return (is_ok != 0) ? 0 : -1;
 }
 ```
@@ -3880,8 +3905,12 @@ VLA(variable length array)를 쓰지 않는다. 실행 중에 크기가 정해�
 틀린 예:
 
 ```c
-static int print_histogram(const unsigned char *const values, size_t count, size_t bucket_count)
+static int print_histogram(const unsigned char *values, size_t count, size_t bucket_count)
 {
+    if (bucket_count == 0) {
+        return -1;
+    }
+
     size_t buckets[bucket_count];
 
     memset(buckets, 0, sizeof(buckets));
@@ -3900,8 +3929,12 @@ static int print_histogram(const unsigned char *const values, size_t count, size
 올바른 예:
 
 ```c
-static int print_histogram(const unsigned char *const values, size_t count, size_t bucket_count)
+static int print_histogram(const unsigned char *values, size_t count, size_t bucket_count)
 {
+    if (bucket_count == 0) {
+        return -1;
+    }
+
     size_t *buckets = calloc(bucket_count, sizeof(*buckets));
     if (buckets == NULL) {
         return -1;
@@ -3924,9 +3957,13 @@ static int print_histogram(const unsigned char *const values, size_t count, size
 올바른 예(배열을 매개변수로 받는 경우):
 
 ```c
-static void print_histogram(size_t *const mut_buckets, size_t bucket_count,
-                            const unsigned char *const values, size_t count)
+static int print_histogram(size_t *mut_buckets, size_t bucket_count,
+                           const unsigned char *values, size_t count)
 {
+    if (bucket_count == 0) {
+        return -1;
+    }
+
     memset(mut_buckets, 0, bucket_count * sizeof(*mut_buckets));
     for (size_t i = 0; i < count; ++i) {
         ++mut_buckets[values[i] % bucket_count];
@@ -3935,6 +3972,8 @@ static void print_histogram(size_t *const mut_buckets, size_t bucket_count,
     for (size_t i = 0; i < bucket_count; ++i) {
         printf("%zu: %zu\n", i, mut_buckets[i]);
     }
+
+    return 0;
 }
 ```
 
@@ -3947,8 +3986,12 @@ static void print_histogram(size_t *const mut_buckets, size_t bucket_count,
 틀린 예:
 
 ```c
-static double compute_average(const double *const values, size_t count)
+static double compute_average(const double *values, size_t count)
 {
+    if (count == 0) {
+        return 0.0;
+    }
+
     double sum;
 
     sum = 0.0;
@@ -3963,8 +4006,12 @@ static double compute_average(const double *const values, size_t count)
 올바른 예:
 
 ```c
-static double compute_average(const double *const values, size_t count)
+static double compute_average(const double *values, size_t count)
 {
+    if (count == 0) {
+        return 0.0;
+    }
+
     double sum = 0.0;
 
     for (size_t i = 0; i < count; ++i) {
@@ -3976,7 +4023,7 @@ static double compute_average(const double *const values, size_t count)
 ```
 
 ```c
-static void print_letter_counts(const char *const text)
+static void print_letter_counts(const char *text)
 {
     size_t counts[26] = { 0 };
 
@@ -3986,7 +4033,7 @@ static void print_letter_counts(const char *const text)
         }
     }
 
-    for (size_t letter = 0; letter < 26; ++letter) {
+    for (size_t letter = 0; letter < sizeof(counts) / sizeof(counts[0]); ++letter) {
         printf("%c: %zu\n", 'a' + (int)letter, counts[letter]);
     }
 }
@@ -4042,11 +4089,11 @@ static void print_default_window(void)
 
 struct settings;
 
-struct settings *load_settings(const char *const path);
-void run_editor(const struct settings *const settings);
+struct settings *load_settings(const char *path);
+void run_editor(const struct settings *settings);
 
 static const unsigned int gs_autosave_intervals_s[] = { 30, 60, 300 };
-static struct settings *gs_settings;
+static const struct settings *gs_settings;
 
 int main(void)
 {
@@ -4101,7 +4148,7 @@ static const double gs_timeout_s = 2.0;
 틀린 예:
 
 ```c
-static size_t copy_positive_values(int *const mut_dst, const int *const src, size_t count)
+static size_t copy_positive_values(int *mut_dst, const int *src, size_t count)
 {
     size_t copied = 0;
 
@@ -4116,7 +4163,7 @@ static size_t copy_positive_values(int *const mut_dst, const int *const src, siz
 ```
 
 ```c
-static int read_pair_sum(size_t *const mut_index, const int *const values)
+static int read_pair_sum(size_t *mut_index, const int *values)
 {
     size_t i = *mut_index;
     int sum = values[i++] + values[i++];
@@ -4129,7 +4176,7 @@ static int read_pair_sum(size_t *const mut_index, const int *const values)
 올바른 예:
 
 ```c
-static size_t copy_positive_values(int *const mut_dst, const int *const src, size_t count)
+static size_t copy_positive_values(int *mut_dst, const int *src, size_t count)
 {
     size_t copied = 0;
 
@@ -4145,7 +4192,7 @@ static size_t copy_positive_values(int *const mut_dst, const int *const src, siz
 ```
 
 ```c
-static int read_pair_sum(size_t *const mut_index, const int *const values)
+static int read_pair_sum(size_t *mut_index, const int *values)
 {
     size_t i = *mut_index;
     int sum = values[i] + values[i + 1];
@@ -4155,13 +4202,13 @@ static int read_pair_sum(size_t *const mut_index, const int *const values)
 }
 ```
 
-올바른 예(이전 값이 꼭 필요한 경우):
+올바른 예(거꾸로 도는 반복문):
 
 ```c
-static void print_reversed(const int *const values, size_t count)
+static void print_reversed(const int *values, size_t count)
 {
-    for (size_t i = count; i-- > 0;) {
-        printf("%d\n", values[i]);
+    for (size_t i = count; i > 0; --i) {
+        printf("%d\n", values[i - 1]);
     }
 }
 ```
@@ -4169,7 +4216,7 @@ static void print_reversed(const int *const values, size_t count)
 틀린 예(역참조한 대상에 증감 연산자를 쓴 경우):
 
 ```c
-static void skip_spaces(const char **const mut_cursor)
+static void skip_spaces(const char **mut_cursor)
 {
     while (**mut_cursor == ' ') {
         ++*mut_cursor; // [!hl]
@@ -4180,7 +4227,7 @@ static void skip_spaces(const char **const mut_cursor)
 올바른 예(역참조한 대상을 하나 늘리는 경우):
 
 ```c
-static void skip_spaces(const char **const mut_cursor)
+static void skip_spaces(const char **mut_cursor)
 {
     while (**mut_cursor == ' ') {
         *mut_cursor += 1; // [!hl]
@@ -4191,46 +4238,39 @@ static void skip_spaces(const char **const mut_cursor)
 ### sizeof
 
 - 동적 할당 함수나 `memset`, `memcpy` 같은 함수에 넘기는 크기는 대상 변수에서 얻는다(`sizeof(*p)`, `sizeof(var)`).
-- 배열의 원소 수는 `ARRAY_SIZE()` 매크로로 구한다. 이 매크로는 배열 타입의 객체에만 쓴다. 동적 할당한 메모리와 배열 매개변수는 포인터로 다루므로, 원소 수를 따로 넘긴다.
+- 배열 객체의 원소 수는 `sizeof(arr) / sizeof(arr[0])`로 구한다. 이 식을 파일이나 프로젝트 안에서 높은 빈도로 재사용할 때만 `ARRAY_SIZE` 같은 매크로로 따로 정의한다.
+- 동적 할당한 메모리와 배열 매개변수는 포인터로 다루므로, 원소 수를 따로 넘긴다.
 
 틀린 예:
 
 ```c
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-
 struct order {
     char customer[32];
     long amount_cents;
 };
 
-static const char *const gs_status_names[] = {
-    "pending",
-    "paid",
-    "shipped",
-};
-
-static struct order *create_order(const char *const customer)
+static struct order *create_order(const char *customer)
 {
-    struct order *const order = malloc(sizeof(struct order));
+    struct order *order = malloc(sizeof(struct order));
     if (order == NULL) {
         return NULL;
     }
 
     memset(order, 0, sizeof(struct order));
-    snprintf(order->customer, 32, "%s", customer);
+
+    int length = snprintf(order->customer, 32, "%s", customer);
+    if (length < 0 || length >= 32) {
+        free(order);
+        order = NULL;
+        return NULL;
+    }
+
     return order;
 }
 
-static void print_status_names(void)
+static void print_names(const char *const *names)
 {
-    for (size_t i = 0; i < sizeof(gs_status_names) / sizeof(gs_status_names[0]); ++i) {
-        puts(gs_status_names[i]);
-    }
-}
-
-static void print_names(const char *const *const names)
-{
-    for (size_t i = 0; i < ARRAY_SIZE(names); ++i) {
+    for (size_t i = 0; i < sizeof(names) / sizeof(names[0]); ++i) {
         puts(names[i]);
     }
 }
@@ -4239,39 +4279,31 @@ static void print_names(const char *const *const names)
 올바른 예:
 
 ```c
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
-
 struct order {
     char customer[32];
     long amount_cents;
 };
 
-static const char *const gs_status_names[] = {
-    "pending",
-    "paid",
-    "shipped",
-};
-
-static struct order *create_order(const char *const customer)
+static struct order *create_order(const char *customer)
 {
-    struct order *const order = malloc(sizeof(*order));
+    struct order *order = malloc(sizeof(*order));
     if (order == NULL) {
         return NULL;
     }
 
     memset(order, 0, sizeof(*order));
-    snprintf(order->customer, sizeof(order->customer), "%s", customer);
+
+    int length = snprintf(order->customer, sizeof(order->customer), "%s", customer);
+    if (length < 0 || (size_t)length >= sizeof(order->customer)) {
+        free(order);
+        order = NULL;
+        return NULL;
+    }
+
     return order;
 }
 
-static void print_status_names(void)
-{
-    for (size_t i = 0; i < ARRAY_SIZE(gs_status_names); ++i) {
-        puts(gs_status_names[i]);
-    }
-}
-
-static void print_names(const char *const *const names, size_t count)
+static void print_names(const char *const *names, size_t count)
 {
     for (size_t i = 0; i < count; ++i) {
         puts(names[i]);
@@ -4281,7 +4313,7 @@ static void print_names(const char *const *const names, size_t count)
 
 ### 캐스트
 
-- `void *`를 다른 객체 포인터 타입으로 바꿀 때는 캐스트하지 않는다. `malloc`의 반환값도 같다.
+- `void *`를 다른 객체 포인터 타입으로 바꿀 때는 캐스트하지 않는다. `malloc`과 `calloc`의 반환값도 같다.
 - 값이 잘릴 수 있는 변환과 부호가 섞인 연산에는 명시적 캐스트를 쓴다.
 - 캐스트한 결과를 다시 캐스트할 때는 문법상 필요 없더라도 안쪽 캐스트 식을 소괄호로 감싼다. 그러면 각 변환이 안쪽부터 차례로 적용되는 별개의 단계로 읽힌다.
 
@@ -4290,24 +4322,28 @@ static void print_names(const char *const *const names, size_t count)
 ```c
 static int32_t *create_samples(size_t count)
 {
-    int32_t *const samples = (int32_t *)malloc(count * sizeof(*samples));
+    int32_t *samples = (int32_t *)calloc(count, sizeof(*samples));
 
     return samples;
 }
 
 static int compute_percent(size_t done, size_t total)
 {
-    int percent = done * 100 / total;
+    if (total == 0 || done > total || done > SIZE_MAX / 100) {
+        return -1;
+    }
+
+    int percent = (done * 100) / total;
 
     return percent;
 }
 
-static long compute_balance_change(unsigned long deposit_cents, long withdrawal_cents)
+static int64_t compute_balance_change(uint32_t deposit_cents, int32_t withdrawal_cents)
 {
     return deposit_cents - withdrawal_cents;
 }
 
-static uint64_t convert_buffer_address(const unsigned char *const buffer, size_t offset)
+static uint64_t convert_buffer_address(const unsigned char *buffer, size_t offset)
 {
     return (uint64_t)(uintptr_t)(buffer + offset);
 }
@@ -4318,24 +4354,28 @@ static uint64_t convert_buffer_address(const unsigned char *const buffer, size_t
 ```c
 static int32_t *create_samples(size_t count)
 {
-    int32_t *const samples = malloc(count * sizeof(*samples));
+    int32_t *samples = calloc(count, sizeof(*samples));
 
     return samples;
 }
 
 static int compute_percent(size_t done, size_t total)
 {
-    int percent = (int)(done * 100 / total);
+    if (total == 0 || done > total || done > SIZE_MAX / 100) {
+        return -1;
+    }
+
+    int percent = (int)((done * 100) / total);
 
     return percent;
 }
 
-static long compute_balance_change(unsigned long deposit_cents, long withdrawal_cents)
+static int64_t compute_balance_change(uint32_t deposit_cents, int32_t withdrawal_cents)
 {
-    return (long)deposit_cents - withdrawal_cents;
+    return (int64_t)deposit_cents - withdrawal_cents;
 }
 
-static uint64_t convert_buffer_address(const unsigned char *const buffer, size_t offset)
+static uint64_t convert_buffer_address(const unsigned char *buffer, size_t offset)
 {
     return (uint64_t)((uintptr_t)(buffer + offset));
 }
@@ -4345,6 +4385,7 @@ static uint64_t convert_buffer_address(const unsigned char *const buffer, size_t
 
 - 비트 연산자와 시프트 연산자가 다른 연산자와 섞이면 소괄호로 묶는다.
 - `&&`와 `||`가 섞이면 소괄호로 묶는다.
+- `*`, `/`, `%`가 섞이거나 `/`·`%`가 이어지면 문법상 필요 없더라도 소괄호로 묶어 어느 연산이 먼저인지 드러낸다(`(done * 100) / total`, `(total / parts) / chunk_size`).
 - 직관적인 이해, 덩어리 구분, 가독성을 위해 문법상 필요 없는 소괄호를 써도 된다. 문법상 필요 없다는 이유만으로 소괄호를 과감히 생략하는 것은 지양한다.
 
 소괄호의 위치가 달라지면 식의 뜻도 달라진다. 캐스트는 `[]`, `->`, 함수 호출처럼 뒤에 붙는 연산자보다 나중에, 시프트 연산자 같은 이항 연산자보다는 먼저 적용된다. 아래 예에서 `pixels`는 픽셀마다 빨강, 초록, 파랑, 알파 값을 1바이트씩 차례로 담은 버퍼를 가리키는 `const uint8_t *`이다. 이때 다음 식은 모두 뜻이 다르다.
@@ -4365,17 +4406,26 @@ static int should_save(unsigned int mode, bool is_open, bool is_forced)
 
 static unsigned int make_low_mask(size_t bits)
 {
+    if (bits >= sizeof(unsigned int) * CHAR_BIT) {
+        return UINT_MAX;
+    }
+
     return 1U << bits - 1;
+}
+
+static size_t compute_chunks(size_t free_bytes, size_t chunk_size)
+{
+    return free_bytes / 4 / chunk_size;
 }
 ```
 
 ```c
-static uint32_t read_first_blue(const uint8_t *const pixels)
+static uint32_t read_first_blue(const uint8_t *pixels)
 {
     return ((const uint32_t *)pixels)[2];
 }
 
-static uint32_t place_first_alpha(const uint8_t *const pixels)
+static uint32_t place_first_alpha(const uint8_t *pixels)
 {
     return (uint32_t)(pixels[3] << 24);
 }
@@ -4398,22 +4448,31 @@ static size_t compute_offset(size_t header_size, size_t row, size_t row_stride, 
 
 static int should_save(unsigned int mode, bool is_open, bool is_forced)
 {
-    return (mode & MODE_WRITE) != 0 && (is_open || is_forced);
+    return ((mode & MODE_WRITE) != 0 && is_open) || is_forced;
 }
 
 static unsigned int make_low_mask(size_t bits)
 {
+    if (bits >= sizeof(unsigned int) * CHAR_BIT) {
+        return UINT_MAX;
+    }
+
     return (1U << bits) - 1;
+}
+
+static size_t compute_chunks(size_t free_bytes, size_t chunk_size)
+{
+    return (free_bytes / 4) / chunk_size;
 }
 ```
 
 ```c
-static uint32_t read_first_blue(const uint8_t *const pixels)
+static uint32_t read_first_blue(const uint8_t *pixels)
 {
     return (uint32_t)pixels[2];
 }
 
-static uint32_t place_first_alpha(const uint8_t *const pixels)
+static uint32_t place_first_alpha(const uint8_t *pixels)
 {
     return (uint32_t)pixels[3] << 24;
 }
@@ -4439,13 +4498,13 @@ static const double gs_tolerance = 1.0e-9;
 
 void plot_point(double x);
 
-static int check_result(const char *const name_nullable, double measured, double expected)
+static int matches_expected(const double *measured_nullable, double expected)
 {
-    if (NULL == name_nullable) {
+    if (NULL == measured_nullable) {
         return -1;
     }
 
-    if (measured == expected) {
+    if (*measured_nullable == expected) {
         return 1;
     }
 
@@ -4469,13 +4528,13 @@ static const double gs_tolerance = 1.0e-9;
 
 void plot_point(double x);
 
-static int check_result(const char *const name_nullable, double measured, double expected)
+static int matches_expected(const double *measured_nullable, double expected)
 {
-    if (name_nullable == NULL) {
+    if (measured_nullable == NULL) {
         return -1;
     }
 
-    if (fabs(measured - expected) < gs_tolerance) {
+    if (fabs(*measured_nullable - expected) < gs_tolerance) {
         return 1;
     }
 
@@ -4499,44 +4558,36 @@ static void plot_unit_range(void)
 틀린 예:
 
 ```c
-static int print_title(const char *const title_nullable, size_t line_count, bool is_draft)
+static const char *pick_title(const char *title_nullable, size_t line_count, bool is_draft)
 {
-    if (!title_nullable) {
-        return -1;
+    if (title_nullable) {
+        return title_nullable;
     }
-
-    const char *label = 0;
-
-    if (line_count && is_draft == true) {
-        label = "draft";
-    } else {
-        label = "final";
+    if (!line_count) {
+        return 0;
     }
-
-    printf("%s: %s\n", title_nullable, label);
-    return 0;
+    if (is_draft == true) {
+        return "untitled draft";
+    }
+    return "untitled";
 }
 ```
 
 올바른 예:
 
 ```c
-static int print_title(const char *const title_nullable, size_t line_count, bool is_draft)
+static const char *pick_title(const char *title_nullable, size_t line_count, bool is_draft)
 {
-    if (title_nullable == NULL) {
-        return -1;
+    if (title_nullable != NULL) {
+        return title_nullable;
     }
-
-    const char *label = NULL;
-
-    if (line_count != 0 && is_draft) {
-        label = "draft";
-    } else {
-        label = "final";
+    if (line_count == 0) {
+        return NULL;
     }
-
-    printf("%s: %s\n", title_nullable, label);
-    return 0;
+    if (is_draft) {
+        return "untitled draft";
+    }
+    return "untitled";
 }
 ```
 
@@ -4584,7 +4635,7 @@ static void print_summary(bool is_verbose)
 ```c
 static const char *describe_copy(size_t file_count)
 {
-    const char *const summary = (file_count == 0)
+    const char *summary = (file_count == 0)
                                     ? "no files were copied"
                                     : ((file_count == 1) ? "one file was copied" : "several files were copied");
 
@@ -4631,8 +4682,8 @@ static void print_summary(bool is_verbose)
 ```c
 static const char *describe_copy(size_t file_count)
 {
-    const char *const copied = (file_count == 1) ? "one file was copied" : "several files were copied";
-    const char *const summary = (file_count == 0) ? "no files were copied" : copied;
+    const char *copied = (file_count == 1) ? "one file was copied" : "several files were copied";
+    const char *summary = (file_count == 0) ? "no files were copied" : copied;
 
     return summary;
 }
@@ -4646,7 +4697,7 @@ static const char *describe_copy(size_t file_count)
 틀린 예:
 
 ```c
-static long count_bytes(const char *const path)
+static long long count_bytes(const char *path)
 {
     FILE *file;
 
@@ -4654,11 +4705,15 @@ static long count_bytes(const char *const path)
         return -1;
     }
 
-    long total = 0;
+    long long total = 0;
     int c;
 
     while ((c = fgetc(file)) != EOF) {
         ++total;
+    }
+
+    if (ferror(file) != 0) {
+        total = -1;
     }
 
     fclose(file);
@@ -4673,7 +4728,7 @@ struct range {
     int last;
 };
 
-static void clear_range(struct range *const mut_range)
+static void clear_range(struct range *mut_range)
 {
     mut_range->first = mut_range->last = -1;
 }
@@ -4682,17 +4737,21 @@ static void clear_range(struct range *const mut_range)
 올바른 예:
 
 ```c
-static long count_bytes(const char *const path)
+static long long count_bytes(const char *path)
 {
     FILE *file = fopen(path, "rb");
     if (file == NULL) {
         return -1;
     }
 
-    long total = 0;
+    long long total = 0;
 
     for (int c = fgetc(file); c != EOF; c = fgetc(file)) {
         ++total;
+    }
+
+    if (ferror(file) != 0) {
+        total = -1;
     }
 
     fclose(file);
@@ -4707,7 +4766,7 @@ struct range {
     int last;
 };
 
-static void clear_range(struct range *const mut_range)
+static void clear_range(struct range *mut_range)
 {
     mut_range->first = -1;
     mut_range->last = -1;
@@ -4721,7 +4780,7 @@ static void clear_range(struct range *const mut_range)
 틀린 예:
 
 ```c
-static void add_sample(long *const mut_total, size_t *const mut_count, int value)
+static void add_sample(long *mut_total, size_t *mut_count, int value)
 {
     *mut_total += value, *mut_count += 1;
 }
@@ -4733,7 +4792,7 @@ struct cursor {
     size_t column;
 };
 
-static void reset_cursor(struct cursor *const mut_cursor)
+static void reset_cursor(struct cursor *mut_cursor)
 {
     mut_cursor->row = 0, mut_cursor->column = 0;
 }
@@ -4742,7 +4801,7 @@ static void reset_cursor(struct cursor *const mut_cursor)
 올바른 예:
 
 ```c
-static void add_sample(long *const mut_total, size_t *const mut_count, int value)
+static void add_sample(long *mut_total, size_t *mut_count, int value)
 {
     *mut_total += value;
     *mut_count += 1;
@@ -4755,7 +4814,7 @@ struct cursor {
     size_t column;
 };
 
-static void reset_cursor(struct cursor *const mut_cursor)
+static void reset_cursor(struct cursor *mut_cursor)
 {
     mut_cursor->row = 0;
     mut_cursor->column = 0;
@@ -4763,7 +4822,7 @@ static void reset_cursor(struct cursor *const mut_cursor)
 ```
 
 ```c
-static void reverse_text(char *const mut_text, size_t length)
+static void reverse_text(char *mut_text, size_t length)
 {
     if (length == 0) {
         return;
@@ -4779,7 +4838,7 @@ static void reverse_text(char *const mut_text, size_t length)
 ```
 
 ```c
-static void copy_to_free_slots(int *const mut_slots, size_t capacity, const int *const sources,
+static void copy_to_free_slots(int *mut_slots, size_t capacity, const int *sources,
                                size_t source_count, size_t first_free_slot)
 {
     for (size_t source = 0, slot = first_free_slot; source < source_count && slot < capacity;
@@ -4905,7 +4964,7 @@ static unsigned int grant_rights(char role)
 틀린 예:
 
 ```c
-static size_t measure_text(const char *const text)
+static size_t measure_text(const char *text)
 {
     const char *cursor = text;
 
@@ -4918,7 +4977,7 @@ static size_t measure_text(const char *const text)
 ```
 
 ```c
-static void echo_line(FILE *const mut_output, FILE *const mut_input)
+static void echo_line(FILE *mut_output, FILE *mut_input)
 {
     int c;
 
@@ -4944,7 +5003,7 @@ static void wait_for_conversion(void)
 올바른 예:
 
 ```c
-static size_t measure_text(const char *const text)
+static size_t measure_text(const char *text)
 {
     size_t length = 0;
 
@@ -4957,7 +5016,7 @@ static size_t measure_text(const char *const text)
 ```
 
 ```c
-static void echo_line(FILE *const mut_output, FILE *const mut_input)
+static void echo_line(FILE *mut_output, FILE *mut_input)
 {
     for (int c = fgetc(mut_input); c != EOF; c = fgetc(mut_input)) {
         fputc(c, mut_output);
@@ -4994,10 +5053,10 @@ goto는 다음 경우에 쓴다.
 지양하는 예:
 
 ```c
-int read_sensor(int *const mut_value);
+int read_sensor(int *mut_value);
 void wait_briefly(void);
 
-static int read_sensor_with_retry(int *const mut_value)
+static int read_sensor_with_retry(int *mut_value)
 {
     size_t attempts = 0;
 
@@ -5018,21 +5077,21 @@ retry:
 올바른 예:
 
 ```c
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#define GRID_SIZE 8
 
 struct grid {
     pthread_mutex_t lock;
-    int cells[8][8];
+    int cells[GRID_SIZE][GRID_SIZE];
 };
 
-static int find_cell(size_t *const mut_row, size_t *const mut_column, struct grid *const mut_grid,
+static int find_cell(size_t *mut_row, size_t *mut_column, struct grid *mut_grid,
                      int target)
 {
     int result = -1;
 
     pthread_mutex_lock(&mut_grid->lock);
-    for (size_t row = 0; row < ARRAY_SIZE(mut_grid->cells); ++row) {
-        for (size_t column = 0; column < ARRAY_SIZE(mut_grid->cells[row]); ++column) {
+    for (size_t row = 0; row < GRID_SIZE; ++row) {
+        for (size_t column = 0; column < GRID_SIZE; ++column) {
             if (mut_grid->cells[row][column] == target) {
                 *mut_row = row;
                 *mut_column = column;
@@ -5057,7 +5116,7 @@ struct image {
     unsigned char *pixels;
 };
 
-static int open_image(struct image *const mut_image, const char *const path, size_t pixel_bytes)
+static int open_image(struct image *mut_image, const char *path, size_t pixel_bytes)
 {
     mut_image->file = fopen(path, "rb");
     if (mut_image->file == NULL) {
@@ -5087,16 +5146,18 @@ handle_header_alloc:
 ```
 
 ```c
-int read_sensor(int *const mut_value);
+int read_sensor(int *mut_value);
 void wait_briefly(void);
 
-static int read_sensor_with_retry(int *const mut_value)
+static int read_sensor_with_retry(int *mut_value)
 {
     for (size_t attempts = 0; attempts < 3; ++attempts) {
+        if (attempts > 0) {
+            wait_briefly();
+        }
         if (read_sensor(mut_value) == 0) {
             return 0;
         }
-        wait_briefly();
     }
 
     return -1;
@@ -5172,7 +5233,7 @@ struct date {
     int day;
 };
 
-static int format_date(const struct date *const date, char *const mut_buffer, size_t buffer_size) // [!hl]
+static int format_date(const struct date *date, char *mut_buffer, size_t buffer_size) // [!hl]
 {
     return snprintf(mut_buffer, buffer_size, "%04d-%02d-%02d", date->year, date->month, date->day);
 }
@@ -5187,7 +5248,7 @@ struct date {
     int day;
 };
 
-static int format_date(char *const mut_buffer, size_t buffer_size, const struct date *const date) // [!hl]
+static int format_date(char *mut_buffer, size_t buffer_size, const struct date *date) // [!hl]
 {
     return snprintf(mut_buffer, buffer_size, "%04d-%02d-%02d", date->year, date->month, date->day);
 }
@@ -5197,16 +5258,16 @@ static int format_date(char *const mut_buffer, size_t buffer_size, const struct 
 
 포인터 매개변수는 다음 규칙을 따른다.
 
-- 포인터 매개변수 자체는 함수 안에서 바꾸지 않는다. 따라서, 포인터 매개변수는 모두 `*const`로 선언한다. typedef로 정의한 포인터 타입이면 `const`를 타입 앞에 붙인다(`const HANDLE file`). 넘겨받은 주소와 다른 주소가 필요하면 첨자 연산이나 지역 포인터 변수처럼 매개변수를 바꾸지 않는 수단으로 얻는다.
-- 함수가 대상을 바꾸지 않으면 `const T *const name`으로 선언한다.
-- 함수가 대상을 바꾸면 `T *const mut_name`으로 선언한다. 이름은 `mut_`으로 시작한다.
-- 인자로 `NULL`을 받아도 되는 매개변수는 이름을 `_nullable`로 끝낸다(`const T *const name_nullable`, `T *const mut_name_nullable`). `NULL`을 받으면 안 되는 매개변수에는 이 접미어를 붙이지 않는다.
-- 대상이 다른 포인터 매개변수의 대상과 겹치지 않는다고 약속할 때는 `restrict`를 붙일 수 있다(`const T *const restrict name`). C89를 고른 프로젝트에서는 `restrict`를 쓸 수 없다.
+- 매개변수 자체에는 `const`를 붙이지 않는다. 즉, `*const`를 쓰지 않고, typedef로 정의한 포인터 타입 앞에도 `const`를 붙이지 않는다(`HANDLE file`). 이 `const`는 호출하는 쪽에 아무 효과가 없기 때문이다(C99 §6.7.5.3 ¶15).
+- 값 매개변수든 포인터 매개변수든, 매개변수 자체를 함수 안에서 바꾸는 것은 최대한 지양한다. 넘겨받은 값이나 주소와 다른 값이 필요하면 첨자 연산이나 지역 변수처럼 매개변수를 바꾸지 않는 수단으로 얻는다.
+- 함수가 대상을 바꾸지 않으면 `const T *name`으로 선언한다.
+- 함수가 대상을 바꾸면 `T *mut_name`으로 선언한다. 이름은 `mut_`으로 시작한다.
+- 매개변수가 포인터(혹은 문자열, 배열)이고, 그 값에 `NULL`이 들어갈 수 있고, 그래도 문제가 없는 경우에만 이름을 `_nullable`로 끝낸다(`const T *name_nullable`, `T *mut_name_nullable`). `NULL`이 들어가면 문제가 되는 매개변수에는 이 접미어를 붙이지 않는다.
 - `main`의 매개변수는 표준이 정한 형태를 그대로 쓴다.
 
 함수의 선언과 정의에는 같은 형태를 쓴다. 그러면 선언만 보고도 함수가 포인터 인자의 대상을 바꾸는지, 인자로 `NULL`을 받아도 되는지 알 수 있다.
 
-틀린 예:
+지양하는 예(매개변수 자체를 바꾸는 경우):
 
 ```c
 static size_t count_digits(const char *text)
@@ -5223,42 +5284,10 @@ static size_t count_digits(const char *text)
 }
 ```
 
-```c
-static void convert_to_upper(char *const text)
-{
-    for (size_t i = 0; text[i] != '\0'; ++i) {
-        if (text[i] >= 'a' && text[i] <= 'z') {
-            text[i] = (char)(text[i] - 'a' + 'A');
-        }
-    }
-}
-
-size_t count_vowels(char *const text);
-```
+올바른 예(매개변수 자체를 바꾸지 않는 경우):
 
 ```c
-static void print_label(const char *const label)
-{
-    if (label == NULL) {
-        puts("(none)");
-        return;
-    }
-
-    puts(label);
-}
-```
-
-올바른 예:
-
-```c
-size_t count_nonzero(const int *const values, size_t count);
-void clear_values(int *const mut_values, size_t count);
-void clear_values_if_present(int *const mut_values_nullable, size_t count);
-void copy_pixels(uint8_t *const restrict mut_dst, const uint8_t *const restrict src, size_t count);
-```
-
-```c
-static size_t count_digits(const char *const text)
+static size_t count_digits(const char *text)
 {
     size_t count = 0;
 
@@ -5273,7 +5302,7 @@ static size_t count_digits(const char *const text)
 ```
 
 ```c
-static size_t count_digits(const char *const text)
+static size_t count_digits(const char *text)
 {
     size_t count = 0;
 
@@ -5287,8 +5316,43 @@ static size_t count_digits(const char *const text)
 }
 ```
 
+틀린 예:
+
 ```c
-static void convert_to_upper(char *const mut_text)
+static void convert_to_upper(char *text)
+{
+    for (size_t i = 0; text[i] != '\0'; ++i) {
+        if (text[i] >= 'a' && text[i] <= 'z') {
+            text[i] = (char)(text[i] - 'a' + 'A');
+        }
+    }
+}
+
+size_t count_vowels(char *text);
+```
+
+```c
+static void print_label(const char *label)
+{
+    if (label == NULL) {
+        puts("(none)");
+        return;
+    }
+
+    puts(label);
+}
+```
+
+올바른 예:
+
+```c
+size_t count_nonzero(const int *values, size_t count);
+void clear_values(int *mut_values, size_t count);
+void clear_values_if_present(int *mut_values_nullable, size_t count);
+```
+
+```c
+static void convert_to_upper(char *mut_text)
 {
     for (size_t i = 0; mut_text[i] != '\0'; ++i) {
         if (mut_text[i] >= 'a' && mut_text[i] <= 'z') {
@@ -5297,11 +5361,11 @@ static void convert_to_upper(char *const mut_text)
     }
 }
 
-size_t count_vowels(const char *const text);
+size_t count_vowels(const char *text);
 ```
 
 ```c
-static void print_label(const char *const label_nullable)
+static void print_label(const char *label_nullable)
 {
     if (label_nullable == NULL) {
         puts("(none)");
@@ -5327,12 +5391,12 @@ static void print_label(const char *const label_nullable)
 struct profile;
 struct statistics;
 
-bool load_profile(const char *const path);
-int reset_statistics(struct statistics *const mut_statistics);
+bool load_profile(const char *path);
+int reset_statistics(struct statistics *mut_statistics);
 bool is_profile_loaded(void);
 int is_cache_warm(void);
-struct profile *find_profile(const char *const name);
-long parse_count(const char *const text);
+struct profile *find_profile(const char *name);
+long parse_count(const char *text);
 ```
 
 올바른 예:
@@ -5341,12 +5405,12 @@ long parse_count(const char *const text);
 struct profile;
 struct statistics;
 
-int load_profile(const char *const path);
-void reset_statistics(struct statistics *const mut_statistics);
+int load_profile(const char *path);
+void reset_statistics(struct statistics *mut_statistics);
 bool is_profile_loaded(void);
 int is_cache_warm(void);
-struct profile *find_profile(const char *const name);
-long parse_count(const char *const text);
+struct profile *find_profile(const char *name);
+long parse_count(const char *text);
 ```
 
 올바른 예(상위 API가 정한 규약을 따르는 경우):
@@ -5357,10 +5421,10 @@ struct task {
     int priority;
 };
 
-static int compare_priority(const void *const left, const void *const right)
+static int compare_priority(const void *left, const void *right)
 {
-    const struct task *const first = left;
-    const struct task *const second = right;
+    const struct task *first = left;
+    const struct task *second = right;
 
     if (first->priority < second->priority) {
         return -1;
@@ -5371,7 +5435,7 @@ static int compare_priority(const void *const left, const void *const right)
     return 0;
 }
 
-static void sort_tasks(struct task *const mut_tasks, size_t count)
+static void sort_tasks(struct task *mut_tasks, size_t count)
 {
     qsort(mut_tasks, count, sizeof(*mut_tasks), compare_priority);
 }
@@ -5379,13 +5443,82 @@ static void sort_tasks(struct task *const mut_tasks, size_t count)
 
 ### 함수의 크기
 
-함수의 길이와 지역 변수 개수에는 상한을 두지 않는다. 함수 하나가 여러 일을 맡아도 된다.
+함수의 길이와 지역 변수 개수에는 상한을 두지 않는다. 함수 하나가 여러 일을 맡아도 된다. 다만 지역 변수는 스택에 놓이므로, 함수가 쓰는 스택 메모리의 크기는 고려한다. 스택은 스레드와 실행 환경마다 크기가 제한되어 있다. 따라서, 크기가 큰 배열이나 구조체는 동적 할당이나, 외부 매개변수로 포인터를 전달하는 방법을 강구하도록 권장한다.
+
+지양하는 예:
+
+```c
+#define COPY_BUFFER_SIZE (1024 * 1024)
+
+static int copy_file(FILE *mut_dst, FILE *mut_src)
+{
+    unsigned char buffer[COPY_BUFFER_SIZE];
+
+    for (size_t read_size = fread(buffer, 1, sizeof(buffer), mut_src); read_size > 0;
+         read_size = fread(buffer, 1, sizeof(buffer), mut_src)) {
+        if (fwrite(buffer, 1, read_size, mut_dst) != read_size) {
+            return -1;
+        }
+    }
+
+    return (ferror(mut_src) != 0) ? -1 : 0;
+}
+```
+
+올바른 예:
+
+```c
+#define COPY_BUFFER_SIZE (1024 * 1024)
+
+static int copy_file(FILE *mut_dst, FILE *mut_src)
+{
+    unsigned char *buffer = malloc(COPY_BUFFER_SIZE);
+    if (buffer == NULL) {
+        return -1;
+    }
+
+    int result = -1;
+
+    for (size_t read_size = fread(buffer, 1, COPY_BUFFER_SIZE, mut_src); read_size > 0;
+         read_size = fread(buffer, 1, COPY_BUFFER_SIZE, mut_src)) {
+        if (fwrite(buffer, 1, read_size, mut_dst) != read_size) {
+            goto out_free_buffer;
+        }
+    }
+
+    if (ferror(mut_src) == 0) {
+        result = 0;
+    }
+
+out_free_buffer:
+    free(buffer);
+    buffer = NULL;
+    return result;
+}
+```
+
+올바른 예(호출하는 쪽에서 버퍼를 받는 경우):
+
+```c
+static int copy_file(FILE *mut_dst, FILE *mut_src, unsigned char *mut_buffer,
+                     size_t buffer_size)
+{
+    for (size_t read_size = fread(mut_buffer, 1, buffer_size, mut_src); read_size > 0;
+         read_size = fread(mut_buffer, 1, buffer_size, mut_src)) {
+        if (fwrite(mut_buffer, 1, read_size, mut_dst) != read_size) {
+            return -1;
+        }
+    }
+
+    return (ferror(mut_src) != 0) ? -1 : 0;
+}
+```
 
 ### inline
 
 `inline`은 실행 시간이 짧은 코드 조각에 붙일지 검토한다. 여러 곳에서 되풀이해 쓰지만 독립된 함수로 이름을 붙이기는 어색하고, 매크로로 쓰기에는 문법, 코드 탐색과 읽기, IDE의 코드 분석 같은 면에서 아쉬운 조각이 그 대상이다. 줄 수가 적어도 실행 시간이 긴 함수에는 붙이지 않는다. 실제로 인라인할지는 컴파일러가 정한다.
 
-형태는 `static inline`을 기본으로 하되, `static`을 강제하지는 않는다. `static` 없이 `inline`만 붙인 함수의 정의는 C99 §6.7.4 ¶6에 따라 inline definition이다. 이 정의만으로는 external definition이 생기지 않는다. 따라서, 이런 함수는 `.c` 파일 하나에 `extern inline` 선언을 두어 external definition을 만든다. 그러지 않으면 컴파일러가 인라인하지 않은 호출에서 링크가 실패한다. 예를 들어 GCC와 Clang에서 `-std=c99 -O0`으로 빌드하면 링크 단계에서 `undefined reference` 오류가 난다. 반대로 GNU89 모드에서는 헤더를 포함한 파일마다 external definition이 생겨 `multiple definition` 오류가 난다.
+형태는 `static inline`을 기본으로 하되, `static`을 강제하지는 않는다. `static` 없이 `inline`만 붙인 함수의 정의는 C99 §6.7.4 ¶6에 따라 inline definition이다. 이 정의만으로는 external definition이 생기지 않는다. 따라서, 이런 함수는 `.c` 파일 하나에 `extern inline` 선언을 두어 external definition을 만든다. 그러지 않으면 컴파일러가 인라인하지 않은 호출에서 링크가 실패한다. 예를 들어 GCC와 Clang에서 `-std=gnu11 -O0`으로 빌드하면 링크 단계에서 `undefined reference` 오류가 난다. 반대로 GNU89 모드에서는 헤더를 포함한 파일마다 external definition이 생겨 `multiple definition` 오류가 난다.
 
 지양하는 예(`util/listing.h`):
 
@@ -5396,7 +5529,7 @@ static void sort_tasks(struct task *const mut_tasks, size_t count)
 #include <stddef.h>
 #include <stdio.h>
 
-static inline void print_table(const int *const values, size_t count)
+static inline void print_table(const int *values, size_t count)
 {
     for (size_t i = 0; i < count; ++i) {
         printf("%zu: %d\n", i, values[i]);
@@ -5414,7 +5547,7 @@ static inline void print_table(const int *const values, size_t count)
 
 #include <stddef.h>
 
-void print_table(const int *const values, size_t count);
+void print_table(const int *values, size_t count);
 
 #endif /* UTIL_LISTING_H */
 ```
@@ -5487,7 +5620,7 @@ unsigned char blend_channel(unsigned char back, unsigned char front, unsigned ch
 ```c
 #include <stdio.h>
 
-static void print_banner(const char *const title);
+static void print_banner(const char *title);
 
 int main(void)
 {
@@ -5495,7 +5628,7 @@ int main(void)
     return 0;
 }
 
-void static print_banner(const char *const title)
+void static print_banner(const char *title)
 {
     printf("== %s ==\n", title);
 }
@@ -5506,7 +5639,7 @@ void static print_banner(const char *const title)
 ```c
 #include <stdio.h>
 
-static void print_banner(const char *const title)
+static void print_banner(const char *title)
 {
     printf("== %s ==\n", title);
 }
@@ -5521,34 +5654,51 @@ int main(void)
 올바른 예(서로 부르는 함수):
 
 ```c
-static double parse_sum(const char **const mut_cursor);
+static int parse_sum(double *mut_sum, const char **mut_cursor);
 
-static double parse_factor(const char **const mut_cursor)
+static int parse_factor(double *mut_value, const char **mut_cursor)
 {
     if (**mut_cursor == '(') {
         *mut_cursor += 1;
-        double value = parse_sum(mut_cursor);
+        if (parse_sum(mut_value, mut_cursor) != 0 || **mut_cursor != ')') {
+            return -1;
+        }
+
         *mut_cursor += 1;
-        return value;
+        return 0;
     }
 
     char *end = NULL;
-    double value = strtod(*mut_cursor, &end);
+
+    errno = 0;
+    *mut_value = strtod(*mut_cursor, &end);
+    if (end == *mut_cursor || errno == ERANGE) {
+        return -1;
+    }
 
     *mut_cursor = end;
-    return value;
+    return 0;
 }
 
-static double parse_sum(const char **const mut_cursor)
+static int parse_sum(double *mut_sum, const char **mut_cursor)
 {
-    double sum = parse_factor(mut_cursor);
+    if (parse_factor(mut_sum, mut_cursor) != 0) {
+        return -1;
+    }
 
     while (**mut_cursor == '+') {
         *mut_cursor += 1;
-        sum += parse_factor(mut_cursor);
+
+        double value = 0.0;
+
+        if (parse_factor(&value, mut_cursor) != 0) {
+            return -1;
+        }
+
+        *mut_sum += value;
     }
 
-    return sum;
+    return 0;
 }
 ```
 
@@ -5584,7 +5734,9 @@ int main(void)
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
-        fprintf(stderr, "usage: %s <city>\n", argv[0]);
+        const char *program = (argc > 0) ? argv[0] : "forecast";
+
+        fprintf(stderr, "usage: %s <city>\n", program);
         return EXIT_FAILURE;
     }
 
@@ -5607,7 +5759,7 @@ int main(int argc, char *argv[])
 ```c
 #if defined(_WIN32)
 
-# include <windows.h>
+#include <windows.h>
 
 static void sleep_ms(unsigned int milliseconds)
 {
@@ -5622,7 +5774,7 @@ static void sleep_ms(unsigned int milliseconds)
 
 #include <fcntl.h>
 
-static int open_for_reading(const char *const path)
+static int open_for_reading(const char *path)
 {
 #if defined(__linux__) // [!hl]
     return open(path, O_RDONLY | O_CLOEXEC);
@@ -5634,17 +5786,17 @@ static int open_for_reading(const char *const path)
 
 ```c
 #if defined(__x86_64__) || defined(_M_X64)
-# define TARGET_ARCH_NAME "x86_64"
+#define TARGET_ARCH_NAME "x86_64"
 #elif defined(__aarch64__) || defined(_M_ARM64)
-# define TARGET_ARCH_NAME "aarch64"
+#define TARGET_ARCH_NAME "aarch64"
 #else
-# error "unsupported architecture" // [!hl]
+#error "unsupported architecture" // [!hl]
 #endif
 ```
 
 ```c
 int clamp_percent(int value);
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 
 #if defined(ENABLE_SELF_TEST)
 static int run_self_test(void)
@@ -5688,7 +5840,7 @@ endif()
 
 #include <fcntl.h>
 
-static int open_for_reading(const char *const path)
+static int open_for_reading(const char *path)
 {
 #if defined(O_CLOEXEC) // [!hl]
     return open(path, O_RDONLY | O_CLOEXEC);
@@ -5700,11 +5852,11 @@ static int open_for_reading(const char *const path)
 
 ```c
 #if defined(__x86_64__) || defined(_M_X64)
-# define TARGET_ARCH_NAME "x86_64"
+#define TARGET_ARCH_NAME "x86_64"
 #elif defined(__aarch64__) || defined(_M_ARM64)
-# define TARGET_ARCH_NAME "aarch64"
+#define TARGET_ARCH_NAME "aarch64"
 #else
-# define TARGET_ARCH_NAME "unknown" // [!hl]
+#define TARGET_ARCH_NAME "unknown" // [!hl]
 #endif
 ```
 
@@ -5712,13 +5864,13 @@ static int open_for_reading(const char *const path)
 #include <limits.h>
 
 #if CHAR_BIT != 8
-# error "this code reads files as 8-bit bytes"
+#error "this code reads files as 8-bit bytes"
 #endif
 ```
 
 ```c
 int clamp_percent(int value);
-size_t count_words(const char *const text);
+size_t count_words(const char *text);
 
 #if defined(ENABLE_SELF_TEST)
 static int run_self_test(void)
@@ -5754,7 +5906,7 @@ static int run_self_test(void)
 틀린 예:
 
 ```c
-#define PERCENT_OF(part, whole) ((part) * 100 / (whole))
+#define PERCENT_OF(part, whole) ((int)(((long long)(part) * 100) / (whole)))
 ```
 
 올바른 예:
@@ -5762,12 +5914,12 @@ static int run_self_test(void)
 ```c
 static inline int compute_percent_of(int part, int whole)
 {
-    return part * 100 / whole;
+    return (int)(((long long)part * 100) / whole);
 }
 ```
 
 ```c
-#define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
+#define MEMBER_SIZE(type, member) sizeof(((type *)0)->member)
 #define PRINT_INT(expr) printf("%s = %d\n", #expr, (expr))
 #define GLUE(prefix, name) prefix##name
 #define TRACE(message) fprintf(stderr, "%s:%d: %s\n", __FILE__, __LINE__, (message))
@@ -5831,8 +5983,6 @@ static size_t gs_failure_count;
 틀린 예:
 
 ```c
-int save_file(const char *const path);
-
 #define RETURN_IF_FAILED(expr) \
     do {                       \
         if ((expr) < 0) {      \
@@ -5840,7 +5990,9 @@ int save_file(const char *const path);
         }                      \
     } while (0)
 
-static int save_both(const char *const first_path, const char *const second_path)
+int save_file(const char *path);
+
+static int save_both(const char *first_path, const char *second_path)
 {
     RETURN_IF_FAILED(save_file(first_path));
     RETURN_IF_FAILED(save_file(second_path));
@@ -5867,7 +6019,7 @@ struct scoreboard {
     size_t count;
 };
 
-static void reset_last_score(struct scoreboard *const mut_board)
+static void reset_last_score(struct scoreboard *mut_board)
 {
     if (mut_board->count > 0) {
         LAST_SCORE(mut_board) = 0;
@@ -5879,7 +6031,7 @@ static void reset_last_score(struct scoreboard *const mut_board)
 #define BEGIN {
 #define END }
 
-static size_t count_negatives(const int *const values, size_t count)
+static size_t count_negatives(const int *values, size_t count)
 BEGIN
     size_t negatives = 0;
 
@@ -5896,9 +6048,9 @@ END
 올바른 예:
 
 ```c
-int save_file(const char *const path);
+int save_file(const char *path);
 
-static int save_both(const char *const first_path, const char *const second_path)
+static int save_both(const char *first_path, const char *second_path)
 {
     if (save_file(first_path) < 0) {
         return -1;
@@ -5930,7 +6082,7 @@ struct scoreboard {
     size_t count;
 };
 
-static void reset_last_score(struct scoreboard *const mut_board)
+static void reset_last_score(struct scoreboard *mut_board)
 {
     if (mut_board->count > 0) {
         mut_board->scores[mut_board->count - 1] = 0;
@@ -5939,7 +6091,7 @@ static void reset_last_score(struct scoreboard *const mut_board)
 ```
 
 ```c
-static size_t count_negatives(const int *const values, size_t count)
+static size_t count_negatives(const int *values, size_t count)
 {
     size_t negatives = 0;
 
@@ -6001,7 +6153,7 @@ static size_t count_negatives(const int *const values, size_t count)
 ```
 
 ```c
-static int publish_file(const char *const temp_path, const char *const final_path)
+static int publish_file(const char *temp_path, const char *final_path)
 {
     /* rename the temporary file */ // [!hl]
     if (rename(temp_path, final_path) != 0) {
@@ -6028,7 +6180,7 @@ static int is_valid_index(int index, size_t count)
 ```
 
 ```c
-static int publish_file(const char *const temp_path, const char *const final_path)
+static int publish_file(const char *temp_path, const char *final_path)
 {
     /* readers see either the old file or the complete new one, never a half-written file */ // [!hl]
     if (rename(temp_path, final_path) != 0) {
@@ -6055,7 +6207,7 @@ static int is_valid_index(int index, size_t count)
  * middle element with the key and drops the half that cannot contain it, so a
  * sorted array of n elements needs about log2(n) steps instead of n.
  */
-static long find_sorted(const int *const values, size_t count, int key)
+static int find_sorted(size_t *mut_index, const int *values, size_t count, int key)
 {
     size_t low = 0;
     size_t high = count;
@@ -6068,7 +6220,8 @@ static long find_sorted(const int *const values, size_t count, int key)
         } else if (values[middle] > key) {
             high = middle;
         } else {
-            return (long)middle;
+            *mut_index = middle;
+            return 0;
         }
     }
 
@@ -6088,7 +6241,7 @@ static long find_sorted(const int *const values, size_t count, int key)
 struct date;
 
 // returns the number of days from start to end
-long count_days_between(const struct date *const start, const struct date *const end);
+long count_days_between(const struct date *start, const struct date *end);
 ```
 
 ```c
@@ -6096,7 +6249,7 @@ struct date;
 
 /* Returns the number of days from start to end. Both dates use the
    proleptic Gregorian calendar, and end may come before start. */
-long count_days_between(const struct date *const start, const struct date *const end);
+long count_days_between(const struct date *start, const struct date *end);
 ```
 
 ```c
@@ -6110,7 +6263,7 @@ static int gs_delay_ms = 250;    /* wait between attempts */
 struct date;
 
 /* returns the number of days from start to end */
-long count_days_between(const struct date *const start, const struct date *const end);
+long count_days_between(const struct date *start, const struct date *end);
 ```
 
 ```c
@@ -6120,7 +6273,7 @@ struct date;
  * Returns the number of days from start to end. Both dates use the
  * proleptic Gregorian calendar, and end may come before start.
  */
-long count_days_between(const struct date *const start, const struct date *const end);
+long count_days_between(const struct date *start, const struct date *end);
 ```
 
 ```c
@@ -6144,7 +6297,7 @@ struct rect {
  * @brief Gets the width.
  * @return The width.
  */
-static int get_width(const struct rect *const rect)
+static int get_width(const struct rect *rect)
 {
     return rect->width;
 }
@@ -6158,7 +6311,7 @@ struct rect {
     int height;
 };
 
-static int get_width(const struct rect *const rect)
+static int get_width(const struct rect *rect)
 {
     return rect->width;
 }
@@ -6186,7 +6339,7 @@ static int count_leap_days(int year)
  * Returns 0 on success. Returns -1 with errno set to EINVAL when text is not a
  * valid duration, or to ERANGE when the result does not fit in a long.
  */
-int parse_duration(long *const mut_seconds, const char *const text);
+int parse_duration(long *mut_seconds, const char *text);
 ```
 
 ```c
@@ -6196,7 +6349,7 @@ int parse_duration(long *const mut_seconds, const char *const text);
  * @param text Duration text; must not be NULL.
  * @return 0 on success, or -1 with errno set to EINVAL or ERANGE.
  */
-int parse_duration(long *const mut_seconds, const char *const text);
+int parse_duration(long *mut_seconds, const char *text);
 ```
 
 ## 오류 처리와 자원
@@ -6208,7 +6361,7 @@ int parse_duration(long *const mut_seconds, const char *const text);
 틀린 예:
 
 ```c
-static int save_notes(const char *const path, const char *const text)
+static int save_notes(const char *path, const char *text)
 {
     FILE *file = fopen(path, "w");
     if (file == NULL) {
@@ -6221,7 +6374,7 @@ static int save_notes(const char *const path, const char *const text)
     return 0;
 }
 
-static long measure_file(const char *const path)
+static long measure_file(const char *path)
 {
     FILE *file = fopen(path, "rb");
     if (file == NULL) {
@@ -6243,7 +6396,7 @@ static long measure_file(const char *const path)
 올바른 예:
 
 ```c
-static int save_notes(const char *const path, const char *const text)
+static int save_notes(const char *path, const char *text)
 {
     FILE *file = fopen(path, "w");
     if (file == NULL) {
@@ -6261,7 +6414,7 @@ static int save_notes(const char *const path, const char *const text)
     return 0;
 }
 
-static long measure_file(const char *const path)
+static long measure_file(const char *path)
 {
     FILE *file = fopen(path, "rb");
     if (file == NULL) {
@@ -6287,14 +6440,14 @@ unused 계열 진단을 소스 코드 안에서 숨기지 않는다. `(void)x;`,
 틀린 예:
 
 ```c
-static int print_entry(const char *const path, void *const mut_context)
+static int print_entry(const char *path, void *mut_context)
 {
     (void)mut_context;
     puts(path);
     return 0;
 }
 
-static int count_entry(const char *const path, __attribute__((unused)) void *const mut_context)
+static int count_entry(const char *path, __attribute__((unused)) void *mut_context)
 {
     return (path[0] == '.') ? 0 : 1;
 }
@@ -6303,7 +6456,7 @@ static int count_entry(const char *const path, __attribute__((unused)) void *con
 ```c
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
-static int print_entry(const char *const path, void *const mut_context)
+static int print_entry(const char *path, void *mut_context)
 {
     puts(path);
     return 0;
@@ -6313,7 +6466,7 @@ static int print_entry(const char *const path, void *const mut_context)
 틀린 예(C23 이후):
 
 ```c
-static int print_entry(const char *const path, void *const)
+static int print_entry(const char *path, void *)
 {
     puts(path);
     return 0;
@@ -6323,13 +6476,13 @@ static int print_entry(const char *const path, void *const)
 올바른 예:
 
 ```c
-static int print_entry(const char *const path, void *const mut_context)
+static int print_entry(const char *path, void *mut_context)
 {
     puts(path);
     return 0;
 }
 
-static int count_entry(const char *const path, void *const mut_context)
+static int count_entry(const char *path, void *mut_context)
 {
     return (path[0] == '.') ? 0 : 1;
 }
@@ -6342,7 +6495,7 @@ static int count_entry(const char *const path, void *const mut_context)
 틀린 예:
 
 ```c
-static int replace_file(const char *const temp_path, const char *const final_path)
+static int replace_file(const char *temp_path, const char *final_path)
 {
     if (rename(temp_path, final_path) != 0) {
         remove(temp_path);
@@ -6357,7 +6510,7 @@ static int replace_file(const char *const temp_path, const char *const final_pat
 올바른 예:
 
 ```c
-static int replace_file(const char *const temp_path, const char *const final_path)
+static int replace_file(const char *temp_path, const char *final_path)
 {
     if (rename(temp_path, final_path) != 0) {
         perror("rename"); // [!hl]
@@ -6370,7 +6523,7 @@ static int replace_file(const char *const temp_path, const char *const final_pat
 ```
 
 ```c
-static int replace_file(const char *const temp_path, const char *const final_path)
+static int replace_file(const char *temp_path, const char *final_path)
 {
     if (rename(temp_path, final_path) != 0) {
         int saved_errno = errno;
@@ -6398,9 +6551,9 @@ static int replace_file(const char *const temp_path, const char *const final_pat
 
 struct palette;
 
-int parse_palette(struct palette *const mut_palette, const char *const line);
+int parse_palette(struct palette *mut_palette, const char *line);
 
-static int load_palette(struct palette *const mut_palette, const char *const path)
+static int load_palette(struct palette *mut_palette, const char *path)
 {
     FILE *file = fopen(path, "r");
     char *line = malloc(LINE_LEN);
@@ -6431,9 +6584,9 @@ err1:
 
 struct palette;
 
-int parse_palette(struct palette *const mut_palette, const char *const line);
+int parse_palette(struct palette *mut_palette, const char *line);
 
-static int load_palette(struct palette *const mut_palette, const char *const path)
+static int load_palette(struct palette *mut_palette, const char *path)
 {
     FILE *file = fopen(path, "r");
     if (file == NULL) {
@@ -6463,7 +6616,7 @@ out_close_file:
 ### 동적 메모리
 
 - 동적 할당받은 포인터의 base 값을 수정하는 시도는 구조적으로 어쩔 수 없는 경우가 아닌 한 최대한 지양한다. 순회에는 별도 포인터를 쓴다.
-- `free`를 부른 뒤에는 그 포인터에 `NULL`을 할당한다. 특별한 이유가 없는 한, 그 포인터를 다시 쓰지 않더라도 할당한다. `fclose`처럼 대상을 해제하는 다른 함수를 부른 뒤에도 같다.
+- `free`를 부른 바로 다음 문장에서 그 포인터에 `NULL`을 할당한다. 특별한 이유가 없는 한, 그 포인터를 다시 쓰지 않더라도, 함수가 곧바로 반환하더라도 할당한다. `fclose`처럼 대상을 해제하는 다른 함수를 부른 뒤에도 같다. 다만 매개변수로 받은 포인터는 예외로 한다. 매개변수에 `NULL`을 할당해도 호출하는 쪽의 포인터는 바뀌지 않기 때문이다.
 
 틀린 예:
 
@@ -6473,8 +6626,12 @@ struct history {
     size_t count;
 };
 
-static int fill_history(struct history *const mut_history, size_t count, int initial)
+static int fill_history(struct history *mut_history, size_t count, int initial)
 {
+    if (count == 0 || count > SIZE_MAX / sizeof(*mut_history->entries)) {
+        return -1;
+    }
+
     mut_history->entries = malloc(count * sizeof(*mut_history->entries));
     if (mut_history->entries == NULL) {
         return -1;
@@ -6489,7 +6646,7 @@ static int fill_history(struct history *const mut_history, size_t count, int ini
     return 0;
 }
 
-static void clear_history(struct history *const mut_history)
+static void clear_history(struct history *mut_history)
 {
     free(mut_history->entries);
     mut_history->count = 0;
@@ -6497,8 +6654,15 @@ static void clear_history(struct history *const mut_history)
 ```
 
 ```c
-static long sum_squares(const int *const values, size_t count)
+static long sum_squares(const int *values, size_t count)
 {
+    if (count == 0) {
+        return 0;
+    }
+    if (count > SIZE_MAX / sizeof(long)) {
+        return -1;
+    }
+
     long *squares = malloc(count * sizeof(*squares));
     if (squares == NULL) {
         return -1;
@@ -6524,14 +6688,18 @@ struct history {
     size_t count;
 };
 
-static int fill_history(struct history *const mut_history, size_t count, int initial)
+static int fill_history(struct history *mut_history, size_t count, int initial)
 {
+    if (count == 0 || count > SIZE_MAX / sizeof(*mut_history->entries)) {
+        return -1;
+    }
+
     mut_history->entries = malloc(count * sizeof(*mut_history->entries));
     if (mut_history->entries == NULL) {
         return -1;
     }
 
-    const int *const end = mut_history->entries + count;
+    const int *end = mut_history->entries + count;
 
     for (int *entry = mut_history->entries; entry < end; ++entry) {
         *entry = initial;
@@ -6541,7 +6709,7 @@ static int fill_history(struct history *const mut_history, size_t count, int ini
     return 0;
 }
 
-static void clear_history(struct history *const mut_history)
+static void clear_history(struct history *mut_history)
 {
     free(mut_history->entries);
     mut_history->entries = NULL;
@@ -6550,8 +6718,15 @@ static void clear_history(struct history *const mut_history)
 ```
 
 ```c
-static long sum_squares(const int *const values, size_t count)
+static long sum_squares(const int *values, size_t count)
 {
+    if (count == 0) {
+        return 0;
+    }
+    if (count > SIZE_MAX / sizeof(long)) {
+        return -1;
+    }
+
     long *squares = malloc(count * sizeof(*squares));
     if (squares == NULL) {
         return -1;
@@ -6579,9 +6754,9 @@ static long sum_squares(const int *const values, size_t count)
 틀린 예:
 
 ```c
-static FILE *open_settings(const char *const path)
+static FILE *open_settings(const char *path)
 {
-    FILE *const file = fopen(path, "r");
+    FILE *file = fopen(path, "r");
 
     assert(file != NULL);
     return file;
@@ -6591,9 +6766,9 @@ static FILE *open_settings(const char *const path)
 올바른 예:
 
 ```c
-static FILE *open_settings(const char *const path)
+static FILE *open_settings(const char *path)
 {
-    FILE *const file = fopen(path, "r");
+    FILE *file = fopen(path, "r");
     if (file == NULL) {
         fprintf(stderr, "cannot open %s\n", path);
         return NULL;
@@ -6611,7 +6786,7 @@ struct stack {
     size_t top;
 };
 
-static void push_item(struct stack *const mut_stack, int item)
+static void push_item(struct stack *mut_stack, int item)
 {
     assert(mut_stack->top < STACK_CAPACITY);
     mut_stack->items[mut_stack->top] = item;
@@ -6675,12 +6850,14 @@ static void finish_job(void)
     gs_job_state = JOB_STATE_DONE;
 }
 
-static long parse_dimension(const char *const text)
+static long parse_dimension(const char *text)
 {
     char *end = NULL;
+
+    errno = 0;
     long value = strtol(text, &end, 10);
 
-    if (*end != '\0' || value <= 0) {
+    if (errno == ERANGE || end == text || *end != '\0' || value <= 0) {
         abort();
     }
 
@@ -6695,6 +6872,10 @@ int main(int argc, char *argv[])
 
     long width = parse_dimension(argv[1]);
     long height = parse_dimension(argv[2]);
+
+    if (width > LONG_MAX / height) {
+        abort();
+    }
 
     gs_job_state = JOB_STATE_RUNNING;
     printf("area: %ld\n", width * height);
@@ -6723,12 +6904,14 @@ static void finish_job(void)
     gs_job_state = JOB_STATE_DONE;
 }
 
-static long parse_dimension(const char *const text)
+static long parse_dimension(const char *text)
 {
     char *end = NULL;
+
+    errno = 0;
     long value = strtol(text, &end, 10);
 
-    if (*end != '\0' || value <= 0) {
+    if (errno == ERANGE || end == text || *end != '\0' || value <= 0) {
         fprintf(stderr, "invalid dimension: %s\n", text);
         exit(EXIT_FAILURE);
     }
@@ -6739,12 +6922,19 @@ static long parse_dimension(const char *const text)
 int main(int argc, char *argv[])
 {
     if (argc != 3) {
-        fprintf(stderr, "usage: %s <width> <height>\n", argv[0]);
+        const char *program = (argc > 0) ? argv[0] : "area";
+
+        fprintf(stderr, "usage: %s <width> <height>\n", program);
         return EXIT_FAILURE;
     }
 
     long width = parse_dimension(argv[1]);
     long height = parse_dimension(argv[2]);
+
+    if (width > LONG_MAX / height) {
+        fprintf(stderr, "area too large: %ld x %ld\n", width, height);
+        return EXIT_FAILURE;
+    }
 
     gs_job_state = JOB_STATE_RUNNING;
     printf("area: %ld\n", width * height);
@@ -6770,7 +6960,7 @@ clang-format의 기본 동작이 이 문서의 규칙과 어긋나면, clang-for
 - `Cpp11BracedListStyle: Block`: 중괄호 초기화 목록의 안쪽에 공백을 둔다([5.11절](#중괄호를-이용한-초기화)).
 - `AlignTrailingComments`의 `Kind: Never`: 줄 끝 주석을 열에 맞추지 않는다([5.18절](#정렬)).
 - `AlignEscapedNewlines: Left`: 여러 줄 매크로의 줄 끝 `\`를 같은 열에 맞춘다([5.18절](#정렬)).
-- `IndentPPDirectives: AfterHash`와 `PPIndentWidth: 1`: 조건부 컴파일 블록 안의 directive를 `#` 뒤에서 깊이마다 공백 1칸씩 들여쓴다([5.19절](#preprocessing-directive)).
+- `IndentPPDirectives: None`: 중첩된 조건부 컴파일 블록 안에서도 directive를 들여쓰지 않고 줄의 맨 앞에 붙인다([5.19절](#preprocessing-directive)).
 - `IncludeBlocks: Regroup`과 `IncludeCategories`: include를 유형별로 묶어 정렬한다([4.8절](#include-순서)). clang-format은 main header를 category 0으로 분류해 맨 앞에 둔다. 종속성이 있는 헤더는 다른 `<...>` 헤더와 같은 `Priority`에 더 큰 `SortPriority`를 주어 같은 묶음의 맨 뒤로 보낸다. 이때 `"..."` 묶음의 `Priority`는 그 `SortPriority`보다 크게 둔다.
 - `InsertNewlineAtEOF: true`: 파일 끝에 개행이 없으면 더한다([4.4절](#마지막-개행)).
 
@@ -6815,8 +7005,7 @@ Cpp11BracedListStyle: Block
 AlignTrailingComments:
     Kind: Never
 AlignEscapedNewlines: Left
-IndentPPDirectives: AfterHash
-PPIndentWidth: 1
+IndentPPDirectives: None
 IncludeBlocks: Regroup
 IncludeCategories:
     - Regex: '^<readline/'
@@ -6878,23 +7067,25 @@ trim_trailing_whitespace = false
 
 ### clang-tidy
 
-이름 규칙([6장](#이름))은 프로젝트 루트의 `.clang-tidy`에서 `readability-identifier-naming`으로 검사한다. 예약된 식별자([6.10절](#예약된-식별자))는 `bugprone-reserved-identifier`로, 선언과 정의의 매개변수 이름([10.1절](#매개변수-목록))은 `readability-inconsistent-declaration-parameter-name`으로 검사한다. 포인터 매개변수의 `mut_` 접두어([10.3절](#포인터-매개변수))는 clang-tidy로 검사할 수 없다. `readability-identifier-naming`은 `*const`로 선언한 포인터 매개변수를 대상의 `const` 여부와 상관없이 같은 종류로 분류하기 때문이다.
+이름 규칙([6장](#이름))은 프로젝트 루트의 `.clang-tidy`에서 `readability-identifier-naming`으로 검사한다. 예약된 식별자([6.10절](#예약된-식별자))는 `bugprone-reserved-identifier`로, 선언과 정의의 매개변수 이름([10.1절](#매개변수-목록))은 `readability-inconsistent-declaration-parameter-name`으로 검사한다. 포인터 매개변수의 `mut_` 접두어([10.3절](#포인터-매개변수))는 clang-tidy로 검사할 수 없다. `readability-identifier-naming`은 포인터 매개변수를 매개변수 자체의 `const` 여부로만 나누고, 대상의 `const` 여부로는 나누지 않기 때문이다.
+
+매개변수 자체에 붙은 `const`([10.3절](#포인터-매개변수))는 `readability-avoid-const-params-in-decls`로 검사한다. 이 검사는 함수 선언만 보고, 함수 정의와 함수 포인터 타입의 매개변수는 보지 않는다.
 
 Visual Studio는 코드 분석 설정에서 Enable Clang-Tidy를 켜면 같은 `.clang-tidy`로 clang-tidy를 실행한다. CMake 프로젝트는 `CMakePresets.json`의 Visual Studio vendor 설정에 `enableClangTidyCodeAnalysis`를 두어 켠다.
 
 올바른 예:
 
 ```sh
-clang-tidy path/to/file.c -- -std=c99
+clang-tidy path/to/file.c -- -std=gnu11
 ```
 
 ### 컴파일러 경고
 
-- GCC/Clang은 `-Wall -Wextra -pedantic -Wshadow`로 빌드한다.
+- GCC와 GNU 드라이버 Clang(Windows용 `clang` 포함)은 `-Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security`로 빌드한다.
 - MSVC는 `/W4`로 빌드한다. `/W4`에는 shadowing 경고 C4456, C4457, C4459가 들어 있다. MSVC에는 C용 `-pedantic`에 해당하는 옵션이 없다. 언어 확장을 끄는 `/Za`를 주면 컴파일러가 C89만 받아들인다.
 - clang-cl은 `/W4 -Wshadow /clang:-pedantic`으로 빌드한다. clang-cl에서 `/W4`를 주면 `-Wall -Wextra`만 켜진다.
 - unused 계열을 뺀 경고는 모두 고친다([13.2절](#unused-진단)).
-- `-Werror`와 `/WX`는 쓰지 않는다.
+- `-Werror`와 `/WX`는 쓰지 않는다. 다만 포맷 문자열 보안 경고(`-Werror=format-security`)처럼 보안 결함으로 이어지는 개별 경고만 예외로 둘 수 있다.
 
 Visual Studio 프로젝트는 이 옵션을 트리 루트 디렉터리의 `Directory.Build.targets`에서 받는다. MSBuild는 각 프로젝트에서 가장 가까운 `Directory.Build.targets`를 프로젝트 파일 다음에 가져온다. 따라서, 나중에 더한 프로젝트를 포함해 트리의 모든 프로젝트가 이 설정을 받는다. 프로젝트 템플릿이 적는 `WarningLevel`도 이 설정으로 바뀐다. `Directory.Build.props`는 이 용도에 맞지 않는다. MSBuild가 `Directory.Build.props`를 프로젝트 파일보다 먼저 가져오므로, 거기에 둔 값은 템플릿 값에 밀린다.
 
@@ -6903,15 +7094,16 @@ unused 계열 진단만 모아 볼 때는 그 진단만 걸러 따로 검사한�
 올바른 예:
 
 ```sh
-gcc -std=c99 -Wall -Wextra -pedantic -Wshadow -c foo.c
+gcc -std=gnu11 -Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security -Wno-unused-parameter -c foo.c
+clang -std=gnu11 -Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security -Wno-unused-parameter -c foo.c
 ```
 
 올바른 예(MSVC와 clang-cl):
 
 <!-- caption kind="none" -->
 ```bat
-cl /Zc:preprocessor /W4 /c foo.c
-clang-cl /clang:-std=c99 /W4 -Wshadow /clang:-pedantic /c foo.c
+cl /std:c11 /W4 /wd4100 /c foo.c
+clang-cl /clang:-std=gnu11 /W4 -Wshadow /clang:-pedantic /wd4100 /c foo.c
 ```
 
 올바른 예(Visual Studio 트리 루트의 `Directory.Build.targets`):
@@ -6921,12 +7113,14 @@ clang-cl /clang:-std=c99 /W4 -Wshadow /clang:-pedantic /c foo.c
   <ItemDefinitionGroup>
     <ClCompile>
       <WarningLevel>Level4</WarningLevel>
+      <DisableSpecificWarnings>4100;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <UseStandardPreprocessor Condition="'$(PlatformToolset)' != 'ClangCL'">true</UseStandardPreprocessor>
+      <LanguageStandard_C Condition="'$(PlatformToolset)' != 'ClangCL'">stdc11</LanguageStandard_C>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(PlatformToolset)' == 'ClangCL'">
     <ClCompile>
-      <AdditionalOptions>/clang:-std=c99 -Wshadow /clang:-pedantic %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/clang:-std=gnu11 -Wshadow /clang:-pedantic %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemDefinitionGroup>
 </Project>
@@ -6935,9 +7129,17 @@ clang-cl /clang:-std=c99 /W4 -Wshadow /clang:-pedantic /c foo.c
 올바른 예(unused 계열 진단만 모아 보는 경우):
 
 ```sh
-gcc -std=c99 -Wall -Wextra -Wunused-macros -c -o /dev/null foo.c 2>&1 | grep -- '-Wunused'
-clang -std=c99 -fsyntax-only -Wno-everything -Wunused -Wunused-parameter -Wunused-macros foo.c
-cppcheck --std=c99 --enable=unusedFunction --quiet src/
+gcc -std=gnu11 -Wall -Wextra -Wunused-macros -c -o /dev/null foo.c 2>&1 | grep -- '-Wunused'
+clang -std=gnu11 -fsyntax-only -Wno-everything -Wunused -Wunused-parameter -Wunused-macros foo.c
+cppcheck --std=c11 --enable=unusedFunction --quiet src/
+```
+
+매개변수 자체를 바꾸는 코드([10.3절](#포인터-매개변수))는 cppcheck의 MISRA addon으로 찾을 수 있다. 이 검사는 MISRA C:2012 Rule 17.8(advisory)에 해당한다. 아래 명령은 다른 규칙의 결과를 걸러 낸다.
+
+올바른 예(매개변수를 바꾸는 코드를 찾는 경우):
+
+```sh
+cppcheck --std=c11 --enable=style --addon=misra.py --quiet src/ 2>&1 | grep 'misra-c2012-17\.8'
 ```
 
 ### 에디터 설정
@@ -6956,17 +7158,19 @@ indent_style = space
 indent_size = 4
 insert_final_newline = true
 trim_trailing_whitespace = true
+
+[*.{bat,ps1,sln,slnx,vcxproj,filters,props,targets}]
+end_of_line = crlf
 ```
 
 ## 참고 자료
 
-- C99 Foreword: N1256의 [PDF 9쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=9), [PDF 10쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=10) ([7.2절](#선언-위치), [7.6절](#참-거짓-값), [7.11절](#초기화), [10.3절](#포인터-매개변수), [10.6절](#inline))
+- C99 Foreword: N1256의 [PDF 9쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=9), [PDF 10쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=10) ([7.2절](#선언-위치), [7.6절](#참-거짓-값), [7.11절](#초기화), [10.6절](#inline))
 - C99: [ISO/IEC 9899:1999](https://www.iso.org/standard/29237.html). WG14 공개 초안 N1256의 [§5.1.1.2](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=22), [§4](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=19), [Annex J.2](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=504) ([4.4절](#마지막-개행))
 - C99 §6.3.2.3: N1256의 [PDF 59쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=59) ([8.5절](#우선순위-괄호), [8.7절](#널-포인터와-참-거짓-판정))
 - C99 §6.5: N1256의 [PDF 79쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=79), [PDF 80쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=80) ([8.2절](#증감-연산자), [8.5절](#우선순위-괄호))
 - C99 §6.5.7: N1256의 [PDF 97쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=97) ([8.5절](#우선순위-괄호))
 - C99 §6.7.2.2: N1256의 [PDF 117쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=117) ([7.7절](#상수))
-- C99 §6.7.3.1: N1256의 [PDF 122쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=122) ([10.3절](#포인터-매개변수))
 - C99 §6.7.4: N1256의 [PDF 124쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=124) ([10.6절](#inline))
 - C99 §6.7.8: N1256의 [PDF 137쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=137), [PDF 139쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=139) ([7.11절](#초기화))
 - C99 §7.1.3: N1256의 [PDF 178쪽](https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf#page=178) ([6.10절](#예약된-식별자))
@@ -7002,7 +7206,7 @@ trim_trailing_whitespace = true
 - CMake 소스 [Modules/Compiler/MSVC-C.cmake](https://gitlab.kitware.com/cmake/cmake/-/blob/master/Modules/Compiler/MSVC-C.cmake) ([3.1절](#언어-표준))
 - Microsoft [Slim Reader/Writer (SRW) Locks](https://learn.microsoft.com/en-us/windows/win32/sync/slim-reader-writer--srw--locks), [InterlockedIncrement](https://learn.microsoft.com/en-us/windows/win32/api/winnt/nf-winnt-interlockedincrement) ([3.2절](#플랫폼-api))
 - clang-format [IncludeCategories](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#includecategories), [IncludeIsMainRegex](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#includeismainregex) ([14.1절](#clang-format))
-- clang-format [AlignEscapedNewlines](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignescapednewlines), [AlignTrailingComments](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#aligntrailingcomments), [AllowShortEnumsOnASingleLine](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortenumsonasingleline), [AllowShortFunctionsOnASingleLine](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortfunctionsonasingleline), [IndentPPDirectives](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentppdirectives), [PPIndentWidth](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#ppindentwidth) ([14.1절](#clang-format))
+- clang-format [AlignEscapedNewlines](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#alignescapednewlines), [AlignTrailingComments](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#aligntrailingcomments), [AllowShortEnumsOnASingleLine](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortenumsonasingleline), [AllowShortFunctionsOnASingleLine](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#allowshortfunctionsonasingleline), [IndentPPDirectives](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#indentppdirectives) ([14.1절](#clang-format))
 - clang-format [ColumnLimit](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#columnlimit), [DisableFormat](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#disableformat), [BasedOnStyle](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#basedonstyle), [BraceWrapping](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#bracewrapping), [InsertBraces](https://clang.llvm.org/docs/ClangFormatStyleOptions.html#insertbraces) ([14.1절](#clang-format))
 - clang-format [.clang-format-ignore](https://clang.llvm.org/docs/ClangFormat.html#clang-format-ignore) ([14.1절](#clang-format))
 - clang-tidy [bugprone-reserved-identifier](https://clang.llvm.org/extra/clang-tidy/checks/bugprone/reserved-identifier.html), [readability-identifier-naming](https://clang.llvm.org/extra/clang-tidy/checks/readability/identifier-naming.html), [readability-inconsistent-declaration-parameter-name](https://clang.llvm.org/extra/clang-tidy/checks/readability/inconsistent-declaration-parameter-name.html) ([14.2절](#clang-tidy))
