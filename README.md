@@ -22,7 +22,7 @@ One directory per post. Its kebab-case ASCII name is the URL slug: `ftrace-usage
 | `series` | string or string[] | no | `category/subcategory` such as `linux-kernel/net`; one tier (`bash`) is fine. The URL replaces `/` with `-`. A list puts the post in each series. |
 | `seriesOrder` | number or number[] | no | 1-based topical order (prerequisites first), not chronological. With a `series` list, a list of the same length: one order per series, in the same position. |
 
-Tags and series are separate namespaces. Writing rules: [CLAUDE.md](CLAUDE.md).
+Tags and series are separate namespaces. Writing rules: [docs/agent-guide.md](docs/agent-guide.md).
 
 Single branch `main`; roll back with `git revert`.
 
