@@ -2,5 +2,9 @@
   "title": "C 코딩 스타일",
   "date": "2026-11-17",
   "tags": ["c", "coding-style"],
-  "excerpt": "Linux와 크로스플랫폼 C 코드에 쓰는 코딩 규약"
+  "excerpt": "Linux와 크로스플랫폼 C 코드에 쓰는 코딩 규약",
+  "history": {
+    "repo": "https://github.com/yugeun-song/c-programming",
+    "path": "docs/coding-style.en.md"
+  }
 }

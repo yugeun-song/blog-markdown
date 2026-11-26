@@ -21,6 +21,7 @@ One directory per post. Its kebab-case ASCII name is the URL slug: `ftrace-usage
 | `excerpt` | string | yes | card text and search snippet |
 | `series` | string or string[] | no | `category/subcategory` such as `linux-kernel/net`; one tier (`bash`) is fine. The URL replaces `/` with `-`. A list puts the post in each series. |
 | `seriesOrder` | number or number[] | no | 1-based topical order (prerequisites first), not chronological. With a `series` list, a list of the same length: one order per series, in the same position. |
+| `history` | boolean or object | no | the change history under the post. Left out or `true`: the commits of this repository that changed the post's `index.md`. `{"repo": "https://github.com/<owner>/<name>", "path": "<file>"}`: the commits of that public repository's file, such as the original a post is converted from. `false`: no history. |
 
 Tags and series are separate namespaces. Writing rules: [docs/agent-guide.md](docs/agent-guide.md).
 
