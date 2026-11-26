@@ -471,8 +471,8 @@ static void record_hit(void)
 
 선택한 언어 표준 밖의 기능은 드러나게 쓴다.
 
-- GNU 확장 문법은 `__extension__`으로 감싼다.
-- 확장 키워드는 `__asm__`, `__typeof__`처럼 밑줄 철자로 쓴다. `-std=c11` 같은 ISO 표준 모드에서 `asm`은 키워드가 아니고, `typeof`는 C23 표준부터 키워드로 예약된다. 따라서, 그런 모드에서는 밑줄 없는 철자가 컴파일되지 않는다.
+- GNU 확장 문법(statement expression 등)은 `__extension__`으로 감싼다.
+- 기본 표준인 GNU11(`-std=gnu11`)에서는 인라인 어셈블리에 `asm`을 쓴다(리눅스 커널 관례와 같다). `-std=c11` 같은 순수 ISO 표준 모드를 고르거나 그런 모드에서 포함될 공개 헤더에서만 `__asm__`, `__typeof__`처럼 밑줄 철자를 쓴다.
 
 틀린 예:
 
@@ -485,20 +485,6 @@ static void record_hit(void)
     })
 ```
 
-```c
-static inline void compiler_barrier(void)
-{
-    asm volatile("" ::: "memory");
-}
-
-#define SWAP_VALUES(a, b)     \
-    do {                      \
-        typeof(a) tmp_ = (a); \
-        (a) = (b);            \
-        (b) = tmp_;           \
-    } while (0)
-```
-
 올바른 예:
 
 ```c
@@ -509,6 +495,15 @@ static inline void compiler_barrier(void)
         (a_ > b_) ? (a_ - b_) : (b_ - a_); \
     })
 ```
+
+```c
+static inline void compiler_barrier(void)
+{
+    asm volatile("" ::: "memory");
+}
+```
+
+올바른 예(순수 ISO 표준 모드에서 포함될 공개 헤더):
 
 ```c
 static inline void compiler_barrier(void)
@@ -2608,7 +2603,8 @@ static char get_path_separator(void)
 
 ### GCC/Clang 인라인 어셈블리
 
-인라인 어셈블리는 명령 하나를 문자열 하나에 쓴다. 마지막 문자열을 뺀 나머지 문자열의 끝에는 `\n\t`를 붙인다.
+- 기본 표준인 GNU11(`-std=gnu11`)으로 GCC와 Clang을 주로 쓰는 코드에서는 `asm`을 우선한다. `-std=c11`처럼 순수 ISO C 표준을 엄격하게 지켜야 하는 코드나 그런 모드에서 포함될 공개 헤더에서는 `__asm__`을 쓴다([3.3절](#확장-기능의-표시)).
+- 인라인 어셈블리는 명령 하나를 문자열 하나에 쓴다. 마지막 문자열을 뺀 나머지 문자열의 끝에는 `\n\t`를 붙인다.
 
 `\n\t`는 GCC 매뉴얼의 Extended Asm 절에 나오는 권장 구분자이다. `\n`은 명령 사이의 줄바꿈이다. `\t`는 컴파일러가 출력하는 어셈블리에서 명령을 명령 필드까지 들여쓰는 탭이다. 컴파일러는 asm 문의 마지막 명령 뒤에서 스스로 줄을 바꾼다. 따라서, 마지막 문자열에 `\n\t`를 붙이면 탭만 있는 줄이 하나 더 생긴다.
 
@@ -2619,10 +2615,10 @@ static inline uint32_t read_max_cpuid_leaf(void)
 {
     uint32_t leaf;
 
-    __asm__ volatile("xorl %%eax, %%eax; cpuid"
-                     : "=a"(leaf)
-                     :
-                     : "ebx", "ecx", "edx", "cc");
+    asm volatile("xorl %%eax, %%eax; cpuid"
+                 : "=a"(leaf)
+                 :
+                 : "ebx", "ecx", "edx", "cc");
     return leaf;
 }
 ```
@@ -2634,11 +2630,11 @@ static inline uint32_t read_max_cpuid_leaf(void)
 {
     uint32_t leaf;
 
-    __asm__ volatile("xorl %%eax, %%eax\n\t"
-                     "cpuid"
-                     : "=a"(leaf)
-                     :
-                     : "ebx", "ecx", "edx", "cc");
+    asm volatile("xorl %%eax, %%eax\n\t"
+                 "cpuid"
+                 : "=a"(leaf)
+                 :
+                 : "ebx", "ecx", "edx", "cc");
     return leaf;
 }
 ```
@@ -3165,7 +3161,7 @@ static size_t gs_buffer_size;
 
 ### Win32 API 심볼과 타입
 
-크로스플랫폼 코드를 개발할 때 Win32 API의 심볼과 타입 이름(`CreateFileW`, `HANDLE`, `SOCKET`)은 원래 철자로 쓴다. Win32 API의 이름을 다른 이름으로 감싸지 않는다. 직접 짓는 이름에는 Win32 API의 표기법을 따라 하지 않는다.
+크로스플랫폼 코드를 개발할 때 Win32 API의 심볼과 타입 이름(`CreateFileW`, `HANDLE`, `SOCKET`)은 원래 철자로 쓴다. Win32 API의 이름을 다른 이름으로 감싸지 않는다. 직접 짓는 이름에는 Win32 API의 표기법을 따라 하지 않는다. 다만 Windows 단독 프로젝트에서는 직접 짓는 이름에도 Windows 관례를 따라도 무방하다([1.1절](#적용-대상)).
 
 틀린 예:
 
@@ -3751,7 +3747,7 @@ static void print_extension(const char *file_name)
 - memory-mapped I/O
 - `setjmp` 이후에 읽는 지역 변수
 - 최적화를 막아야 하는 벤치마크 sink
-- 결과를 쓰지 않아도 실행되어야 하거나, 호출할 때마다 다시 실행되어야 하는 인라인 어셈블리(`__asm__ volatile`)
+- 결과를 쓰지 않아도 실행되어야 하거나, 호출할 때마다 다시 실행되어야 하는 인라인 어셈블리(`asm volatile`)
 
 스레드 사이의 동기화에는 `volatile`을 쓰지 않고, mutex나 atomic 연산을 쓴다.
 
@@ -3889,11 +3885,11 @@ static inline int read_hardware_random(uint64_t *mut_value)
 {
     unsigned char is_ok;
 
-    __asm__ volatile("rdrand %0\n\t"
-                     "setc %1"
-                     : "=&r"(*mut_value), "=qm"(is_ok)
-                     :
-                     : "cc");
+    asm volatile("rdrand %0\n\t"
+                 "setc %1"
+                 : "=&r"(*mut_value), "=qm"(is_ok)
+                 :
+                 : "cc");
     return (is_ok != 0) ? 0 : -1;
 }
 ```
@@ -6694,17 +6690,18 @@ static int fill_history(struct history *mut_history, size_t count, int initial)
         return -1;
     }
 
-    mut_history->entries = malloc(count * sizeof(*mut_history->entries));
-    if (mut_history->entries == NULL) {
+    int *entries = malloc(count * sizeof(*entries));
+    if (entries == NULL) {
         return -1;
     }
 
-    const int *end = mut_history->entries + count;
+    const int *end = entries + count;
 
-    for (int *entry = mut_history->entries; entry < end; ++entry) {
+    for (int *entry = entries; entry < end; ++entry) {
         *entry = initial;
     }
 
+    mut_history->entries = entries;
     mut_history->count = count;
     return 0;
 }
@@ -7081,7 +7078,7 @@ clang-tidy path/to/file.c -- -std=gnu11
 
 ### 컴파일러 경고
 
-- GCC와 GNU 드라이버 Clang(Windows용 `clang` 포함)은 `-Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security`로 빌드한다.
+- GCC와 GNU 드라이버 Clang(Windows용 `clang` 포함)은 `-Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security`로 빌드한다. GNU11(`-std=gnu11`)에서 `asm`을 쓸 때 Clang은 `-pedantic` 아래 `-Wlanguage-extension-token` 경고를 내므로 Clang 빌드와 `clangd`·`clang-tidy`에는 `-Wno-language-extension-token`을 덧붙인다.
 - MSVC는 `/W4`로 빌드한다. `/W4`에는 shadowing 경고 C4456, C4457, C4459가 들어 있다. MSVC에는 C용 `-pedantic`에 해당하는 옵션이 없다. 언어 확장을 끄는 `/Za`를 주면 컴파일러가 C89만 받아들인다.
 - clang-cl은 `/W4 -Wshadow /clang:-pedantic`으로 빌드한다. clang-cl에서 `/W4`를 주면 `-Wall -Wextra`만 켜진다.
 - unused 계열을 뺀 경고는 모두 고친다([13.2절](#unused-진단)).
@@ -7095,7 +7092,7 @@ unused 계열 진단만 모아 볼 때는 그 진단만 걸러 따로 검사한�
 
 ```sh
 gcc -std=gnu11 -Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security -Wno-unused-parameter -c foo.c
-clang -std=gnu11 -Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security -Wno-unused-parameter -c foo.c
+clang -std=gnu11 -Wall -Wextra -pedantic -Wshadow -Wformat -Werror=format-security -Wno-unused-parameter -Wno-language-extension-token -c foo.c
 ```
 
 올바른 예(MSVC와 clang-cl):
